@@ -1,0 +1,18 @@
+{
+  "name": "DarbarTech Group of Technology",
+  "short_name": "DarbarTech",
+  "description": "Hands-on computer training institute in Kathmandu, Nepal. 37 career-focused courses across 15 fields.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A1729",
+  "theme_color": "#15678E",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
