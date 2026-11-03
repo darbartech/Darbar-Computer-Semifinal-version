@@ -4,9 +4,10 @@ import { SectionHeading } from "@/components/common/SectionHeading";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { FAQAccordion } from "@/components/sections/FAQAccordion";
 import { buttonVariants } from "@/components/ui/button";
-import { buildMetadata, faqJsonLd } from "@/lib/seo";
+import { buildMetadata, faqJsonLd, serializeJsonLd } from "@/lib/seo";
 import { MessageSquare } from "lucide-react";
 import { listPublishedFaqs } from "@/server/dal/faq";
+import { getSiteSettings } from "@/server/dal/settings";
 
 function QuestionMark() {
   return (
@@ -16,12 +17,17 @@ function QuestionMark() {
   );
 }
 
-export const metadata = buildMetadata({
-  title: "Frequently Asked Questions",
-  path: "/faq",
-  description:
-    "Answers on admissions, fees, installments, certification, and batch scheduling at DarbarTech Kathmandu.",
-});
+export async function generateMetadata() {
+  return buildMetadata(
+    {
+      title: "Frequently Asked Questions",
+      path: "/faq",
+      description:
+        "Answers on admissions, fees, installments, certification, and batch scheduling at DarbarTech Kathmandu.",
+    },
+    await getSiteSettings()
+  );
+}
 
 type FAQItemLocal = { id: string; question: string; answer: string };
 type FAQCategoryLocal = { category: string; items: FAQItemLocal[] };
@@ -49,7 +55,7 @@ export default async function FAQPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
+          __html: serializeJsonLd(
             faqJsonLd(allFaqs.map((f) => ({ question: f.question, answer: f.answer })))
           ),
         }}
@@ -59,6 +65,7 @@ export default async function FAQPage() {
           <Breadcrumbs items={[{ label: "FAQ" }]} />
           <div className="mt-4">
             <SectionHeading
+              as="h1"
               eyebrow="Support"
               title="Frequently Asked Questions"
               description="Everything you want to know before enrolling — compiled from our most common student questions."

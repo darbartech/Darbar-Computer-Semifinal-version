@@ -37,8 +37,22 @@ export const NOINDEX_METADATA: Metadata["robots"] = {
   },
 };
 
-/** `/opengraph-image.png` is still the default social card. */
+/** `/opengraph-image` is the app-router social card route. */
 const DEFAULT_OG_IMAGE = SITE_CONFIG.ogImage;
+
+/**
+ * Serializes structured data for a `<script type="application/ld+json">` tag.
+ *
+ * `JSON.stringify` alone is unsafe here: an admin-editable string containing
+ * `</script>` would close the tag and inject markup. Escaping `<` (plus the JS
+ * line separators) keeps the payload inert while remaining valid JSON.
+ */
+export function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
 
 export function buildMetadata(
   overrides: Partial<Metadata> & { title: string; description?: string; path?: string; images?: string[] },

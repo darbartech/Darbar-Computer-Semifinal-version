@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Container } from "@/components/common/Container";
 import { buttonVariants } from "@/components/ui/button";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, NOINDEX_METADATA } from "@/lib/seo";
 import { Home, Compass, ArrowRight, Search } from "lucide-react";
 
 export const metadata = buildMetadata({
   title: "404 — Page Not Found",
-  path: "/404",
   description: "This page doesn't exist at Darbar Computer.",
+  robots: NOINDEX_METADATA,
 });
 
 export default function NotFound() {

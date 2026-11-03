@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { websiteJsonLd, orgJsonLd } from "@/lib/seo";
+import { websiteJsonLd, orgJsonLd, serializeJsonLd } from "@/lib/seo";
 import { getSiteSettings } from "@/server/dal/settings";
 
 export default async function VerifyLayout({
@@ -14,11 +14,11 @@ export default async function VerifyLayout({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd(settings)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(orgJsonLd(settings)) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd(settings)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteJsonLd(settings)) }}
       />
       <a
         href="#main-content"
@@ -28,8 +28,6 @@ export default async function VerifyLayout({
       </a>
       <Header
         siteName={settings.general.name}
-        phone={settings.contact.phone}
-        phoneHref={settings.contact.telHref}
         whatsappHref={settings.contact.whatsappHref}
         whatsappMessage={encodeURIComponent(
           `Hi ${settings.general.name}! I'd like to inquire about your courses.`

@@ -79,8 +79,7 @@ export const instituteInfo = {
       name: "Prashansa",
       role: "",
       specialty: "",
-      image:
-        "http://localhost:3000/uploads/darbar/admin/235b447d-a9d4-41ee-9953-7decfe2cacc4.jpg",
+      image: "",
       isPlaceholder: false,
     },
     {
@@ -88,8 +87,7 @@ export const instituteInfo = {
       name: "Mohan",
       role: "",
       specialty: "",
-      image:
-        "http://localhost:3000/uploads/darbar/admin/1c9c0090-3468-4a0a-bd6d-f72b845cdc96.jpg",
+      image: "",
       isPlaceholder: false,
     },
     {
@@ -97,8 +95,7 @@ export const instituteInfo = {
       name: "Niruta",
       role: "",
       specialty: "",
-      image:
-        "http://localhost:3000/uploads/darbar/admin/4b8e840e-b9d1-4ec1-a98b-23251bc677c6.png",
+      image: "",
       isPlaceholder: false,
     },
   ],

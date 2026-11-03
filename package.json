@@ -23,6 +23,10 @@
     "db:seed": "prisma db seed",
     "db:seed:test": "tsx --tsconfig scripts/tsconfig.scripts.json prisma/seed-test.ts",
     "db:studio": "prisma studio",
+    "db:init": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-db.ps1 init",
+    "db:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-db.ps1 start -Port 5433",
+    "db:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-db.ps1 stop",
+    "db:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-db.ps1 status -Port 5433",
     "verify:seed": "tsx --tsconfig scripts/tsconfig.scripts.json scripts/verify-seed.ts"
   },
   "dependencies": {
@@ -43,7 +47,7 @@
     "gray-matter": "^4.0.3",
     "jsqr": "^1.4.0",
     "lucide-react": "^1.27.0",
-    "next": "^16.2.12",
+    "next": "^16.4.3",
     "pdf-lib": "^1.17.1",
     "pg": "^8.23.1",
     "playwright": "^1.63.0",
@@ -70,7 +74,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.2.12",
+    "eslint-config-next": "^16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

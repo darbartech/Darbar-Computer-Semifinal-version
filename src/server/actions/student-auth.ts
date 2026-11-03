@@ -9,6 +9,7 @@ import { isRedirectError } from "@/server/session";
 import { createStudentAccount } from "@/server/dal/students";
 import { findUserByEmail } from "@/server/dal/users";
 import { studentLoginSchema, studentRegisterSchema } from "@/lib/validators/student";
+import { allow, getClientIpHash, hashIp } from "@/server/services/rate-limit";
 
 /**
  * Student-portal authentication.
@@ -35,8 +36,18 @@ export async function registerStudent(input: unknown): Promise<StudentAuthResult
     }
     const { name, email, phone, password } = parsed.data;
 
+    // Registration is public and credential creation is expensive, so it gets
+    // its own per-IP throttle.
+    if (!(await allow(`register:ip:${await getClientIpHash()}`, { max: 5, windowMinutes: 60 }))) {
+      return { ok: false, error: GENERIC_REGISTER_ERROR };
+    }
+
     if (await findUserByEmail(email)) {
-      return { ok: false, error: "An account with this email already exists" };
+      // Never confirm whether an email is already registered.
+      return {
+        ok: false,
+        error: "We couldn't create this account. If you already have one, please sign in.",
+      };
     }
 
     const passwordHash = await hashPassword(password);
@@ -81,6 +92,18 @@ export async function loginStudent(input: unknown): Promise<StudentAuthResult> {
     }
     const { email, password } = parsed.data;
 
+    const ipHash = await getClientIpHash();
+    const [ipAllowed, emailAllowed] = await Promise.all([
+      allow(`student-signin:ip:${ipHash}`, { max: 10, windowMinutes: 15 }),
+      allow(`student-signin:email:${hashIp(`student-signin-email:${email}`)}`, {
+        max: 5,
+        windowMinutes: 15,
+      }),
+    ]);
+    if (!ipAllowed || !emailAllowed) {
+      return { ok: false, error: GENERIC_LOGIN_ERROR };
+    }
+
     const signIn = await auth.api.signInEmail({
       body: { email, password },
       headers: await headers(),
@@ -88,11 +111,15 @@ export async function loginStudent(input: unknown): Promise<StudentAuthResult> {
     // The cookie signed in above arrives as a *response* header, so a follow-up
     // getSession() on the request headers cannot see it yet. Read the role off
     // the sign-in response instead (`role` is a better-auth additionalField).
-    const role = (signIn?.user as { role?: string } | undefined)?.role;
+    const account = signIn?.user as
+      | { role?: string; isActive?: boolean }
+      | undefined;
+    const role = account?.role;
 
     // A staff member who signs in here would otherwise land in a portal with no
-    // data; sign them back out and point them at the admin sign-in.
-    if (!signIn?.user || role !== "STUDENT") {
+    // data; sign them back out and point them at the admin sign-in. Inactive
+    // accounts are rejected the same way.
+    if (!signIn?.user || role !== "STUDENT" || account?.isActive === false) {
       await auth.api.signOut({ headers: await headers() });
       return {
         ok: false,

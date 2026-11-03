@@ -6,19 +6,26 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/common/Badge'
-import { Calendar, Clock, ArrowRight, User } from 'lucide-react'
+import { Calendar, Clock, ArrowRight, User, Newspaper } from 'lucide-react'
 import { listPublishedBlogPosts } from '@/server/dal/blog'
+import { getSiteSettings } from '@/server/dal/settings'
 import { buildMetadata } from '@/lib/seo'
 import { cn } from '@/lib/utils'
 
 type BlogPostVM = Awaited<ReturnType<typeof listPublishedBlogPosts>>[number]
 type TagVM = BlogPostVM['tags'][number]
 
-export const metadata = buildMetadata({
-  title: 'Career & Tech Guides for Nepal',
-  path: '/blog',
-  description: 'Career guidance, course comparisons, and success stories to help you choose and grow your tech career in Nepal.',
-})
+export async function generateMetadata() {
+  return buildMetadata(
+    {
+      title: 'Career & Tech Guides for Nepal',
+      path: '/blog',
+      description:
+        'Career guidance, course comparisons, and success stories to help you choose and grow your tech career in Nepal.',
+    },
+    await getSiteSettings()
+  )
+}
 
 export default async function BlogPage() {
   const posts = await listPublishedBlogPosts()
@@ -28,6 +35,7 @@ export default async function BlogPage() {
         <Container size="xl" className="pt-4 pb-8 sm:pb-12">
           <Breadcrumbs items={[{ label: "Blog" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="Insights"
             title="Career & Tech Guides for Nepal"
             description="Career guidance, course comparisons, and success stories to help you choose and grow your tech career in Nepal."
@@ -56,13 +64,22 @@ export default async function BlogPage() {
                     href={`/blog/${post.slug}`}
                     className="relative block overflow-hidden aspect-[16/10] bg-neutral-100"
                   >
-                    <Image
-                      src={post.cover?.url ?? "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=modern%20computer%20education%20technology%20blog%20cover%20with%20Nepali%20tech%20theme&image_size=landscape_16_9"}
-                      alt={post.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    {post.cover?.url ? (
+                      <Image
+                        src={post.cover.url}
+                        alt={post.title}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 via-neutral-50 to-secondary/10"
+                        aria-hidden="true"
+                      >
+                        <Newspaper className="size-10 text-primary/30" />
+                      </div>
+                    )}
                   </Link>
                   <CardContent className="flex-1 pt-5 pb-5 flex flex-col">
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
@@ -96,7 +113,7 @@ export default async function BlogPage() {
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="size-3.5 text-primary" aria-hidden="true" />
-                        {post.readingMinutes} min
+                        {post.readingMinutes ?? 0} min read
                       </span>
                     </div>
                   </CardContent>

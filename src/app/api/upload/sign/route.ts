@@ -60,8 +60,11 @@ export async function POST(request: Request) {
     return NextResponse.json(signed, { status: 200 });
   } catch (error) {
     if (error instanceof StorageNotConfiguredError) {
+      // The thrown message names the missing env vars. That is useful in the
+      // server log and pointless (slightly leaky) in a browser response.
+      console.error("[upload/sign] storage not configured", error.message);
       return NextResponse.json(
-        { error: error.message },
+        { error: "Image hosting is not configured. Please contact the site administrator." },
         { status: 503 }
       );
     }

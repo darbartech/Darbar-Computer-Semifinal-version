@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/server/session";
 import { can } from "@/server/permissions";
 import { NOINDEX_METADATA } from "@/lib/seo";
@@ -19,6 +20,9 @@ export default async function AdminProtectedLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
+  // Student accounts share the session store but have no staff permission.
+  // Without this gate they reach admin pages and hit a raw FORBIDDEN error.
+  if (!can(user.role, "dashboard.view")) redirect("/admin/login");
   const settings = await getSiteSettings();
   // Sidebar badge: links students handed in that no instructor has judged yet.
   const awaitingReview = can(user.role, "assignment.read")

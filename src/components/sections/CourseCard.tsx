@@ -120,21 +120,24 @@ export function CourseCard({ course }: { course: Course }) {
         </div>
       </CardContent>
 
-      <CardFooter className="pt-3 pb-5 flex items-end justify-between gap-3 border-t border-neutral-100 mt-2">
-        <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+      <CardFooter className="mt-auto flex-col items-stretch gap-2.5 bg-primary px-6 pt-4 pb-5 text-white">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-white/70">
             Next Batch
           </span>
-          <span className="text-sm font-semibold text-neutral-900 truncate">
+          <span className="truncate text-sm font-semibold text-white">
             {course.newBatch}
           </span>
         </div>
         <Link
           href={`/courses/${course.slug}`}
-          className={cn(buttonVariants({ size: "sm" }), "shrink-0 group/btn")}
+          className={cn(
+            buttonVariants({ size: "sm" }),
+            "w-full min-w-0 group/btn bg-white text-primary shadow-none hover:bg-white/90 hover:shadow-none active:bg-white/80"
+          )}
         >
-          {course.cta ?? "View Details"}
-          <ArrowUpRight className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" aria-hidden="true" />
+          <span className="truncate">{course.cta ?? "View Details"}</span>
+          <ArrowUpRight className="size-3.5 shrink-0 transition-transform duration-200 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" aria-hidden="true" />
         </Link>
       </CardFooter>
     </Card>

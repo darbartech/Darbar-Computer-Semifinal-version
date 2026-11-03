@@ -43,7 +43,7 @@ export const HERO_POPUP_IMAGE_FALLBACK =
 export const SETTINGS_MEDIA_FOLDER = "site";
 
 /** Fallback `siteUrl` matches the static `SITE_CONFIG.url` default exactly. */
-const DEFAULT_SITE_URL = "http://localhost:3000";
+const DEFAULT_SITE_URL = "http://localhost:3001";
 
 const general: GeneralSettings = {
   name: "DarbarTech",
@@ -62,7 +62,7 @@ const general: GeneralSettings = {
  * copy previously hardcoded in `src/components/sections/Hero.tsx`.
  */
 const hero: HeroSettings = {
-  eyebrow: "37 Career-Focused· **Courses** Certified Trainers.",
+  eyebrow: "37 Career-Focused **Courses** · Certified Trainers",
   title: "Learn the Digital\nSkills That **Actually**\nGet You Hired.",
   subtitle:
     "DarbarTech’s hands-on training turns beginners into job-ready professionals. Small batches, flexible morning-to-evening timings, and trainers with real industry experience.",

@@ -21,6 +21,7 @@ export default function StudentLoginPage() {
         <Container size="xl" className="pt-4 pb-8 sm:pb-10">
           <Breadcrumbs items={[{ label: "Student" }, { label: "Login" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="Student Portal"
             title="Student Login"
             description="Sign in to continue. New here? Create your student account in minutes."

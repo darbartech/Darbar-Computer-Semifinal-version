@@ -42,7 +42,17 @@ const benefits = [
   "Transparent fees & installment options explained",
 ];
 
-export default async function AdmissionInquiryPage() {
+export default async function AdmissionInquiryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    course?: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+  }>;
+}) {
+  const params = await searchParams;
   // Published courses come from the DAL; the client form only receives props.
   const { contact, hours, general } = await getSiteSettings();
   const courses = await listPublishedCourses();
@@ -69,6 +79,7 @@ export default async function AdmissionInquiryPage() {
             </Link>
           </div>
           <SectionHeading
+            as="h1"
             eyebrow="Admissions"
             title="Start Your Journey — Send an Inquiry"
             description="Tell us about your goals and we'll match you with the right course. Free counseling, free demo, no enrollment pressure."
@@ -98,7 +109,16 @@ export default async function AdmissionInquiryPage() {
                     </Badge>
                   </div>
                   <Suspense fallback={<div className="py-12 text-center text-neutral-500">Loading form...</div>}>
-                    <AdmissionInquiryForm courses={courseOptions} siteName={general.name} />
+                    <AdmissionInquiryForm
+                      courses={courseOptions}
+                      siteName={general.name}
+                      initialValues={{
+                        course: params.course ?? "",
+                        utmSource: params.utm_source ?? "",
+                        utmMedium: params.utm_medium ?? "",
+                        utmCampaign: params.utm_campaign ?? "",
+                      }}
+                    />
                   </Suspense>
                 </CardContent>
               </Card>

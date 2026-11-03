@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { getSiteSettings } from "@/server/dal/settings";
+import { SITE_CONFIG } from "@/lib/constants";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -46,9 +47,8 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: general.name,
     publisher: general.name,
     applicationName: general.name,
-    alternates: {
-      canonical: "/",
-    },
+    // No site-wide canonical: it would claim every URL without its own
+    // `alternates.canonical` (e.g. blog posts, gallery) is a duplicate of "/".
     manifest: "/site.webmanifest",
     openGraph: {
       type: "website",
@@ -57,6 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: general.name,
       description: general.description,
       locale: "en_US",
+      images: [SITE_CONFIG.ogImage],
     },
     twitter: {
       card: "summary_large_image",
@@ -64,6 +65,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: general.description,
       creator: general.twitterHandle,
       site: general.twitterHandle,
+      images: [SITE_CONFIG.ogImage],
     },
     robots: {
       index: true,
@@ -102,7 +104,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable} data-scroll-behavior="smooth">
+    // Browser extensions (e.g. CRXLauncher) inject attributes such as
+    // `crxlauncher` onto <html> before React hydrates, which React reports as a
+    // hydration mismatch. `suppressHydrationWarning` only covers this element's
+    // own attributes — child mismatches are still reported.
+    <html
+      lang="en"
+      className={inter.variable}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="min-h-dvh flex flex-col bg-background antialiased">
         <ToastProvider>{children}</ToastProvider>
       </body>

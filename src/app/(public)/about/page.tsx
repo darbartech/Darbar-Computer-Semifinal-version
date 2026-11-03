@@ -10,14 +10,13 @@ import {
   Target,
   Eye,
   CheckCircle2,
-  UserCircle,
   ArrowRight,
   Award,
   Monitor,
   BookOpen,
   Users,
 } from "lucide-react";
-import { buildMetadata, orgJsonLd } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/server/dal/settings";
 import { listPublishedTeam } from "@/server/dal/team";
 import { cn } from "@/lib/utils";
@@ -46,21 +45,17 @@ export default async function AboutPage() {
     role: m.role,
     specialty: m.bio ?? m.specialty ?? "",
     image: m.photo?.url ?? null,
-    isPlaceholder: !m.photo,
   }));
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd(settings)) }}
-      />
       <div className="bg-neutral-50 border-b border-neutral-200">
       <Container size="xl" className="pt-4 pb-8 sm:pb-12">
         <Breadcrumbs
           items={[{ label: "About Us" }]}
         />
         <SectionHeading
+          as="h1"
           eyebrow="About Us"
           title={general.tagline}
           description={`Get to know ${general.name}: our story, values, trainers, and the educational philosophy that guides every course we teach.`}
@@ -162,30 +157,38 @@ export default async function AboutPage() {
           {teamMembers.map((member) => (
             <Card key={member.id} className="overflow-hidden text-center group">
               <div className="relative aspect-square bg-neutral-100 overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-                  <div className="text-center">
-                    <UserCircle className="size-20 mx-auto text-neutral-300" />
-                    {member.isPlaceholder && (
-                      <Badge variant="outline" className="mt-2 text-[10px]">PHOTO COMING SOON</Badge>
-                    )}
-                  </div>
-                </div>
-                {member.image && (
+                {member.image ? (
                   <Image
                     src={member.image}
-                    alt={`${member.name} — ${member.role}`}
+                    alt={`${member.name}${member.role ? ` — ${member.role}` : ""}`}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105 bg-neutral-100"
                   />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                    <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-2xl font-semibold text-primary">
+                      {member.name
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join("")
+                        .toUpperCase()}
+                    </span>
+                  </div>
                 )}
               </div>
               <CardContent className="p-5">
                 <h3 className="font-semibold text-neutral-900">{member.name}</h3>
-                <p className="text-sm font-medium text-primary">{member.role}</p>
-                <p className="mt-1 text-xs text-neutral-500 leading-relaxed">
-                  {member.specialty}
-                </p>
+                {member.role && (
+                  <p className="text-sm font-medium text-primary">{member.role}</p>
+                )}
+                {member.specialty && (
+                  <p className="mt-1 text-xs text-neutral-500 leading-relaxed">
+                    {member.specialty}
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}

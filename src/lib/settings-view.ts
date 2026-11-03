@@ -31,10 +31,12 @@ import {
  * Layering, lowest priority first (docs/07 §1: "env overrides become fallbacks
  * only"):
  *
- *   `SETTING_DEFAULTS` literals → `NEXT_PUBLIC_*` env overrides → the DB row
+ *   `SETTING_DEFAULTS` literals → the DB row
  *
- * A row that fails its Zod schema is treated as absent (and reported through
- * `onInvalid`), because one bad JSON blob must never take the whole site down.
+ * `NEXT_PUBLIC_SITE_URL` is the one exception: it always wins for
+ * `general.siteUrl`, because canonical URLs and auth redirects must follow the
+ * environment the app is actually deployed to, not a value an admin may have
+ * saved while developing against localhost.
  */
 
 /** The minimum a `SiteSetting` read has to provide. */
@@ -160,7 +162,13 @@ export function resolveSiteSettings(
       : defaults[key];
   }
 
-  const general = pick("general");
+  const generalFromDb = pick("general");
+  // Deployment URL beats an admin-saved value: a DB row seeded on a laptop must
+  // never leak `localhost` into production canonicals, sitemaps or redirects.
+  const envSiteUrl = env.NEXT_PUBLIC_SITE_URL?.trim();
+  const general = envSiteUrl
+    ? { ...generalFromDb, siteUrl: envSiteUrl.replace(/\/+$/, "") }
+    : generalFromDb;
   const hero = pick("hero");
   const contact = pick("contact");
   const about = pick("about");

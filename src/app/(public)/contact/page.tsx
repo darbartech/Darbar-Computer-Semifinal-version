@@ -6,7 +6,6 @@ import { SectionHeading } from "@/components/common/SectionHeading";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/common/Badge";
 import { ContactForm } from "@/components/forms/ContactForm";
 import {
   MapPin,
@@ -47,6 +46,7 @@ export default async function ContactPage() {
         <Container size="xl" className="pt-4 pb-8 sm:pb-10">
           <Breadcrumbs items={[{ label: "Contact Us" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="Get in Touch"
             title="We'd Love to Hear From You"
             description="Questions about courses, enrollment, corporate training, partnerships, or anything else? Reach out through any channel below — we respond within one business day."
@@ -141,7 +141,6 @@ export default async function ContactPage() {
               />
               <div className="absolute inset-0 z-10 flex items-center justify-center p-4 sm:p-6">
                 <div className="text-center p-5 sm:p-6 rounded-xl bg-white/90 backdrop-blur-sm max-w-md">
-                  <Badge variant="outline" className="mb-3">PLACEHOLDER MAP EMBED</Badge>
                   <p className="text-sm font-medium text-neutral-900 leading-relaxed">
                     {contact.address}
                   </p>

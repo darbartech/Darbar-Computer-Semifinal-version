@@ -49,10 +49,10 @@ function FooterContactRow({
         {icon}
       </div>
       <div className="pt-0.5 min-w-0 flex-1">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-white">
           {label}
         </div>
-        <div className="mt-1 text-[13.5px] leading-relaxed text-neutral-200">{children}</div>
+        <div className="mt-1 text-[13.5px] leading-relaxed text-white">{children}</div>
       </div>
     </div>
   );
@@ -68,7 +68,7 @@ function FooterMetaLink({
   return (
     <a
       href={href}
-      className="inline-flex items-center min-h-[28px] text-neutral-200 hover:text-white/90 transition-colors duration-200 break-words"
+      className="inline-flex items-center min-h-[28px] text-white hover:text-white/90 transition-colors duration-200 break-words"
     >
       {children}
     </a>
@@ -78,6 +78,7 @@ function FooterMetaLink({
 function FooterColumnHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 mb-4 sm:mb-5">
+      <span className="h-px flex-1 bg-gradient-to-l from-primary/60 via-primary/20 to-transparent" aria-hidden="true" />
       <h3 className="text-[13px] font-bold text-white uppercase tracking-[0.12em]">
         {children}
       </h3>
@@ -98,7 +99,7 @@ function FooterLink({
   className?: string;
 }) {
   const classes = cn(
-    "group/link relative inline-flex w-fit items-center min-h-[34px] py-0.5 text-[13.5px] text-neutral-400 transition-all duration-200 ease-out",
+    "group/link relative inline-flex w-fit items-center min-h-[34px] py-0.5 text-[13.5px] text-white transition-all duration-200 ease-out",
     "hover:text-white",
     className
   );
@@ -169,7 +170,7 @@ export async function Footer({ settings }: FooterProps) {
 
   return (
     <footer
-      className="relative isolate overflow-hidden bg-[#0A1729] text-neutral-300 mt-auto"
+      className="relative isolate overflow-hidden bg-[#0A1729] text-white mt-auto"
       role="contentinfo"
     >
       <div
@@ -196,8 +197,8 @@ export async function Footer({ settings }: FooterProps) {
             <Link href="/" className="inline-flex items-center gap-2 mb-5 group/logo">
               <DarbarTechLogo size="lg" variant="dark" logoUrl={general.logoUrl} alt={general.name} />
             </Link>
-            <p className="text-[13.5px] leading-relaxed text-neutral-400 max-w-md mb-6 text-balance">
-              <span className="font-semibold text-neutral-200">{general.tagline}.</span>{" "}
+            <p className="text-[13.5px] leading-relaxed text-white max-w-md mb-6 text-balance">
+              <span className="font-semibold text-white">{general.tagline}.</span>{" "}
               Hands-on computer training in Kathmandu with career-focused programs in programming, web development, AI, design, networking, and digital marketing.
             </p>
 
@@ -213,7 +214,7 @@ export async function Footer({ settings }: FooterProps) {
                         rel={action.label === "WhatsApp" ? "noopener noreferrer nofollow" : undefined}
                         className={cn(
                           "inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5",
-                          "text-[13px] font-semibold text-neutral-200 transition-all duration-200",
+                          "text-[13px] font-semibold text-white transition-all duration-200",
                           "hover:border-primary/40 hover:bg-white/[0.06] hover:text-white"
                         )}
                       >
@@ -225,12 +226,12 @@ export async function Footer({ settings }: FooterProps) {
                   <div className="h-px w-full bg-white/10" aria-hidden="true" />
                   <FooterContactRow icon={<MapPin className="size-4" aria-hidden="true" />} label="Campus">
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-neutral-200">{contact.address}</span>
+                      <span className="text-white">{contact.address}</span>
                       <a
                         href={contact.mapsHref}
                         target="_blank"
                         rel="noopener noreferrer nofollow"
-                        className="inline-flex w-fit items-center gap-2 text-[12px] font-semibold text-primary/90 hover:text-primary transition-colors duration-200"
+                        className="inline-flex w-fit items-center gap-2 text-[12px] font-semibold text-white hover:text-white/80 transition-colors duration-200"
                       >
                         Open in Google Maps <ArrowRight className="size-3.5" aria-hidden="true" />
                       </a>
@@ -244,8 +245,8 @@ export async function Footer({ settings }: FooterProps) {
                           key={i}
                           className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5"
                         >
-                          <span className="font-medium text-neutral-200">{h.day}</span>
-                          <span className="text-neutral-400 text-right whitespace-nowrap">{h.time}</span>
+                          <span className="font-medium text-white">{h.day}</span>
+                          <span className="text-white text-right whitespace-nowrap">{h.time}</span>
                         </li>
                       ))}
                     </ul>
@@ -255,7 +256,7 @@ export async function Footer({ settings }: FooterProps) {
             </div>
 
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500 mb-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white mb-3">
                 Follow us
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
@@ -268,7 +269,7 @@ export async function Footer({ settings }: FooterProps) {
                       target="_blank"
                       rel="noopener noreferrer nofollow"
                       aria-label={`${general.name} on ${s.name}`}
-                      className="group/social flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-neutral-400 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:text-white"
+                      className="group/social flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:text-white"
                     >
                       <Icon className="size-[17px]" aria-hidden="true" />
                     </a>
@@ -302,7 +303,7 @@ export async function Footer({ settings }: FooterProps) {
             </ul>
             <Link
               href="/courses"
-              className="group/all inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-[13px] font-semibold text-primary transition-all duration-200 ease-out hover:border-primary/50 hover:bg-primary hover:text-white hover:shadow-md hover:shadow-primary/20"
+              className="group/all inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 ease-out hover:border-primary/50 hover:bg-primary hover:text-white hover:shadow-md hover:shadow-primary/20"
             >
               Explore all courses
               <ArrowRight
@@ -316,43 +317,43 @@ export async function Footer({ settings }: FooterProps) {
         <Separator className="my-7 sm:my-9 border-white/8" />
 
         <div className="flex flex-col-reverse items-start gap-5 sm:gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-neutral-500 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-white w-full sm:w-auto">
             <Link
               href="/about"
-              className="hover:text-neutral-300 min-h-[30px] inline-flex items-center transition-colors duration-200"
+              className="hover:text-white/80 min-h-[30px] inline-flex items-center transition-colors duration-200"
             >
               About Us
             </Link>
             <span className="h-3.5 w-px bg-white/10" aria-hidden="true" />
             <Link
               href="/faq"
-              className="hover:text-neutral-300 min-h-[30px] inline-flex items-center transition-colors duration-200"
+              className="hover:text-white/80 min-h-[30px] inline-flex items-center transition-colors duration-200"
             >
               FAQ
             </Link>
             <span className="h-3.5 w-px bg-white/10" aria-hidden="true" />
             <Link
               href="/contact"
-              className="hover:text-neutral-300 min-h-[30px] inline-flex items-center transition-colors duration-200"
+              className="hover:text-white/80 min-h-[30px] inline-flex items-center transition-colors duration-200"
             >
               Contact
             </Link>
             <span className="h-3.5 w-px bg-white/10" aria-hidden="true" />
             <Link
               href="/sitemap.xml"
-              className="hover:text-neutral-300 min-h-[30px] inline-flex items-center transition-colors duration-200"
+              className="hover:text-white/80 min-h-[30px] inline-flex items-center transition-colors duration-200"
             >
               Sitemap
             </Link>
             <span className="h-3.5 w-px bg-white/10" aria-hidden="true" />
             <a
               href="#main-content"
-              className="hover:text-neutral-300 min-h-[30px] inline-flex items-center transition-colors duration-200"
+              className="hover:text-white/80 min-h-[30px] inline-flex items-center transition-colors duration-200"
             >
               Back to top
             </a>
           </div>
-          <div className="text-[12px] text-neutral-500 leading-relaxed flex flex-wrap items-center gap-2">
+          <div className="text-[12px] text-white leading-relaxed flex flex-wrap items-center gap-2">
             © {year} {general.name}. All rights reserved.
           </div>
         </div>

@@ -7,7 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/common/Badge";
 import { Container } from "@/components/common/Container";
 import { getPublicPortfolioBySlug } from "@/server/dal/students";
+import { getSiteSettings } from "@/server/dal/settings";
 import { formatDate } from "@/lib/format";
+import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -15,21 +17,23 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const portfolio = await getPublicPortfolioBySlug(slug);
+  const [portfolio, settings] = await Promise.all([
+    getPublicPortfolioBySlug(slug),
+    getSiteSettings(),
+  ]);
 
   if (!portfolio) {
-    return { title: "Portfolio not found" };
+    return buildMetadata({ title: "Portfolio not found" }, settings);
   }
 
-  return {
-    title: `${portfolio.name} · Student portfolio`,
-    description: portfolio.headline ?? "Student portfolio on DarbarTech",
-    openGraph: {
-      title: `${portfolio.name} · Student portfolio`,
-      description: portfolio.headline ?? "Student portfolio on DarbarTech",
-      type: "profile",
+  return buildMetadata(
+    {
+      title: `${portfolio.name} — Student Portfolio`,
+      description: portfolio.headline ?? `Student portfolio of ${portfolio.name} on DarbarTech.`,
+      path: `/portfolio/${portfolio.slug}`,
     },
-  };
+    settings
+  );
 }
 
 export default async function PublicPortfolioPage({

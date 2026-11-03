@@ -21,12 +21,23 @@ export async function generateMetadata() {
  * client component as props (docs/06 §3). The read is tagged `courses`, so an
  * admin save is visible on the next visit.
  */
-export default async function CoursesPage() {
+export default async function CoursesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; level?: string; search?: string }>;
+}) {
+  const params = await searchParams;
   const [courses, categoryGroups, { everyCourseIncludes }] = await Promise.all([
     listPublishedCourses(),
     listCategoryGroups(),
     getSiteSettings(),
   ]);
+
+  const initialFilters = {
+    search: params.search ?? "",
+    categoryGroup: params.category ?? "All",
+    level: params.level ?? "All",
+  };
 
   return (
     <Suspense
@@ -37,9 +48,11 @@ export default async function CoursesPage() {
       }
     >
       <CoursesClient
+        key={`${initialFilters.categoryGroup}|${initialFilters.level}|${initialFilters.search}`}
         courses={courses}
         categoryGroups={categoryGroups}
         everyCourseIncludes={everyCourseIncludes}
+        initialFilters={initialFilters}
       />
     </Suspense>
   );

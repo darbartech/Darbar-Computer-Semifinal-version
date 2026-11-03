@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Phone, MessageCircle } from "lucide-react";
+import { Menu, MessageCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -20,8 +20,6 @@ import { DarbarTechLogo } from "@/components/common/DarbarTechLogo";
 export type HeaderProps = {
   siteName: string;
   logoUrl?: string | null;
-  phone: string;
-  phoneHref: string;
   whatsappHref: string;
   whatsappMessage: string;
 };
@@ -29,8 +27,6 @@ export type HeaderProps = {
 export function Header({
   siteName,
   logoUrl,
-  phone,
-  phoneHref,
   whatsappHref,
   whatsappMessage,
 }: HeaderProps) {
@@ -55,7 +51,7 @@ export function Header({
   return (
     <header
       className={cn(
-        "sticky top-0 z-[80] w-full border-b border-[#222F5D]/6 bg-[#FAFCFF]/80 backdrop-blur-md supports-[backdrop-filter]:bg-[#FAFCFF]/55 transition-all duration-300 ease-out",
+        "sticky top-0 z-[80] w-full border-b border-[#222F5D]/6 bg-[#FAFCFF] transition-shadow duration-300 ease-out",
         scrolled && "shadow-[0_8px_28px_-12px_rgba(34,47,93,0.18)] ring-1 ring-[#222F5D]/4"
       )}
       role="banner"
@@ -94,14 +90,6 @@ export function Header({
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <a
-              href={phoneHref}
-              className="hidden md:inline-flex items-center gap-1.5 h-11 px-3 rounded-xl text-sm font-medium text-neutral-700 hover:text-primary hover:bg-neutral-50 transition-colors duration-200"
-              aria-label={`Call ${phone}`}
-            >
-              <Phone className="size-4" aria-hidden="true" />
-              <span className="hidden xl:inline">{phone}</span>
-            </a>
             <a
               href={waLink}
               target="_blank"

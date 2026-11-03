@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ADMIN_LOGIN_PATH, SESSION_COOKIE_NAME } from "@/server/constants";
+import { ADMIN_LOGIN_PATH, SECURE_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME } from "@/server/constants";
 
 /**
  * Convenience redirect only (docs/02 §4 layer 1). This is NOT the security
@@ -20,7 +20,11 @@ export async function proxy(req: NextRequest) {
   const isLoginRoute = path === ADMIN_LOGIN_PATH;
 
   if (isAdminRoute && !isLoginRoute) {
-    const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME);
+    // Production uses `__Secure-` prefixed cookies; checking only the dev name
+    // would bounce every signed-in staff member back to the login page.
+    const sessionCookie =
+      req.cookies.get(SECURE_SESSION_COOKIE_NAME) ??
+      req.cookies.get(SESSION_COOKIE_NAME);
 
     if (!sessionCookie?.value) {
       const loginUrl = new URL(ADMIN_LOGIN_PATH, nextUrl);

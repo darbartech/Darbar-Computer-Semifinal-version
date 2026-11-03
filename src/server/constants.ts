@@ -17,6 +17,12 @@ export const AUTH_COOKIE_PREFIX = "darbar_auth";
  */
 export const SESSION_COOKIE_NAME = `${AUTH_COOKIE_PREFIX}.session_token`;
 
+/**
+ * With `advanced.useSecureCookies` (production) Better Auth adds the
+ * `__Secure-` prefix, so proxy.ts must look for both names.
+ */
+export const SECURE_SESSION_COOKIE_NAME = `__Secure-${SESSION_COOKIE_NAME}`;
+
 /** 7 days sliding expiry (docs/08 §1). */
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 

@@ -53,14 +53,19 @@ const contentSecurityPolicy = [
   "frame-src 'self' https://www.google.com https://maps.google.com https://challenges.cloudflare.com",
   "media-src 'self' https://res.cloudinary.com",
   "manifest-src 'self'",
-  isProduction ? "upgrade-insecure-requests" : null,
+  // No `upgrade-insecure-requests`: browsers ignore it in a report-only policy,
+  // and HSTS below covers the upgrade in production.
 ]
-  .filter(Boolean)
   .join("; ");
 
 const baseSecurityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Nothing on this site is meant to be framed by another origin, so deny it
+  // everywhere — not just under /admin. `frame-ancestors` in the CSP already
+  // says this, but X-Frame-Options is the belt to that suspenders for clients
+  // that ignore CSP.
+  { key: "X-Frame-Options", value: "DENY" },
   {
     key: "Permissions-Policy",
     // Geolocation is only used by the campus map; camera/microphone/payment are
@@ -72,13 +77,14 @@ const baseSecurityHeaders = [
 ];
 
 // The admin surface is the crown jewel: never frameable, and never sniffed.
-const adminSecurityHeaders = [
-  ...baseSecurityHeaders,
-  { key: "X-Frame-Options", value: "DENY" },
-];
+const adminSecurityHeaders = [...baseSecurityHeaders];
 
 const nextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+  // Turbopack blocks HMR/dev-asset requests whose Origin host is not the host
+  // the server was started with. We start on `localhost` and often open the
+  // site at the IPv4 literal, so allow that hostname (no scheme or port).
+  allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [
       { source: "/:path*", headers: baseSecurityHeaders },
@@ -116,12 +122,6 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "coresg-normal.trae.ai",
-        port: "",
-        pathname: "/api/ide/v1/text_to_image**",
-      },
-      {
-        protocol: "https",
         hostname: "images.pexels.com",
       },
       {
@@ -135,6 +135,8 @@ const nextConfig = {
     ],
   },
   experimental: {
+    // Opt into the security upgrade advisory flow for future patch releases.
+    agentUpgrade: "security",
     mdxRs: true,
     // Profile pictures travel through a Server Action (`uploadOwnAvatarAction`,
     // `uploadStudentPhotoAction`), and action bodies are capped at 1 MB by

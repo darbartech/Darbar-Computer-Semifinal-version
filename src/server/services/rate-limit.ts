@@ -1,15 +1,45 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import { db } from "@/server/db";
+
+/**
+ * Per-process fallback salt when AUTH_SECRET is missing (misconfigured deploy).
+ * A random salt is preferable to a well-known literal: it fails safe instead of
+ * letting anyone reproduce stored IP hashes.
+ */
+const FALLBACK_SALT = randomBytes(16).toString("hex");
 
 /**
  * Salts and hashes a client IP so the database never stores a raw address
  * (docs/06 §8, docs/03 `Lead.ipHash`).
  */
 export function hashIp(ip: string): string {
-  const salt = process.env.AUTH_SECRET ?? "darbar-dev-salt";
+  const salt = process.env.AUTH_SECRET ?? FALLBACK_SALT;
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
+}
+
+/**
+ * Real client IP behind the reverse proxy (docs/08 deployment uses Caddy).
+ *
+ * `X-Forwarded-For` is a hop list; the left-most entry is whatever the client
+ * sent, so trusting it lets an attacker rotate rate-limit keys at will. The
+ * right-most entry is the one appended by the trusted proxy. `CF-Connecting-IP`
+ * is the fallback when Cloudflare sits in front.
+ */
+function clientIpFromHeaders(h: Headers): string | null {
+  const forwarded = h.get("x-forwarded-for");
+  if (forwarded) {
+    const hops = forwarded
+      .split(",")
+      .map((hop) => hop.trim())
+      .filter(Boolean);
+    const last = hops[hops.length - 1];
+    if (last) return last;
+  }
+  const cloudflare = h.get("cf-connecting-ip")?.trim();
+  if (cloudflare) return cloudflare;
+  return h.get("x-real-ip")?.trim() || null;
 }
 
 /**
@@ -18,12 +48,7 @@ export function hashIp(ip: string): string {
  */
 export async function getClientIpHash(): Promise<string> {
   const h = await headers();
-  const ip =
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    h.get("x-real-ip")?.trim() ||
-    h.get("cf-connecting-ip")?.trim() ||
-    "unknown";
-  return hashIp(ip || "unknown");
+  return hashIp(clientIpFromHeaders(h) || "unknown");
 }
 
 /** Referrer URL, truncated, for lead attribution. */

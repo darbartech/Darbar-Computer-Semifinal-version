@@ -17,15 +17,21 @@ import {
   Sparkles,
 } from "lucide-react";
 import { listPublishedEvents } from "@/server/dal/events";
+import { getSiteSettings } from "@/server/dal/settings";
 import { buildMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
-export const metadata = buildMetadata({
-  title: "Events",
-  path: "/events",
-  description:
-    "Upcoming workshops, seminars, open houses, and certification ceremonies at Darbar Computer. Join us for free events and explore our campus.",
-});
+export async function generateMetadata() {
+  return buildMetadata(
+    {
+      title: "Events",
+      path: "/events",
+      description:
+        "Upcoming workshops, seminars, open houses, and certification ceremonies at Darbar Computer. Join us for free events and explore our campus.",
+    },
+    await getSiteSettings()
+  );
+}
 
 const PLACEHOLDER_IMAGE =
   "https://images.pexels.com/photos/5539293/pexels-photo-5539293.jpeg?auto=compress&cs=tinysrgb&w=1400";
@@ -168,6 +174,7 @@ export default async function EventsPage() {
         <Container size="xl" className="pt-4 pb-8 sm:pb-12">
           <Breadcrumbs items={[{ label: "Events" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="What's Happening"
             title="Events at Darbar Computer"
             description="Workshops, open houses, free seminars, certification ceremonies, and info sessions. Join us on campus or online."

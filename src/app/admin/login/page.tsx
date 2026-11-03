@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { buildMetadata, NOINDEX_METADATA } from "@/lib/seo";
 import { Container } from "@/components/common/Container";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardDescription, CardContent } from "@/components/ui/card";
 import { DarbarTechLogo } from "@/components/common/DarbarTechLogo";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { getSession } from "@/server/session";
+import { can } from "@/server/permissions";
+import type { Role } from "@/generated/prisma/client";
 import { getSiteSettings } from "@/server/dal/settings";
 
 export const metadata: Metadata = {
@@ -23,7 +25,10 @@ export default async function AdminLoginPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const session = await getSession();
-  if (session?.user) redirect("/admin");
+  const role = (session?.user as { role?: Role } | undefined)?.role;
+  // A signed-in student must not be bounced into /admin (where the layout would
+  // send them straight back) — show the form so they can switch to a staff account.
+  if (role && can(role, "dashboard.view")) redirect("/admin");
 
   const settings = await getSiteSettings();
   const { next } = await searchParams;
@@ -43,7 +48,7 @@ export default async function AdminLoginPage({
                 alt={settings.general.name}
               />
             </div>
-            <CardTitle className="text-2xl">Staff Login</CardTitle>
+            <h1 className="text-2xl font-semibold leading-none tracking-tight">Staff Login</h1>
             <CardDescription>
               Sign in to access the {settings.general.name} admin dashboard.
             </CardDescription>

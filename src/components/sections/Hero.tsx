@@ -22,7 +22,7 @@ export type HeroContent = SiteSettingsView["hero"];
  * is never blank in tests or isolated previews.
  */
 const DEFAULT_HERO: HeroContent = {
-  eyebrow: "37 Career-Focused· **Courses** Certified Trainers.",
+  eyebrow: "37 Career-Focused **Courses** · Certified Trainers",
   title: "Learn the Digital\nSkills That **Actually**\nGet You Hired.",
   subtitle:
     "DarbarTech’s hands-on training turns beginners into job-ready professionals. Small batches, flexible morning-to-evening timings, and trainers with real industry experience.",

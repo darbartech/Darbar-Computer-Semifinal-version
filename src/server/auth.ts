@@ -8,6 +8,29 @@ import {
   SESSION_TTL_SECONDS,
 } from "@/server/constants";
 
+const configuredBaseURL =
+  process.env.AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
+
+/**
+ * The dev server answers on both `localhost` and its IPv4 literal, but Better
+ * Auth compares the request Origin to `baseURL`. Without the twin, signing in
+ * from the other host fails as INVALID_ORIGIN. Only applies to loopback URLs,
+ * so production domains are unaffected.
+ */
+function loopbackAliases(url: string | undefined): string[] {
+  if (!url) return [];
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1") {
+      return [];
+    }
+    const twin = parsed.hostname === "localhost" ? "127.0.0.1" : "localhost";
+    return [`${parsed.protocol}//${twin}${parsed.port ? `:${parsed.port}` : ""}`];
+  } catch {
+    return [];
+  }
+}
+
 export const auth = betterAuth({
   appName: "DarbarTech Admin",
   database: prismaAdapter(prisma, {
@@ -17,7 +40,8 @@ export const auth = betterAuth({
   // from Server Actions.
   plugins: [nextCookies()],
   secret: process.env.AUTH_SECRET,
-  baseURL: process.env.AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL,
+  baseURL: configuredBaseURL,
+  trustedOrigins: loopbackAliases(configuredBaseURL),
   basePath: "/api/auth",
   emailAndPassword: {
     enabled: true,

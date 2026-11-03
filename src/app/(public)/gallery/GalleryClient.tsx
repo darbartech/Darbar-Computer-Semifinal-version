@@ -48,6 +48,7 @@ export function GalleryClient({ initialImages, categories }: Props) {
         <Container size="xl" className="pt-4 pb-8 sm:pb-12">
           <Breadcrumbs items={[{ label: "Gallery" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="Photo Gallery"
             title="Life at Darbar Computer"
             description="Glimpses of our campus, labs, classes, events, and the moments our students and graduates share."

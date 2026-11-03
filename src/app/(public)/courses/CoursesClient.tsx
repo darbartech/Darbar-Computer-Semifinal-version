@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Search,
   X,
@@ -40,6 +40,8 @@ export type CoursesClientProps = {
   courses: Course[];
   categoryGroups: { id: string; label: string; categories: string[] }[];
   everyCourseIncludes: string[];
+  /** Parsed from the URL by the server page; keeps this component SSR-able. */
+  initialFilters: { search: string; categoryGroup: string; level: string };
 };
 
 const BENEFIT_ICONS: Record<string, React.ReactNode> = {
@@ -74,6 +76,7 @@ function CoursesClientPage({
   courses,
   categoryGroups,
   everyCourseIncludes,
+  initialFilters,
 }: CoursesClientProps) {  const allCategoryGroups = React.useMemo(
     () => [{ id: "All", label: "All", categories: [] as string[] }, ...categoryGroups],
     [categoryGroups]
@@ -93,16 +96,12 @@ function CoursesClientPage({
     [courses]
   );
 
-  const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const initialCategoryGroup = searchParams.get("category") ?? "All";
-  const initialLevel = searchParams.get("level") ?? "All";
-  const initialSearch = searchParams.get("search") ?? "";
 
-  const [search, setSearch] = React.useState(initialSearch);
-  const [categoryGroup, setCategoryGroup] = React.useState(initialCategoryGroup);
-  const [level, setLevel] = React.useState(initialLevel);
+  const [search, setSearch] = React.useState(initialFilters.search);
+  const [categoryGroup, setCategoryGroup] = React.useState(initialFilters.categoryGroup);
+  const [level, setLevel] = React.useState(initialFilters.level);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
   const syncToUrl = React.useCallback(
@@ -201,6 +200,7 @@ function CoursesClientPage({
         <Container size="xl" className="pt-4 pb-8 sm:pb-12">
           <Breadcrumbs items={[{ label: "Courses" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="Course Catalog"
             title={`Browse ${courses.length} Professional Courses`}
             description="From beginner computer literacy to flagship advanced career paths. Filter by category, level, or search by name, skill, or career outcome."
@@ -216,7 +216,7 @@ function CoursesClientPage({
                 Every Course Includes
               </h3>
               <span className="text-xs text-neutral-500 hidden sm:inline">
-                Standard benefits across all 37 programs
+                Standard benefits across all {courses.length} programs
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">

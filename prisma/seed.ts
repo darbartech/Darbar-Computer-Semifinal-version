@@ -386,14 +386,13 @@ async function mediaResolver(folder: string) {
  * because the pages read through the DALs and those tables were never seeded.
  *
  * Everything here is still PLACEHOLDER copy (the source files say so in their
- * first line), and it is seeded **published** so the site is reviewable end to
- * end. To take it back down in one go:
+ * first line), so it is seeded **unpublished** per the project's content rule.
+ * The pages render their empty states until an editor reviews and publishes a
+ * row from the admin panel:
  *
- *   UPDATE "BlogPost" SET status='DRAFT';
- *   UPDATE "GalleryItem" SET "isPublished"=false;
- *   UPDATE "Event" SET status='DRAFT';
- *   UPDATE "Faq" SET "isPublished"=false;
- *   UPDATE "TeamMember" SET "isPublished"=false;
+ *   UPDATE "BlogPost" SET status='PUBLISHED' WHERE …;
+ *   UPDATE "GalleryItem" SET "isPublished"=true WHERE …;
+ *   UPDATE "Event" SET status='PUBLISHED' WHERE …;
  *
  * Every write is an upsert keyed on the static content's own id/slug/name, so the
  * script is safe to re-run and an editor's later changes are overwritten only
@@ -423,7 +422,7 @@ async function seedContent() {
     });
 
     const data = {
-      status: "PUBLISHED" as const,
+      status: "DRAFT" as const,
       title: post.title,
       excerpt: post.excerpt,
       contentMd: post.content,
@@ -453,7 +452,7 @@ async function seedContent() {
       category,
       takenAt: item.date ? new Date(`${item.date}T00:00:00Z`) : null,
       sortOrder: index,
-      isPublished: true,
+      isPublished: false,
     };
 
     await prisma.galleryItem.upsert({
@@ -471,7 +470,7 @@ async function seedContent() {
 
     const { start, end } = splitEventTime(event.time);
     const data = {
-      status: "PUBLISHED" as const,
+      status: "DRAFT" as const,
       title: event.title,
       category,
       startsAt: kathmanduDateTime(event.date, start),

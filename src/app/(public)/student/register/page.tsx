@@ -23,6 +23,7 @@ export default function StudentRegisterPage() {
         <Container size="xl" className="pt-4 pb-8 sm:pb-10">
           <Breadcrumbs items={[{ label: "Student" }, { label: "Register" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="Student Portal"
             title="Student Registration"
             description="Create your student account. Already registered? Sign in anytime."

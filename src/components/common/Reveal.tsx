@@ -45,14 +45,22 @@ export function Reveal({
   as = "div",
 }: RevealProps) {
   const { ref, inView } = useInView<HTMLDivElement>();
+  const [mounted, setMounted] = React.useState(false);
+  // Deferred one frame so the hide-on-scroll behaviour only starts after the
+  // server-rendered markup has painted (and lint stays happy about sync state).
+  React.useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const hidden = mounted && !inView;
   const Component = as;
   return (
     <Component
       ref={ref as React.Ref<HTMLDivElement>}
-      style={{ transitionDelay: `${delay}ms`, transform: inView ? "translateY(0)" : `translateY(${y}px)` }}
+      style={{ transitionDelay: `${delay}ms`, transform: hidden ? `translateY(${y}px)` : "translateY(0)" }}
       className={cn(
-        "transition-all duration-500 ease-out will-change-transform opacity-0",
-        inView && "opacity-100",
+        "transition-all duration-500 ease-out will-change-transform",
+        hidden ? "opacity-0" : "opacity-100",
         className
       )}
     >

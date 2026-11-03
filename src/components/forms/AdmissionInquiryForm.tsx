@@ -1,7 +1,6 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Send, CheckCircle2, Loader2, Phone, Mail, UserRound, BookOpenCheck, MessageSquare, Clock, ShieldCheck } from "lucide-react";
@@ -36,11 +35,24 @@ export type AdmissionInquiryFormProps = {
   courses?: InquiryCourseOption[];
   /** Live site name from settings, passed by the parent server component. */
   siteName?: string;
+  /**
+   * URL-derived defaults, parsed by the server page. Reading `useSearchParams`
+   * here would opt this form out of server rendering.
+   */
+  initialValues?: {
+    course?: string;
+    utmSource?: string;
+    utmMedium?: string;
+    utmCampaign?: string;
+  };
 };
 
-export function AdmissionInquiryForm({ courses = [], siteName = "this institute" }: AdmissionInquiryFormProps) {
-  const searchParams = useSearchParams();
-  const prefilledCourse = searchParams.get("course") ?? "";
+export function AdmissionInquiryForm({
+  courses = [],
+  siteName = "this institute",
+  initialValues,
+}: AdmissionInquiryFormProps) {
+  const prefilledCourse = initialValues?.course ?? "";
   const { toast } = useToast();
   const [submitted, setSubmitted] = React.useState(false);
   const [turnstileToken, setTurnstileToken] = React.useState("");
@@ -72,9 +84,9 @@ export function AdmissionInquiryForm({ courses = [], siteName = "this institute"
       message: "",
       consent: false,
       website: "",
-      utmSource: searchParams.get("utm_source") ?? "",
-      utmMedium: searchParams.get("utm_medium") ?? "",
-      utmCampaign: searchParams.get("utm_campaign") ?? "",
+      utmSource: initialValues?.utmSource ?? "",
+      utmMedium: initialValues?.utmMedium ?? "",
+      utmCampaign: initialValues?.utmCampaign ?? "",
     },
   });
 

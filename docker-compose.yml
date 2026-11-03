@@ -3,11 +3,14 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: darbar
-      POSTGRES_PASSWORD: darbar
-      POSTGRES_DB: darbar
+      POSTGRES_USER: ${POSTGRES_USER:-darbar}
+      # No default: a checked-in password is a production foot-gun. Set
+      # POSTGRES_PASSWORD in .env (see .env.example).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-darbar}
     ports:
-      - "5432:5432"
+      # Loopback only. 5433 also stays clear of a system PostgreSQL on 5432.
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

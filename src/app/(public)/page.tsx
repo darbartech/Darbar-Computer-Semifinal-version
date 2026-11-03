@@ -8,7 +8,6 @@ import { getSiteSettings } from "@/server/dal/settings";
 import { listPublishedTestimonials } from "@/server/dal/testimonials";
 import { listPublishedFaqs } from "@/server/dal/faq";
 import { buildMetadata } from "@/lib/seo";
-import { orgJsonLd } from "@/lib/seo";
 
 export async function generateMetadata() {
   return buildMetadata(
@@ -62,10 +61,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd(settings)) }}
-      />
       <Hero hero={settings.hero} />
       <CourseGrid
         courses={featuredCourses}

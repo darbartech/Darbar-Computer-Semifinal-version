@@ -33,7 +33,12 @@ import {
   listPublishedCourseSlugs,
 } from "@/server/dal/courses";
 import { getSiteSettings } from "@/server/dal/settings";
-import { buildMetadata, courseJsonLd, breadcrumbListJsonLd } from "@/lib/seo";
+import {
+  buildMetadata,
+  courseJsonLd,
+  breadcrumbListJsonLd,
+  serializeJsonLd,
+} from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -96,11 +101,11 @@ export default async function CourseDetailPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-neutral-50 border-b border-neutral-200">
         <Container size="xl" className="pt-4 pb-8 sm:pb-10">

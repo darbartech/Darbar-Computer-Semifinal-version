@@ -10,6 +10,8 @@ interface SectionHeadingProps {
   align?: "left" | "center";
   variant?: "light" | "dark";
   className?: string;
+  /** Use "h1" when this is the page's primary heading (one per page). */
+  as?: "h1" | "h2" | "h3";
 }
 
 export function SectionHeading({
@@ -19,48 +21,52 @@ export function SectionHeading({
   align = "center",
   variant = "light",
   className,
+  as: HeadingTag = "h2",
 }: SectionHeadingProps) {
   const isDark = variant === "dark";
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.2, rootMargin: "0px 0px -20px 0px" });
+  // SSR renders the heading visible so it stays readable without JavaScript
+  // (and to crawlers); only after hydration do below-fold headings hide and
+  // then animate in.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const hidden = mounted && !inView;
   return (
     <div
       ref={ref}
       data-slot="section-heading"
-      style={{ transform: inView ? "translateY(0)" : "translateY(20px)" }}
+      style={{ transform: hidden ? "translateY(20px)" : "translateY(0)" }}
       className={cn(
-        "flex flex-col gap-4 sm:gap-5 transition-all duration-500 ease-out opacity-0",
-        inView && "opacity-100",
+        "flex flex-col gap-4 sm:gap-5 transition-all duration-500 ease-out",
+        hidden ? "opacity-0" : "opacity-100",
         align === "center" ? "items-center text-center mx-auto max-w-3xl" : "items-start text-left max-w-3xl",
         className
       )}
     >
       {eyebrow && (
         <span
-          style={{ transitionDelay: "100ms", opacity: inView ? 1 : 0, transform: inView ? "translateY(0)" : "translateY(10px)" }}
+          style={{ transitionDelay: "100ms", opacity: hidden ? 0 : 1, transform: hidden ? "translateY(10px)" : "translateY(0)" }}
           className={cn(
-            "inline-flex items-center gap-2 text-[10.5px] sm:text-xs font-bold uppercase tracking-[0.18em] transition-all duration-500 ease-out rounded-full px-3.5 sm:px-4 py-1.2 sm:py-1.5 border",
-            isDark
-              ? "bg-white/10 text-white border-white/15 backdrop-blur-sm"
-              : "bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 text-secondary border-primary/20 shadow-sm"
+            "inline-flex items-center gap-2 text-[10.5px] sm:text-xs font-bold uppercase tracking-[0.18em] transition-all duration-500 ease-out",
+            isDark ? "text-white" : "text-secondary"
           )}
         >
-          <span className={cn(
-            "relative flex items-center justify-center",
-          )}>
-            <span className={cn(
-              "absolute h-1.5 w-1.5 rounded-full animate-ping",
-              isDark ? "bg-white/40" : "bg-primary/60"
-            )} />
-            <span className={cn(
-              "h-2 w-2 rounded-full",
-              isDark ? "bg-white" : "bg-primary"
-            )} />
-          </span>
+          <span
+            aria-hidden="true"
+            className={cn("h-px w-4 sm:w-6", isDark ? "bg-white/40" : "bg-primary/40")}
+          />
           {eyebrow}
+          <span
+            aria-hidden="true"
+            className={cn("h-px w-4 sm:w-6", isDark ? "bg-white/40" : "bg-primary/40")}
+          />
         </span>
       )}
-      <h2
-        style={{ transitionDelay: eyebrow ? "200ms" : "100ms", opacity: inView ? 1 : 0 }}
+      <HeadingTag
+        style={{ transitionDelay: eyebrow ? "200ms" : "100ms", opacity: hidden ? 0 : 1 }}
         className={cn(
           "text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-[-0.02em] text-balance leading-[1.12] sm:leading-[1.08] transition-all duration-500 ease-out",
           isDark
@@ -69,10 +75,10 @@ export function SectionHeading({
         )}
       >
         {title}
-      </h2>
+      </HeadingTag>
       {description && (
         <p
-          style={{ transitionDelay: eyebrow ? "320ms" : "220ms", opacity: inView ? 1 : 0 }}
+          style={{ transitionDelay: eyebrow ? "320ms" : "220ms", opacity: hidden ? 0 : 1 }}
           className={cn(
             "text-[15px] sm:text-lg text-pretty leading-7 sm:leading-relaxed transition-opacity duration-500 ease-out max-w-2xl",
             align === "center" && "mx-auto",
@@ -84,7 +90,7 @@ export function SectionHeading({
       )}
       <div
         aria-hidden="true"
-        style={{ transitionDelay: eyebrow ? "420ms" : "320ms", opacity: inView ? 1 : 0 }}
+        style={{ transitionDelay: eyebrow ? "420ms" : "320ms", opacity: hidden ? 0 : 1 }}
         className={cn(
           "flex items-center gap-1 transition-all duration-700 ease-out",
           align === "center" ? "justify-center mt-1" : "justify-start mt-2"

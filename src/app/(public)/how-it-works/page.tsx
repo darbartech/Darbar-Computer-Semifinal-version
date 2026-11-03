@@ -5,13 +5,19 @@ import { SectionHeading } from "@/components/common/SectionHeading";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { buttonVariants } from "@/components/ui/button";
 import { buildMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/server/dal/settings";
 
-export const metadata = buildMetadata({
-  title: "How It Works",
-  path: "/how-it-works",
-  description:
-    "A simple 4-step process to choose the right course, join a batch, build a project, and get career support at DarbarTech.",
-});
+export async function generateMetadata() {
+  return buildMetadata(
+    {
+      title: "How It Works",
+      path: "/how-it-works",
+      description:
+        "A simple 4-step process to choose the right course, join a batch, build a project, and get career support at DarbarTech.",
+    },
+    await getSiteSettings()
+  );
+}
 
 export default function HowItWorksPage() {
   return (
@@ -20,6 +26,7 @@ export default function HowItWorksPage() {
         <Container size="xl" className="pt-4 pb-8 sm:pb-12">
           <Breadcrumbs items={[{ label: "How It Works" }]} />
           <SectionHeading
+            as="h1"
             eyebrow="Enrollment Process"
             title="How DarbarTech Training Works"
             description="A clear path from your first inquiry to a job-ready portfolio. Simple, practical, and designed for busy schedules."

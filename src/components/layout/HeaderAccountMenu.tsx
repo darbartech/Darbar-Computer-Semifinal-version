@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  CircleUserRound,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -127,27 +126,17 @@ export function HeaderAccountMenu() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="hidden sm:inline-flex" aria-label="Student account">
-          <CircleUserRound className="size-5" aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem asChild>
-          <Link href="/student/login" aria-label="Student Log In">
-            <LogIn className="size-4" aria-hidden="true" />
-            Log In
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/student/register" aria-label="Student Sign Up">
-            <UserPlus className="size-4" aria-hidden="true" />
-            Sign Up
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Link
+      href="/student/login"
+      className={cn(
+        buttonVariants({ variant: "outline" }),
+        "hidden sm:inline-flex h-11 px-4 gap-2"
+      )}
+      aria-label="Student sign in"
+    >
+      <LogIn className="size-4" aria-hidden="true" />
+      Sign In
+    </Link>
   );
 }
 
@@ -211,7 +200,7 @@ export function HeaderAccountSheetBlock({ onClose }: { onClose: () => void }) {
           className={cn(buttonVariants({ variant: "outline" }), "w-full h-11 justify-start")}
         >
           <LogIn className="size-5" aria-hidden="true" />
-          Log In
+          Sign In
         </Link>
         <Link
           href="/student/register"

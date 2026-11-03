@@ -2,17 +2,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/common/Container";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/common/Badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Clock, ArrowRight, User, ArrowLeft, Tag } from "lucide-react";
+import { Calendar, Clock, ArrowRight, User, ArrowLeft, Tag, ImageIcon } from "lucide-react";
 import {
   listPublishedBlogPosts,
   getPublishedBlogPostBySlug,
 } from "@/server/dal/blog";
 import { getSiteSettings } from "@/server/dal/settings";
-import { buildMetadata, blogPostJsonLd, breadcrumbListJsonLd } from "@/lib/seo";
+import {
+  buildMetadata,
+  blogPostJsonLd,
+  breadcrumbListJsonLd,
+  serializeJsonLd,
+} from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 type BlogPostVM = Awaited<ReturnType<typeof listPublishedBlogPosts>>[number]
@@ -45,7 +51,7 @@ export async function generateMetadata({
       title: post.title,
       description: post.excerpt,
       path: `/blog/${post.slug}`,
-      images: post.cover ? [post.cover.url || post.cover.publicId || post.cover.id] : [],
+      images: post.cover?.url ? [post.cover.url] : undefined,
       keywords: post.tags?.map((t: TagVM) => t.name) ?? [],
     },
     settings
@@ -144,7 +150,6 @@ export default async function BlogPostPage({
   if (!post) {
     notFound();
   }
-  const related = [] as BlogPostVM[];
   const siteSettings = await getSiteSettings();
   const breadcrumbJsonLd = breadcrumbListJsonLd([
     { name: "Home", item: siteSettings.general.siteUrl },
@@ -167,15 +172,22 @@ export default async function BlogPostPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostJsonLd(postJsonLd, siteSettings)) }}
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(blogPostJsonLd(postJsonLd, siteSettings)),
+        }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-neutral-50 border-b border-neutral-200">
         <Container size="xl" className="pt-4 pb-8 sm:pb-12">
-          <div>Post</div>
+          <Breadcrumbs
+            items={[
+              { label: "Blog", href: "/blog" },
+              { label: post.title },
+            ]}
+          />
           <div className="mt-4 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {post.tags?.map((t: TagVM) => (
@@ -194,7 +206,7 @@ export default async function BlogPostPage({
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-neutral-600">
               <span className="inline-flex items-center gap-2">
                 <User className="size-4 text-primary" aria-hidden="true" />
-                <span className="font-medium">{String(post.author?.name || post.author?.email || post.author?.id || post.author)}</span>
+                <span className="font-medium">{String(post.author?.name || post.authorName || "DarbarTech")}</span>
               </span>
               <span className="inline-flex items-center gap-2">
                 <Calendar className="size-4 text-primary" aria-hidden="true" />
@@ -206,7 +218,7 @@ export default async function BlogPostPage({
               </span>
               <span className="inline-flex items-center gap-2">
                 <Clock className="size-4 text-primary" aria-hidden="true" />
-                {post.readingMinutes || post.readingMinutes || 0}
+                {post.readingMinutes ?? 0} min read
               </span>
             </div>
           </div>
@@ -218,14 +230,20 @@ export default async function BlogPostPage({
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10 lg:gap-14">
             <div className="min-w-0">
               <div className="relative rounded-2xl border border-neutral-200 overflow-hidden aspect-[16/9] mb-10 bg-neutral-100">
-                <Image
-                  src={post.cover?.url ?? "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=modern%20computer%20education%20technology%20blog%20cover%20with%20Nepali%20tech%20theme&image_size=landscape_16_9"}
-                  alt={post.title}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 800px"
-                  className="object-cover"
-                  priority
-                />
+                {post.cover?.url ? (
+                  <Image
+                    src={post.cover.url}
+                    alt={post.title}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 800px"
+                    className="object-cover"
+                    priority
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+                    <ImageIcon className="size-12 text-primary/30" aria-hidden="true" />
+                  </div>
+                )}
               </div>
 
               <SimpleMarkdown content={post.contentMd} />
@@ -279,77 +297,6 @@ export default async function BlogPostPage({
           </div>
         </Container>
       </section>
-
-      {related.length > 0 && (
-        <section className="py-14 sm:py-16 bg-neutral-50 border-t border-neutral-200">
-          <Container size="xl">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <Badge variant="secondary" className="mb-2">
-                  Keep Reading
-                </Badge>
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
-                  Related Articles
-                </h2>
-              </div>
-              <Link
-                href="/blog"
-                className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "group/btn", "hidden sm:inline-flex")}
-              >
-                View All
-                <ArrowRight className="size-4 transition-transform group-hover/btn:translate-x-0.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((rp: BlogPostVM) => (
-                <Card key={rp.id} className="group h-full flex flex-col overflow-hidden">
-                  <Link
-                    href={`/blog/${rp.slug}`}
-                    className="relative block overflow-hidden aspect-[16/10] bg-neutral-100"
-                  >
-                    <Image
-                      src={rp.cover?.url ?? "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=modern%20computer%20education%20technology%20blog%20cover%20with%20Nepali%20tech%20theme&image_size=landscape_16_9"}
-                      alt={rp.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  </Link>
-                  <CardContent className="flex-1 pt-5 pb-5 flex flex-col">
-                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                      {rp.tags?.slice(0, 2).map((t: TagVM) => (
-                        <Badge key={t.id} variant="default">
-                          {t.name}
-                        </Badge>
-                      ))}
-                    </div>
-                    <Link
-                      href={`/blog/${rp.slug}`}
-                      className="font-semibold text-[16px] tracking-tight text-neutral-900 hover:text-primary transition-colors line-clamp-2 leading-snug"
-                    >
-                      {rp.title}
-                    </Link>
-                    <div className="mt-auto pt-4 flex items-center gap-x-3 text-xs text-neutral-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Calendar className="size-3.5 text-primary" aria-hidden="true" />
-                        {new Date(rp.publishedAt || rp.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-primary" aria-hidden="true" />
-                        {rp.readingMinutes}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </Container>
-        </section>
-      )}
     </>
   );
 }
