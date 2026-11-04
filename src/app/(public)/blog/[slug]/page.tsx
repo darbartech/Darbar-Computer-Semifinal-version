@@ -163,7 +163,7 @@ export default async function BlogPostPage({
     excerpt: post.excerpt,
     date: new Date(post.publishedAt || post.createdAt).toISOString(),
     cover: post.cover?.url ?? "",
-    author: String(post.author?.name || post.authorName || post.author?.email || ""),
+    author: String(post.author?.name || post.authorName || ""),
     tags: post.tags?.map((t: TagVM) => t.name) ?? [],
     isDraft: post.status !== "PUBLISHED",
   };

@@ -84,7 +84,7 @@ async function openCertificatePreview(
 
   try {
     const response = await fetch(
-      `/api/admin/certificates/${encodeURIComponent(certificateId)}/preview`,
+      `/api/techdarbar/certificates/${encodeURIComponent(certificateId)}/preview`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

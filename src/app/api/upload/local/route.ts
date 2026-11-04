@@ -6,8 +6,13 @@ import {
   UploadValidationError,
   writeLocalUpload,
 } from "@/server/services/storage";
+import { allow, getClientIpHash } from "@/server/services/rate-limit";
+import { MEDIA_MAX_BYTES } from "@/server/constants";
 
 export const runtime = "nodejs";
+
+/** A signed-in staff member uploading a batch, not a flood. */
+const UPLOAD_RATE_LIMIT = { max: 100, windowMinutes: 10 } as const;
 
 /**
  * POST /api/upload/local
@@ -30,23 +35,40 @@ export async function POST(request: Request) {
     );
   }
 
-  let formData: FormData;
   try {
-    formData = await request.formData();
-  } catch {
-    return NextResponse.json({ error: "Invalid upload body" }, { status: 400 });
-  }
-
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "No file was uploaded" }, { status: 400 });
-  }
-
-  try {
+    // Guard and throttle before the body is touched: `formData()` buffers the whole
+    // upload, so an unauthenticated caller must never reach it.
     await requirePermission("media.upload");
+    if (
+      !(await allow(`upload:${await getClientIpHash()}`, UPLOAD_RATE_LIMIT))
+    ) {
+      return NextResponse.json(
+        { error: "Too many uploads. Please try again later." },
+        { status: 429 }
+      );
+    }
+
+    // The body limit that protects Server Actions does not apply to route handlers,
+    // so reject an oversized request on its declared length before reading it.
+    const declared = Number(request.headers.get("content-length"));
+    if (Number.isFinite(declared) && declared > MEDIA_MAX_BYTES) {
+      return NextResponse.json({ error: "That file is too large" }, { status: 413 });
+    }
+
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return NextResponse.json({ error: "Invalid upload body" }, { status: 400 });
+    }
+
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return NextResponse.json({ error: "No file was uploaded" }, { status: 400 });
+    }
 
     // Measured in the browser and used for layout only; the server re-checks
-    // the byte size and the MIME allow-list itself.
+    // the byte size, the MIME allow-list and the file's magic numbers.
     const width = Number(formData.get("width"));
     const height = Number(formData.get("height"));
 
@@ -63,7 +85,12 @@ export async function POST(request: Request) {
     return NextResponse.json(uploaded, { status: 200 });
   } catch (error) {
     if (error instanceof StorageNotConfiguredError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
+      // The message names the environment variables it wants; keep that in the log.
+      console.error("[upload/local]", error.message);
+      return NextResponse.json(
+        { error: "Uploads are not configured on this server." },
+        { status: 503 }
+      );
     }
     if (error instanceof UploadValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

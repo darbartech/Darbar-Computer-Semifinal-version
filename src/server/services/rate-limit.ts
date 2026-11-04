@@ -10,6 +10,9 @@ import { db } from "@/server/db";
  */
 const FALLBACK_SALT = randomBytes(16).toString("hex");
 
+/** Stand-in identity when no proxy supplied a client address. */
+const UNIDENTIFIED_IP_BUCKET = "unidentified";
+
 /**
  * Salts and hashes a client IP so the database never stores a raw address
  * (docs/06 §8, docs/03 `Lead.ipHash`).
@@ -20,35 +23,54 @@ export function hashIp(ip: string): string {
 }
 
 /**
- * Real client IP behind the reverse proxy (docs/08 deployment uses Caddy).
+ * Real client IP behind the reverse proxy (docs/08 deployment puts Caddy in front).
  *
- * `X-Forwarded-For` is a hop list; the left-most entry is whatever the client
- * sent, so trusting it lets an attacker rotate rate-limit keys at will. The
- * right-most entry is the one appended by the trusted proxy. `CF-Connecting-IP`
- * is the fallback when Cloudflare sits in front.
+ * `X-Forwarded-For` is a hop list, and every entry left of the proxy's own addition
+ * is attacker-written. Trusting the list wholesale lets anyone rotate their
+ * rate-limit key at will, so the value is read from the RIGHT: with
+ * `TRUSTED_PROXY_HOPS=1` (the documented single-Caddy setup) the last entry is the
+ * address the proxy saw, which the client cannot forge. A request whose list is
+ * shorter than the trusted chain did not pass through the expected proxies and gets
+ * no identity at all.
  */
+function trustedProxyHops(): number {
+  const raw = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "", 10);
+  return Number.isNaN(raw) || raw < 1 ? 1 : raw;
+}
+
 function clientIpFromHeaders(h: Headers): string | null {
+  const cloudflare = h.get("cf-connecting-ip")?.trim();
+  if (cloudflare) return cloudflare;
+
   const forwarded = h.get("x-forwarded-for");
   if (forwarded) {
     const hops = forwarded
       .split(",")
       .map((hop) => hop.trim())
       .filter(Boolean);
-    const last = hops[hops.length - 1];
-    if (last) return last;
+    const index = hops.length - trustedProxyHops();
+    if (index >= 0) return hops[index];
   }
-  const cloudflare = h.get("cf-connecting-ip")?.trim();
-  if (cloudflare) return cloudflare;
+
   return h.get("x-real-ip")?.trim() || null;
 }
 
 /**
  * IP hash for rate limiting and lead attribution. The raw IP is discarded as
  * soon as it is hashed, so it is never persisted or logged (docs/08 §1).
+ *
+ * With no proxy identity at all the caller is bucketed under one shared key. That
+ * is deliberate: a deploy that forgot both `TRUSTED_PROXY_HOPS` and a proxy then
+ * throttles everyone instead of throttling no one, and the warning says why.
  */
 export async function getClientIpHash(): Promise<string> {
   const h = await headers();
-  return hashIp(clientIpFromHeaders(h) || "unknown");
+  const ip = clientIpFromHeaders(h);
+  if (ip) return hashIp(ip);
+  if (process.env.NODE_ENV === "production") {
+    console.warn("[rate-limit] no client identity: set TRUSTED_PROXY_HOPS to match the proxy chain");
+  }
+  return hashIp(UNIDENTIFIED_IP_BUCKET);
 }
 
 /** Referrer URL, truncated, for lead attribution. */

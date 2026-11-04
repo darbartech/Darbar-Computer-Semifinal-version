@@ -59,7 +59,7 @@ export function AdminTopbar({ user, mobileMenuTrigger }: AdminTopbarProps) {
   const handleLogout = async () => {
     setIsSigningOut(true);
     await signOut();
-    router.push("/admin/login");
+    router.push("/techdarbar/login");
     router.refresh();
   };
 
@@ -124,7 +124,7 @@ export function AdminTopbar({ user, mobileMenuTrigger }: AdminTopbarProps) {
             <div className="text-xs text-neutral-500 truncate">{user.email}</div>
           </div>
           <DropdownMenuItem asChild>
-            <Link href="/admin/account">
+            <Link href="/techdarbar/account">
               <UserCircle className="size-4 text-neutral-500" />
               Profile
             </Link>
@@ -134,7 +134,7 @@ export function AdminTopbar({ user, mobileMenuTrigger }: AdminTopbarProps) {
             Change password
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/admin/settings">
+            <Link href="/techdarbar/settings">
               <SettingsIcon className="size-4 text-neutral-500" />
               Settings
             </Link>

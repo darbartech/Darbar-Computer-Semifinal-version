@@ -110,7 +110,7 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
       else params.delete(key);
     }
     params.delete("page");
-    router.replace(`/admin/notices?${params.toString()}`, { scroll: false });
+    router.replace(`/techdarbar/notices?${params.toString()}`, { scroll: false });
   };
 
   const startCreate = () => {
@@ -143,7 +143,20 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
   };
 
   const onSubmit = async (values: NoticeWriteValues) => {
-    const result = await saveNoticeAction(values);
+    let result: Awaited<ReturnType<typeof saveNoticeAction>>;
+    try {
+      result = await saveNoticeAction(values);
+    } catch {
+      // An action can be rejected before it returns a result — an expired
+      // session makes requirePermission() redirect — which would leave
+      // isSubmitting true and the button spinning on an already-saved notice.
+      toast({
+        title: "Could not save the notice",
+        description: "Please sign in again and retry.",
+        variant: "error",
+      });
+      return;
+    }
     if (!result.ok) {
       for (const [field, messages] of Object.entries(result.fieldErrors ?? {})) {
         if (messages?.[0]) setError(field as keyof NoticeWriteInput, { message: messages[0] });
@@ -162,14 +175,23 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this notice? Visitors will stop seeing it immediately.")) return;
     setDeletingId(id);
-    const result = await deleteNoticeAction(id);
-    setDeletingId(null);
-    if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
-      return;
+    try {
+      const result = await deleteNoticeAction(id);
+      if (!result.ok) {
+        toast({ title: result.error, variant: "error" });
+        return;
+      }
+      toast({ title: "Notice deleted", variant: "success" });
+      router.refresh();
+    } catch {
+      toast({
+        title: "Could not delete the notice",
+        description: "Please sign in again and retry.",
+        variant: "error",
+      });
+    } finally {
+      setDeletingId(null);
     }
-    toast({ title: "Notice deleted", variant: "success" });
-    router.refresh();
   };
 
   const typeOptions: SelectOption[] = NOTICE_TYPES.map((value) => ({
@@ -445,7 +467,7 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/notices?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/notices?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -457,7 +479,7 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/notices?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/notices?${params.toString()}`, { scroll: false });
             }}
           >
             Next

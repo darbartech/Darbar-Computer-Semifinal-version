@@ -96,7 +96,7 @@ export async function notifyNewLead(
   const to = notifyTarget();
   if (!to) return { sent: false, reason: "lead-notify-not-configured" };
 
-  const link = adminUrl(`/admin/leads/${lead.id}`);
+  const link = adminUrl(`/techdarbar/leads/${lead.id}`);
   const duplicateNote = lead.isDuplicate
     ? "<p><strong>Note:</strong> this phone number already enquired within the last 7 days.</p>"
     : "";
@@ -146,7 +146,7 @@ export async function notifyNewContactMessage(
   const to = notifyTarget();
   if (!to) return { sent: false, reason: "lead-notify-not-configured" };
 
-  const link = adminUrl(`/admin/messages/${message.id}`);
+  const link = adminUrl(`/techdarbar/messages/${message.id}`);
   const html = `<div style="font-family:system-ui,sans-serif;line-height:1.5">
   <h2>New website message</h2>
   <p><strong>${escapeHtml(message.subject)}</strong></p>

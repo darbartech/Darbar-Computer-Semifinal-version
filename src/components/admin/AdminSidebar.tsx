@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   UsersRound,
   MessageSquare,
-  Mail,
   BookOpen,
   Layers,
   Newspaper,
@@ -62,7 +61,7 @@ function buildNav(counts: SidebarCounts): SidebarSection[] {
     {
       label: "",
       items: [
-        { label: "Dashboard", href: "/admin", icon: LayoutDashboard, permission: "dashboard.view" },
+        { label: "Dashboard", href: "/techdarbar", icon: LayoutDashboard, permission: "dashboard.view" },
       ],
     },
     {
@@ -70,29 +69,28 @@ function buildNav(counts: SidebarCounts): SidebarSection[] {
       items: [
         {
           label: "Leads",
-          href: "/admin/leads",
+          href: "/techdarbar/leads",
           icon: UsersRound,
           permission: "lead.read",
           badge: { permission: "lead.read", label: "New" },
         },
         {
           label: "Contact messages",
-          href: "/admin/messages",
+          href: "/techdarbar/messages",
           icon: MessageSquare,
           permission: "contact.read",
           badge: { permission: "contact.read", label: "Unread" },
         },
-        { label: "Subscribers", href: "/admin/subscribers", icon: Mail, permission: "subscriber.read" },
-        { label: "Students", href: "/admin/students", icon: GraduationCap, permission: "student.read" },
+        { label: "Students", href: "/techdarbar/students", icon: GraduationCap, permission: "student.read" },
       ],
     },
     {
       label: "Catalog",
       items: [
-        { label: "Courses", href: "/admin/courses", icon: BookOpen, permission: "course.read" },
+        { label: "Courses", href: "/techdarbar/courses", icon: BookOpen, permission: "course.read" },
         {
           label: "Assignments",
-          href: "/admin/assignments",
+          href: "/techdarbar/assignments",
           icon: ClipboardList,
           permission: "assignment.read",
           badge: {
@@ -101,36 +99,36 @@ function buildNav(counts: SidebarCounts): SidebarSection[] {
             count: counts.awaitingReview,
           },
         },
-        { label: "Categories", href: "/admin/categories", icon: Layers, permission: "category.manage" },
+        { label: "Categories", href: "/techdarbar/categories", icon: Layers, permission: "category.manage" },
       ],
     },
     {
       label: "Website",
       items: [
-        { label: "Blog", href: "/admin/blog", icon: Newspaper, permission: "blog.write" },
-        { label: "Events", href: "/admin/events", icon: Calendar, permission: "events.write" },
-        { label: "FAQ", href: "/admin/faq", icon: HelpCircle, permission: "faq.write" },
-        { label: "Gallery", href: "/admin/gallery", icon: Images, permission: "gallery.write" },
-        { label: "Testimonials", href: "/admin/testimonials", icon: MessageSquareText, permission: "testimonials.write" },
-        { label: "Notices", href: "/admin/notices", icon: Megaphone, permission: "notice.read" },
-        { label: "Team", href: "/admin/team", icon: Users, permission: "team.write" },
-        { label: "Media library", href: "/admin/media", icon: FolderOpen, permission: "media.read" },
-        { label: "Site settings", href: "/admin/settings", icon: Settings, permission: "settings.read" },
+        { label: "Blog", href: "/techdarbar/blog", icon: Newspaper, permission: "blog.write" },
+        { label: "Events", href: "/techdarbar/events", icon: Calendar, permission: "events.write" },
+        { label: "FAQ", href: "/techdarbar/faq", icon: HelpCircle, permission: "faq.write" },
+        { label: "Gallery", href: "/techdarbar/gallery", icon: Images, permission: "gallery.write" },
+        { label: "Testimonials", href: "/techdarbar/testimonials", icon: MessageSquareText, permission: "testimonials.write" },
+        { label: "Notices", href: "/techdarbar/notices", icon: Megaphone, permission: "notice.read" },
+        { label: "Team", href: "/techdarbar/team", icon: Users, permission: "team.write" },
+        { label: "Media library", href: "/techdarbar/media", icon: FolderOpen, permission: "media.read" },
+        { label: "Site settings", href: "/techdarbar/settings", icon: Settings, permission: "settings.read" },
       ],
     },
     {
       label: "Certificates",
       items: [
-        { label: "Certificates", href: "/admin/certificates", icon: Award, permission: "certificate.read" },
-        { label: "Signatories", href: "/admin/signatories", icon: Signature, permission: "certificate.signatory.manage" },
-        { label: "Templates", href: "/admin/templates", icon: LayoutTemplate, permission: "certificate.template.manage" },
+        { label: "Certificates", href: "/techdarbar/certificates", icon: Award, permission: "certificate.read" },
+        { label: "Signatories", href: "/techdarbar/signatories", icon: Signature, permission: "certificate.signatory.manage" },
+        { label: "Templates", href: "/techdarbar/templates", icon: LayoutTemplate, permission: "certificate.template.manage" },
       ],
     },
     {
       label: "System",
       items: [
-        { label: "Users", href: "/admin/users", icon: ShieldUser, permission: "user.manage" },
-        { label: "Audit log", href: "/admin/audit-log", icon: FileText, permission: "audit.view" },
+        { label: "Users", href: "/techdarbar/users", icon: ShieldUser, permission: "user.manage" },
+        { label: "Audit log", href: "/techdarbar/audit-log", icon: FileText, permission: "audit.view" },
       ],
     },
   ];
@@ -163,8 +161,8 @@ function SidebarNav({ role, pathname, counts = {}, onNavigate }: SidebarNavProps
             )}
             {visibleItems.map((item) => {
               const isActive =
-                item.href === "/admin"
-                  ? pathname === "/admin"
+                item.href === "/techdarbar"
+                  ? pathname === "/techdarbar"
                   : pathname.startsWith(item.href);
               const Icon = item.icon;
               const showBadge =

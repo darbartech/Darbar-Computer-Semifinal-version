@@ -244,7 +244,7 @@ export function CertificateDetailPanel({
           )}
           {(certificate.status === "ISSUED" || certificate.status === "REISSUED") && (
             <a
-              href={`/api/admin/certificates/${certificate.id}/download`}
+              href={`/api/techdarbar/certificates/${certificate.id}/download`}
               className={buttonVariants({ variant: "outline" })}
             >
               <FileDown className="size-4" />

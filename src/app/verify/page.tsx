@@ -9,11 +9,16 @@ import { getPublicCertificateByQuery } from "@/server/dal/certificates";
 import { buildMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/server/dal/settings";
 import { certificateLookupSchema } from "@/lib/validators/certificates";
+import { allow, getClientIpHash } from "@/server/services/rate-limit";
 import type { PublicVerifyView } from "@/server/types/certificates";
 
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 export const dynamic = "force-dynamic";
+
+/** Throttle for public lookups: certificate numbers are sequential, so this is what
+ *  stops the search box being used as a bulk scraper of every graduate. */
+const VERIFY_RATE_LIMIT = { max: 20, windowMinutes: 10 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -47,11 +52,16 @@ export default async function VerifySearchPage({
   let certificate: PublicVerifyView | null = null;
   let lookedUp = false;
   let invalid = false;
+  let throttled = false;
 
   if (rawCode) {
     const parsed = certificateLookupSchema.safeParse({ code: rawCode });
     if (!parsed.success) {
       invalid = true;
+    } else if (
+      !(await allow(`verify:${await getClientIpHash()}`, VERIFY_RATE_LIMIT))
+    ) {
+      throttled = true;
     } else {
       lookedUp = true;
       certificate = await getPublicCertificateByQuery(
@@ -86,6 +96,15 @@ export default async function VerifySearchPage({
             >
               That doesn&rsquo;t look like a certificate number, student ID, or
               verification code. Check the entry and try again.
+            </p>
+          )}
+          {throttled && (
+            <p
+              role="alert"
+              className="mt-3 text-sm font-medium text-destructive"
+            >
+              Too many checks from this device. Please wait a few minutes and try
+              again.
             </p>
           )}
         </div>

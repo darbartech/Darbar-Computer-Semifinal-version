@@ -27,7 +27,7 @@ export const SECURE_SESSION_COOKIE_NAME = `__Secure-${SESSION_COOKIE_NAME}`;
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 /** Every admin route except the login page requires a session. */
-export const ADMIN_LOGIN_PATH = "/admin/login";
+export const ADMIN_LOGIN_PATH = "/techdarbar/login";
 
 /** Student-portal login. Used by src/proxy.ts and the portal layout guard. */
 export const STUDENT_LOGIN_PATH = "/student/login";
@@ -46,6 +46,33 @@ export const STUDENT_PHOTO_FOLDER = "darbar/students";
 
 /** Folder for staff profile pictures, uploaded server-side by the account owner. */
 export const USER_AVATAR_FOLDER = "darbar/avatars";
+
+/**
+ * Certificate PDFs live OUTSIDE `public/` because Next.js serves everything under
+ * `public/` with no authentication: a PDF stored there is readable by anyone who can
+ * guess the name, which bypasses `certificate.read` entirely. Only the download
+ * routes (`/api/techdarbar/certificates/[id]/download` for staff and
+ * `/api/student/certificates/[id]/download` for the owning student) may read them.
+ */
+export const CERTIFICATE_PDF_DIR = "storage/certificates";
+
+/**
+ * Stored in `Certificate.pdfUrl` as `<prefix>/<date>/<file>.pdf`. It is a private
+ * lookup key resolved against CERTIFICATE_PDF_DIR, never a browser-fetchable URL —
+ * a value under a public path would re-open the direct-download hole.
+ */
+export const CERTIFICATE_PDF_KEY_PREFIX = "/certificates";
+
+/**
+ * Ceiling for the un-paginated public content lists (blog, gallery, FAQ, team,
+ * testimonials, events). Those pages render every published row, so without a
+ * bound one publish action could make a cached read materialise an arbitrary
+ * number of rows — plus their media joins — into every request that serves the
+ * cached entry.
+ * Far above the current catalogue, so nothing visible is trimmed; raise it only
+ * together with real pagination.
+ */
+export const PUBLIC_LIST_LIMIT = 500;
 
 /** 5 MB (docs/08 §1 "max size (e.g. 5 MB)"). */
 export const MEDIA_MAX_BYTES = 5 * 1024 * 1024;

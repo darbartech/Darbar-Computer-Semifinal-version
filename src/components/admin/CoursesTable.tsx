@@ -93,7 +93,7 @@ export function CoursesTable({
       else params.delete("featured");
       params.delete("page");
 
-      router.replace(`/admin/courses?${params.toString()}`, { scroll: false });
+      router.replace(`/techdarbar/courses?${params.toString()}`, { scroll: false });
     },
     [filters, router, searchParams]
   );
@@ -136,7 +136,7 @@ export function CoursesTable({
         description: `Open /admin/courses/${result.data.id} and give it a final title and URL.`,
         variant: "success",
       });
-      router.push(`/admin/courses/${result.data.id}`);
+      router.push(`/techdarbar/courses/${result.data.id}`);
     } finally {
       setPendingId(null);
     }
@@ -257,7 +257,7 @@ export function CoursesTable({
                       <div className="flex items-start gap-2">
                         <div className="min-w-0">
                           <Link
-                            href={`/admin/courses/${row.id}`}
+                            href={`/techdarbar/courses/${row.id}`}
                             className="font-semibold text-neutral-900 hover:text-primary"
                           >
                             {row.title}
@@ -304,7 +304,7 @@ export function CoursesTable({
                         {canWrite && (
                           <>
                             <Link
-                              href={`/admin/courses/${row.id}`}
+                              href={`/techdarbar/courses/${row.id}`}
                               title="Edit course"
                               className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
                             >
@@ -362,7 +362,7 @@ export function CoursesTable({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/courses?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/courses?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -374,7 +374,7 @@ export function CoursesTable({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/courses?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/courses?${params.toString()}`, { scroll: false });
             }}
           >
             Next

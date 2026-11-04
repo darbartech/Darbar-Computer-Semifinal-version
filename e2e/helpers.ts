@@ -30,31 +30,31 @@ export type TestAccount = (typeof ACCOUNTS)[keyof typeof ACCOUNTS];
 
 /** Signs in through the real login form, never by forging a cookie. */
 export async function login(page: Page, account: TestAccount) {
-  await page.goto("/admin/login");
+  await page.goto("/techdarbar/login");
   await page.getByLabel("Email").fill(account.email);
   await page.getByLabel("Password").fill(account.password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL(/\/admin(?!\/login)/, { timeout: 20_000 });
+  await page.waitForURL(/\/techdarbar(?!\/login)/, { timeout: 20_000 });
 }
 
 export async function logout(page: Page) {
-  await page.goto("/admin");
+  await page.goto("/techdarbar");
   await page.getByRole("button", { name: /account|menu|user/i }).first().click();
   await page.getByText("Sign out").click();
-  await page.waitForURL(/\/admin\/login/, { timeout: 20_000 });
+  await page.waitForURL(/\/techdarbar\/login/, { timeout: 20_000 });
 }
 
 /**
  * Asserts that a URL is off-limits for the current session: either the proxy
- * bounced us to the login page, or the server redirected to /admin.
+ * bounced us to the login page, or the server redirected to /techdarbar.
  */
 export async function expectBlocked(page: Page, url: string) {
   const response = await page.goto(url);
   await page.waitForLoadState("domcontentloaded");
   const finalUrl = new URL(page.url());
   expect(
-    finalUrl.pathname.startsWith("/admin/login") ||
-      finalUrl.pathname === "/admin" ||
+    finalUrl.pathname.startsWith("/techdarbar/login") ||
+      finalUrl.pathname === "/techdarbar" ||
       response?.status() === 404,
     `${url} was reachable at ${finalUrl.pathname}`
   ).toBe(true);

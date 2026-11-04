@@ -86,17 +86,14 @@ export default async function StudentCertificatesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {cert.pdfUrl && (
-                    <a
-                      href={cert.pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
-                    >
-                      <Download className="size-4" />
-                      Download PDF
-                    </a>
-                  )}
+                  <a
+                    href={`/api/student/certificates/${cert.id}/download`}
+                    rel="noopener noreferrer"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    <Download className="size-4" />
+                    Download PDF
+                  </a>
                   {cert.verificationToken && (
                     <Link
                       href={`/verify/${cert.verificationToken}`}

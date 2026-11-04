@@ -47,7 +47,7 @@ export const DASHBOARD_RANGE_LABELS: Record<DashboardRange, string> = {
 export const DASHBOARD_TTL = {
   /** KPIs, charts and lead lists. */
   leads: 60,
-  /** Messages/subscribers counters that no counselor may see. */
+  /** Message counters that no counselor may see. */
   audience: 120,
   /** Drafts awaiting attention, upcoming events. */
   content: 300,

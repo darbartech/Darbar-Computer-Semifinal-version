@@ -30,7 +30,7 @@ vi.mock("next/headers", () => ({
 }));
 
 /** Mirrors what `next/navigation`'s `redirect()` throws in a Server Action. */
-const NEXT_REDIRECT_DIGEST = "NEXT_REDIRECT;replace;/admin/login;303;";
+const NEXT_REDIRECT_DIGEST = "NEXT_REDIRECT;replace;/techdarbar/login;303;";
 
 vi.mock("next/navigation", () => ({
   redirect: (path: string) => {

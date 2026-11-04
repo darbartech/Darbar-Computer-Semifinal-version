@@ -2,10 +2,11 @@
 import type { Prisma } from "../../generated/prisma/client";
 import { db } from "../db";
 import { cached } from "../cache";
+import { PUBLIC_LIST_LIMIT } from "../constants";
 import { FAQ_TAGS } from "../revalidate";
 
 export const listPublishedFaqs = cached(FAQ_TAGS, async () => {
-  return db.faq.findMany({ where: { isPublished: true }, include: { category: true }, orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }] });
+  return db.faq.findMany({ where: { isPublished: true }, include: { category: true }, orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }], take: PUBLIC_LIST_LIMIT });
 });
 export const adminListFaqCategories = async () => db.faqCategory.findMany({ include: { faqs: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } });
 export const getFaq = async (id: string) => db.faq.findUnique({ where: { id } });

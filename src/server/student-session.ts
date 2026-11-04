@@ -11,7 +11,7 @@ import { getStudentProfileByUserId, type StudentProfileView } from "./dal/studen
  * The portal shares the better-auth session tables with staff, so a valid
  * session is not enough: the account must also have `role === "STUDENT"` and be
  * active. Staff members are redirected out of the student portal and students
- * are kept out of `/admin` by the staff `requirePermission` checks (a STUDENT
+ * are kept out of `/techdarbar` by the staff `requirePermission` checks (a STUDENT
  * role appears in no permission). This is defence in depth on top of the
  * cookie-only redirect in `src/proxy.ts` (docs/02 §4).
  */

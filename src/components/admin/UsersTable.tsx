@@ -131,7 +131,7 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
       else params.delete("isActive");
       params.delete("page");
 
-      router.replace(`/admin/users?${params.toString()}`, { scroll: false });
+      router.replace(`/techdarbar/users?${params.toString()}`, { scroll: false });
     },
     [filters, router, searchParams]
   );
@@ -698,7 +698,7 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/users?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/users?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -710,7 +710,7 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/users?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/users?${params.toString()}`, { scroll: false });
             }}
           >
             Next

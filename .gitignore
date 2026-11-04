@@ -27,6 +27,9 @@
 # local-disk uploads (development storage provider)
 /public/uploads/
 
+# issued certificate PDFs — private storage, served only by the download routes
+/storage/
+
 # production
 /build
 

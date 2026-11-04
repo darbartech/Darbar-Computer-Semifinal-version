@@ -100,6 +100,20 @@ const seedAuth = betterAuth({
 const MIN_PASSWORD_LENGTH = 10;
 
 /**
+ * Values that appear in .env.example, the README and the docs as examples. A
+ * seeded super admin can mint every other account, so the script refuses these
+ * outright rather than relying on the operator remembering to replace them.
+ */
+const PLACEHOLDER_ADMIN_PASSWORDS = new Set([
+  "change-me-on-first-login",
+  "change-me",
+  "changeme",
+  "password",
+  "admin123",
+  "darbar123",
+]);
+
+/**
  * 6 category groups, 15 categories and the 37 courses (docs/07 §1–2, docs/04
  * §3.1). Everything is upserted by slug, so the script is safe to re-run.
  *
@@ -234,7 +248,12 @@ async function printCatalogSummary() {
   }
 }
 
-async function seedSuperAdmin() {
+/**
+ * Reads and validates the super-admin credentials. Called at the very start of
+ * `main()` so a bad `SEED_ADMIN_PASSWORD` stops the run before a single row is
+ * written, rather than leaving a half-seeded database behind.
+ */
+function readAdminCredentials() {
   const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.SEED_ADMIN_PASSWORD;
   const name = process.env.SEED_ADMIN_NAME?.trim() || "Super Admin";
@@ -251,6 +270,20 @@ async function seedSuperAdmin() {
     );
     process.exit(1);
   }
+  // The documented placeholder is longer than MIN_PASSWORD_LENGTH, so the length
+  // check alone would happily seed it. This account can mint every other one.
+  if (PLACEHOLDER_ADMIN_PASSWORDS.has(password.trim().toLowerCase())) {
+    console.error(
+      "SEED_ADMIN_PASSWORD is still the documented placeholder. Set a real password before seeding."
+    );
+    process.exit(1);
+  }
+
+  return { email, password, name };
+}
+
+async function seedSuperAdmin(admin: { email: string; password: string; name: string } = readAdminCredentials()) {
+  const { email, password, name } = admin;
 
   const existing = await prisma.user.findUnique({
     where: { email },
@@ -737,11 +770,15 @@ async function main() {
     process.exit(1);
   }
 
+  // Validated up front: a placeholder password should stop the run, not end it
+  // after the catalog, content and settings have already been written.
+  const admin = readAdminCredentials();
+
   await seedCatalog();
   await printCatalogSummary();
   await seedContent();
   await seedSettings();
-  await seedSuperAdmin();
+  await seedSuperAdmin(admin);
   await seedCertificates();
 }
 

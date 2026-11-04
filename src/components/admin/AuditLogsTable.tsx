@@ -69,14 +69,14 @@ export function AuditLogsTable({ rows, total, page, pageCount, filters }: Props)
     if (actionDraft.trim()) params.set("action", actionDraft.trim());
     else params.delete("action");
     params.delete("page");
-    router.replace(`/admin/audit-log?${params.toString()}`, { scroll: false });
+    router.replace(`/techdarbar/audit-log?${params.toString()}`, { scroll: false });
   };
 
   const clearFilters = () => {
     setQDraft("");
     setEntityDraft("");
     setActionDraft("");
-    router.replace("/admin/audit-log", { scroll: false });
+    router.replace("/techdarbar/audit-log", { scroll: false });
   };
 
   const hasFilters = !!(filters.q || filters.entity || filters.action);
@@ -203,7 +203,7 @@ export function AuditLogsTable({ rows, total, page, pageCount, filters }: Props)
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/audit-log?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/audit-log?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -215,7 +215,7 @@ export function AuditLogsTable({ rows, total, page, pageCount, filters }: Props)
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/audit-log?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/audit-log?${params.toString()}`, { scroll: false });
             }}
           >
             Next

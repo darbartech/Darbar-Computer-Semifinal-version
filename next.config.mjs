@@ -9,9 +9,11 @@ import createMDX from "@next/mdx";
  * to `Content-Security-Policy` and drop the `'unsafe-*'` entries that turn out
  * to be unnecessary.
  *
- * Report-only with no reporting endpoint produces no visible violations, so the
- * first step before enforcing is a collector (see the "needs decision" row in
- * the docs/08 §1 audit).
+ * Report-only violations are collected by `POST /api/csp-report` (`report-uri`
+ * below). Read those logs before flipping `Content-Security-Policy-Report-Only` to
+ * `Content-Security-Policy` — note that `img-src` still only whitelists the four
+ * hosts the media library knows about, so the "add media by URL" flow is the part
+ * most likely to break on enforcement.
  */
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -49,10 +51,14 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // 'unsafe-eval' is only needed by the React refresh runtime in development.
   `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://challenges.cloudflare.com`,
-  "connect-src 'self' https://challenges.cloudflare.com",
+  "connect-src 'self' https://challenges.cloudflare.com https://api.cloudinary.com",
   "frame-src 'self' https://www.google.com https://maps.google.com https://challenges.cloudflare.com",
   "media-src 'self' https://res.cloudinary.com",
   "manifest-src 'self'",
+  // Same-origin collector (`src/app/api/csp-report/route.ts`). Without it a
+  // report-only policy reports to nobody and the "collect, then enforce" plan
+  // below has nothing to collect.
+  "report-uri /api/csp-report",
   // No `upgrade-insecure-requests`: browsers ignore it in a report-only policy,
   // and HSTS below covers the upgrade in production.
 ]
@@ -62,7 +68,7 @@ const baseSecurityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   // Nothing on this site is meant to be framed by another origin, so deny it
-  // everywhere — not just under /admin. `frame-ancestors` in the CSP already
+  // everywhere — not just under /techdarbar. `frame-ancestors` in the CSP already
   // says this, but X-Frame-Options is the belt to that suspenders for clients
   // that ignore CSP.
   { key: "X-Frame-Options", value: "DENY" },
@@ -76,11 +82,25 @@ const baseSecurityHeaders = [
   { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
 ];
 
-// The admin surface is the crown jewel: never frameable, and never sniffed.
-const adminSecurityHeaders = [...baseSecurityHeaders];
+// The admin surface gets two more guards on top of the base set. Both keys are
+// absent from `baseSecurityHeaders` on purpose: Next.js merges the matching header
+// sets rather than replacing them, so repeating a key would send it twice.
+//  - X-Robots-Tag: a redirect or an error page from this prefix may render without
+//    the layout's `noindex` metadata, and robots.txt only stops the crawl, not the
+//    indexing of an inbound link.
+//  - Cross-Origin-Resource-Policy: a dashboard response must not be readable as a
+//    subresource embedded in someone else's page.
+const adminSecurityHeaders = [
+  ...baseSecurityHeaders,
+  { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+];
 
 const nextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+  // `X-Powered-By: Next.js` tells a scanner which stack to attack and buys the
+  // site nothing.
+  poweredByHeader: false,
   // Turbopack blocks HMR/dev-asset requests whose Origin host is not the host
   // the server was started with. We start on `localhost` and often open the
   // site at the IPv4 literal, so allow that hostname (no scheme or port).
@@ -89,8 +109,8 @@ const nextConfig = {
     return [
       { source: "/:path*", headers: baseSecurityHeaders },
       // `source` order matters: the more specific admin rule is listed after
-      // the catch-all, and Next.js merges both sets, so /admin gets everything.
-      { source: "/admin/:path*", headers: adminSecurityHeaders },
+      // the catch-all, and Next.js merges both sets, so /techdarbar gets everything.
+      { source: "/techdarbar/:path*", headers: adminSecurityHeaders },
       ...(isProduction
         ? [
             {

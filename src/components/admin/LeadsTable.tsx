@@ -149,11 +149,11 @@ export function LeadsTable({
       followUpDue: dueDraft ? "true" : undefined,
       page: undefined,
     });
-    router.push(`/admin/leads?${params}`);
+    router.push(`/techdarbar/leads?${params}`);
   };
 
   const clearFilters = () => {
-    router.push(`/admin/leads?${buildQuery(
+    router.push(`/techdarbar/leads?${buildQuery(
       { ...filters, view: "all", q: undefined },
       {
         q: undefined,
@@ -170,11 +170,11 @@ export function LeadsTable({
   };
 
   const switchView = (view: string) => {
-    router.push(`/admin/leads?${buildQuery(filters, { view, page: undefined })}`);
+    router.push(`/techdarbar/leads?${buildQuery(filters, { view, page: undefined })}`);
   };
 
   const goToPage = (next: number) => {
-    router.push(`/admin/leads?${buildQuery(filters, { page: next > 1 ? String(next) : undefined })}`);
+    router.push(`/techdarbar/leads?${buildQuery(filters, { page: next > 1 ? String(next) : undefined })}`);
   };
 
   const toggle = (id: string) => {
@@ -523,7 +523,7 @@ export function LeadsTable({
                     </td>
                     <td className="px-3 py-3">
                       <Link
-                        href={`/admin/leads/${row.id}`}
+                        href={`/techdarbar/leads/${row.id}`}
                         className="font-medium text-neutral-900 hover:text-primary hover:underline"
                       >
                         {row.fullName}

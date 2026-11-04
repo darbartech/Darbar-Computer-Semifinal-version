@@ -56,6 +56,35 @@ const MIME_TO_EXTENSION: Record<MediaAllowedMimeType, string> = {
 };
 
 /**
+ * Magic-number check for the four accepted image types.
+ *
+ * `File.type` is written by the browser and is free to lie, so the declared MIME
+ * alone cannot decide what a stored file really is. This is the byte-level truth
+ * used to reject a mismatch before anything is written or registered.
+ */
+export function sniffImageMimeType(data: Uint8Array): MediaAllowedMimeType | null {
+  const at = (offset: number, bytes: number[]) =>
+    data.length >= offset + bytes.length && bytes.every((b, i) => data[offset + i] === b);
+
+  if (at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "image/png";
+  if (at(0, [0xff, 0xd8, 0xff])) return "image/jpeg";
+  if (at(0, [0x52, 0x49, 0x46, 0x46]) && at(8, [0x57, 0x45, 0x42, 0x50])) {
+    return "image/webp";
+  }
+  // ISO-BMFF: size(4) "ftyp"(4) brand(4), with the AVIF brands.
+  if (at(4, [0x66, 0x74, 0x79, 0x70])) {
+    const brand = [data[8], data[9], data[10], data[11]];
+    const brands: number[][] = [
+      [0x61, 0x76, 0x69, 0x66], // avif
+      [0x61, 0x76, 0x69, 0x73], // avis
+      [0x61, 0x76, 0x69, 0x6f], // avio
+    ];
+    if (brands.some((b) => b.every((v, i) => v === brand[i]))) return "image/avif";
+  }
+  return null;
+}
+
+/**
  * Local disk is a development convenience. It is on by default under
  * `next dev` and off everywhere else unless it is asked for explicitly, so a
  * production deploy can never silently start writing to a container filesystem.
@@ -170,7 +199,7 @@ export function createSignedUpload(
     timestamp,
     folder: MEDIA_UPLOAD_FOLDER,
     // Signed => Cloudinary rejects any MIME outside this list.
-    allowed_formats: MEDIA_ALLOWED_MIME_TYPES.map(formatForCloudinary).join(","),
+    allowed_formats: allowedFormatsParam(),
     use_filename: true,
     unique_filename: true,
     overwrite: false,
@@ -205,6 +234,11 @@ function formatForCloudinary(mime: MediaAllowedMimeType): string {
     case "image/avif":
       return "avif";
   }
+}
+
+/** The `allowed_formats` value that makes Cloudinary reject anything else, SVG included. */
+export function allowedFormatsParam(): string {
+  return MEDIA_ALLOWED_MIME_TYPES.map(formatForCloudinary).join(",");
 }
 
 export function assertAllowedMimeType(mimeType: string): asserts mimeType is MediaAllowedMimeType {
@@ -259,7 +293,7 @@ export type VerifiedUpload = {
 export function verifyUploadedAsset(
   result: CloudinaryUploadResult,
   config: StorageConfig,
-  options: { requestOrigin?: string | null } = {}
+  options: { requestOrigin?: string | null; folder?: string } = {}
 ): VerifiedUpload {
   if (typeof result?.public_id !== "string" || !result.public_id) {
     throw new UploadValidationError("Upload did not return an asset id");
@@ -272,7 +306,7 @@ export function verifyUploadedAsset(
   const folder = result.public_id.includes("/")
     ? result.public_id.slice(0, result.public_id.lastIndexOf("/"))
     : "";
-  if (folder !== MEDIA_UPLOAD_FOLDER) {
+  if (folder !== (options.folder ?? MEDIA_UPLOAD_FOLDER)) {
     throw new UploadValidationError("Upload landed outside the allowed folder");
   }
 
@@ -285,15 +319,24 @@ export function verifyUploadedAsset(
 
   if (config.provider === "local") {
     // Must be our own origin, under the uploads directory, and must name the
-    // exact asset that was reported — nothing else is servable. The host is
-    // accepted when it is the configured site origin *or* the origin the admin
-    // actually browsed from, because local development is routinely reached
-    // over the LAN address (`http://192.168.x.x:3000`) instead of localhost.
+    // exact asset that was reported — nothing else is servable.
+    //
+    // With a configured site origin that is the only host that may be stored.
+    // Without one (development, or a deployment that never set NEXT_PUBLIC_SITE_URL)
+    // the origin the admin actually browsed from is accepted too, because local
+    // development is routinely reached over the LAN address (`http://192.168.x.x:3001`)
+    // instead of localhost.
     if (url.protocol !== "https:" && url.protocol !== "http:") {
       throw new UploadValidationError("Upload returned an unexpected delivery host");
     }
-    const allowedOrigins = [siteOrigin(), normalizeOrigin(options.requestOrigin)]
-      .filter((value): value is string => Boolean(value));
+    const canonical = siteOrigin();
+    const requestDerivedOrigin =
+      canonical && process.env.NODE_ENV === "production"
+        ? null
+        : normalizeOrigin(options.requestOrigin);
+    const allowedOrigins = [canonical, requestDerivedOrigin].filter(
+      (value): value is string => Boolean(value)
+    );
     if (allowedOrigins.length > 0 && !allowedOrigins.includes(url.origin)) {
       throw new UploadValidationError("Upload returned an unexpected delivery host");
     }
@@ -404,7 +447,15 @@ export async function writeLocalUpload(
   assertAllowedMimeType(input.mimeType);
   assertWithinSizeLimit(input.data.byteLength);
 
-  const filename = `${randomUUID()}.${MIME_TO_EXTENSION[input.mimeType]}`;
+  // The declared type is written by the browser and decides nothing on its own.
+  // The extension below comes from the sniffed type, so a lying `File.type` cannot
+  // make a file be stored and served as something it is not.
+  const actualType = sniffImageMimeType(input.data);
+  if (!actualType || actualType !== input.mimeType) {
+    throw new UploadValidationError("The file is not the image type it claims to be");
+  }
+
+  const filename = `${randomUUID()}.${MIME_TO_EXTENSION[actualType]}`;
   const publicId = `${MEDIA_UPLOAD_FOLDER}/${filename}`;
   const directory = path.join(process.cwd(), LOCAL_UPLOAD_DIR, MEDIA_UPLOAD_FOLDER);
 

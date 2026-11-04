@@ -1,7 +1,13 @@
 import "server-only";
 import { headers } from "next/headers";
 import { MEDIA_ALLOWED_MIME_TYPES, MEDIA_MAX_BYTES } from "@/server/constants";
-import { getStorageConfig, writeLocalUpload } from "./storage";
+import {
+  allowedFormatsParam,
+  getStorageConfig,
+  sniffImageMimeType,
+  verifyUploadedAsset,
+  writeLocalUpload,
+} from "./storage";
 
 /**
  * Server-side image storage for profile pictures.
@@ -43,6 +49,15 @@ export async function storeAvatarImage(
     return { ok: false, error: AVATAR_TOO_LARGE };
   }
 
+  const data = new Uint8Array(await file.arrayBuffer());
+  // `File.type` is written by the browser. Without this check a student could hand
+  // an SVG to Cloudinary, which would serve it as image/svg+xml from their own
+  // trusted origin — a stored XSS on res.cloudinary.com.
+  const actualType = sniffImageMimeType(data);
+  if (!actualType || actualType !== file.type) {
+    return { ok: false, error: AVATAR_BAD_TYPE };
+  }
+
   const config = getStorageConfig();
   if (!config) return { ok: false, error: AVATAR_NOT_CONFIGURED };
 
@@ -52,8 +67,11 @@ export async function storeAvatarImage(
       return { ok: false, error: AVATAR_NOT_CONFIGURED };
     }
     const form = new FormData();
-    form.append("file", file);
+    form.append("file", new Blob([data as BlobPart], { type: actualType }), file.name);
     form.append("folder", folder);
+    // This upload is authenticated rather than signed, so the format restriction is
+    // sent in plain sight — the post-response verification below is what enforces it.
+    form.append("allowed_formats", allowedFormatsParam());
     form.append("overwrite", "false");
     form.append("use_filename", "true");
     form.append("unique_filename", "true");
@@ -70,35 +88,27 @@ export async function storeAvatarImage(
     );
     if (!response.ok) throw new Error(`Cloudinary upload failed (${response.status})`);
 
-    const result = (await response.json()) as {
-      public_id: string;
-      secure_url: string;
-      bytes?: number;
-      width?: number;
-      height?: number;
-    };
-    if (!result.public_id.startsWith(`${folder}/`)) {
-      throw new Error("Upload landed outside the expected folder");
-    }
+    const result = await response.json();
+    const verified = verifyUploadedAsset(result, config, { folder });
     return {
       ok: true,
       stored: {
-        url: result.secure_url,
-        publicId: result.public_id,
-        bytes: result.bytes ?? file.size,
-        width: result.width ?? null,
-        height: result.height ?? null,
-        mimeType: file.type,
+        url: verified.url,
+        publicId: verified.publicId,
+        bytes: verified.bytes,
+        width: verified.width,
+        height: verified.height,
+        mimeType: verified.mimeType,
       },
     };
   }
 
   const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const host = h.get("host") ?? h.get("x-forwarded-host") ?? "localhost:3000";
   const proto =
     h.get("x-forwarded-proto") ?? (/^(localhost|127\.|\[::1\])/i.test(host) ? "http" : "https");
   const result = await writeLocalUpload(
-    { data: new Uint8Array(await file.arrayBuffer()), mimeType: file.type },
+    { data, mimeType: actualType },
     `${proto}://${host}`
   );
   return {
@@ -109,7 +119,7 @@ export async function storeAvatarImage(
       bytes: result.bytes,
       width: result.width ?? null,
       height: result.height ?? null,
-      mimeType: file.type,
+      mimeType: actualType,
     },
   };
 }

@@ -409,7 +409,6 @@ export const ModelName = {
   Lead: 'Lead',
   LeadActivity: 'LeadActivity',
   ContactMessage: 'ContactMessage',
-  Subscriber: 'Subscriber',
   BlogPost: 'BlogPost',
   Tag: 'Tag',
   Event: 'Event',
@@ -448,7 +447,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "media" | "categoryGroup" | "category" | "course" | "batch" | "lead" | "leadActivity" | "contactMessage" | "subscriber" | "blogPost" | "tag" | "event" | "faqCategory" | "faq" | "galleryItem" | "testimonial" | "teamMember" | "siteSetting" | "auditLog" | "rateLimitHit" | "certificateSignatory" | "certificateTemplate" | "certificate" | "certificateItem" | "certificateIssuedSignatory" | "studentProfile" | "enrollment" | "portfolioProject" | "assignment" | "assignmentSubmission" | "assignmentRecipient" | "notice"
+    modelProps: "user" | "session" | "account" | "verification" | "media" | "categoryGroup" | "category" | "course" | "batch" | "lead" | "leadActivity" | "contactMessage" | "blogPost" | "tag" | "event" | "faqCategory" | "faq" | "galleryItem" | "testimonial" | "teamMember" | "siteSetting" | "auditLog" | "rateLimitHit" | "certificateSignatory" | "certificateTemplate" | "certificate" | "certificateItem" | "certificateIssuedSignatory" | "studentProfile" | "enrollment" | "portfolioProject" | "assignment" | "assignmentSubmission" | "assignmentRecipient" | "notice"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1337,80 +1336,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ContactMessageCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ContactMessageCountAggregateOutputType> | number
-        }
-      }
-    }
-    Subscriber: {
-      payload: Prisma.$SubscriberPayload<ExtArgs>
-      fields: Prisma.SubscriberFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.SubscriberFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.SubscriberFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>
-        }
-        findFirst: {
-          args: Prisma.SubscriberFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.SubscriberFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>
-        }
-        findMany: {
-          args: Prisma.SubscriberFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>[]
-        }
-        create: {
-          args: Prisma.SubscriberCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>
-        }
-        createMany: {
-          args: Prisma.SubscriberCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.SubscriberCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>[]
-        }
-        delete: {
-          args: Prisma.SubscriberDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>
-        }
-        update: {
-          args: Prisma.SubscriberUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>
-        }
-        deleteMany: {
-          args: Prisma.SubscriberDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.SubscriberUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SubscriberUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>[]
-        }
-        upsert: {
-          args: Prisma.SubscriberUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriberPayload>
-        }
-        aggregate: {
-          args: Prisma.SubscriberAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSubscriber>
-        }
-        groupBy: {
-          args: Prisma.SubscriberGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SubscriberGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.SubscriberCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SubscriberCountAggregateOutputType> | number
         }
       }
     }
@@ -3373,18 +3298,6 @@ export const ContactMessageScalarFieldEnum = {
 export type ContactMessageScalarFieldEnum = (typeof ContactMessageScalarFieldEnum)[keyof typeof ContactMessageScalarFieldEnum]
 
 
-export const SubscriberScalarFieldEnum = {
-  id: 'id',
-  email: 'email',
-  status: 'status',
-  source: 'source',
-  createdAt: 'createdAt',
-  unsubscribedAt: 'unsubscribedAt'
-} as const
-
-export type SubscriberScalarFieldEnum = (typeof SubscriberScalarFieldEnum)[keyof typeof SubscriberScalarFieldEnum]
-
-
 export const BlogPostScalarFieldEnum = {
   id: 'id',
   slug: 'slug',
@@ -4030,20 +3943,6 @@ export type ListEnumMessageStatusFieldRefInput<$PrismaModel> = FieldRefInputType
 
 
 /**
- * Reference to a field of type 'SubscriberStatus'
- */
-export type EnumSubscriberStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriberStatus'>
-    
-
-
-/**
- * Reference to a field of type 'SubscriberStatus[]'
- */
-export type ListEnumSubscriberStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriberStatus[]'>
-    
-
-
-/**
  * Reference to a field of type 'EventStatus'
  */
 export type EnumEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventStatus'>
@@ -4331,7 +4230,6 @@ export type GlobalOmitConfig = {
   lead?: Prisma.LeadOmit
   leadActivity?: Prisma.LeadActivityOmit
   contactMessage?: Prisma.ContactMessageOmit
-  subscriber?: Prisma.SubscriberOmit
   blogPost?: Prisma.BlogPostOmit
   tag?: Prisma.TagOmit
   event?: Prisma.EventOmit

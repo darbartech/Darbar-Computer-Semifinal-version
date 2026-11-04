@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { ACCOUNTS, login, expectBlocked } from "./helpers";
 
 /**
- * docs/08 §2 scenario 4 — "EDITOR can't open /admin/leads and action call is
+ * docs/08 §2 scenario 4 — "EDITOR can't open /techdarbar/leads and action call is
  * rejected".
  *
  * The second half matters most. Hiding a nav item is cosmetic; the guarantee is
@@ -12,12 +12,12 @@ import { ACCOUNTS, login, expectBlocked } from "./helpers";
 test.describe("EDITOR cannot reach lead data", () => {
   test("the leads list redirects an editor away", async ({ page }) => {
     await login(page, ACCOUNTS.editor);
-    await expectBlocked(page, "/admin/leads");
+    await expectBlocked(page, "/techdarbar/leads");
   });
 
   test("a lead detail URL redirects an editor away", async ({ page }) => {
     await login(page, ACCOUNTS.editor);
-    await expectBlocked(page, "/admin/leads/any-id");
+    await expectBlocked(page, "/techdarbar/leads/any-id");
   });
 
   test("the lead action endpoint rejects an editor session", async ({ page }) => {
@@ -40,7 +40,7 @@ test.describe("EDITOR cannot reach lead data", () => {
       }
     });
 
-    await page.goto("/admin/courses");
+    await page.goto("/techdarbar/courses");
     await expect(page.getByRole("heading", { name: /courses/i }).first()).toBeVisible();
 
     // Reaching the courses page at all proves the editor session works, so any
@@ -53,12 +53,12 @@ test.describe("EDITOR cannot reach lead data", () => {
 
   test("the settings page is closed to an editor", async ({ page }) => {
     await login(page, ACCOUNTS.editor);
-    await expectBlocked(page, "/admin/settings");
+    await expectBlocked(page, "/techdarbar/settings");
   });
 
   test("a counselor cannot see another counselor's lead", async ({ page }) => {
     await login(page, ACCOUNTS.counselor);
-    await page.goto("/admin/leads");
+    await page.goto("/techdarbar/leads");
     await expect(page.getByRole("heading", { name: /leads/i }).first()).toBeVisible();
     // The scoping itself is asserted in the DAL integration tests; here we only
     // assert the counselor can reach their own list.

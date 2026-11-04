@@ -21,8 +21,8 @@ export function fallbackSettings(): SiteSettingsView {
 }
 
 /**
- * `noindex, nofollow` for surfaces that must never be indexed: `/admin`,
- * `/admin/login` and `/student/*` (docs/08 §1 "Platform").
+ * `noindex, nofollow` for surfaces that must never be indexed: `/techdarbar`,
+ * `/techdarbar/login` and `/student/*` (docs/08 §1 "Platform").
  *
  * Shared so every one of those routes emits byte-identical directives — a
  * half-configured robots block is the usual reason an admin URL still shows up

@@ -18,7 +18,7 @@ import { allow, getClientIpHash, hashIp } from "@/server/services/rate-limit";
  * public sign-up endpoint); registration here creates the account server-side
  * with the same better-auth credential layout, so sign-in reuses
  * `auth.api.signInEmail`. `requireStudent()` keeps a STUDENT role out of every
- * staff `/admin` permission.
+ * staff `/techdarbar` permission.
  */
 
 export type StudentAuthResult = { ok: true } | { ok: false; error: string };
@@ -44,10 +44,7 @@ export async function registerStudent(input: unknown): Promise<StudentAuthResult
 
     if (await findUserByEmail(email)) {
       // Never confirm whether an email is already registered.
-      return {
-        ok: false,
-        error: "We couldn't create this account. If you already have one, please sign in.",
-      };
+      return { ok: false, error: GENERIC_REGISTER_ERROR };
     }
 
     const passwordHash = await hashPassword(password);
@@ -117,14 +114,12 @@ export async function loginStudent(input: unknown): Promise<StudentAuthResult> {
     const role = account?.role;
 
     // A staff member who signs in here would otherwise land in a portal with no
-    // data; sign them back out and point them at the admin sign-in. Inactive
-    // accounts are rejected the same way.
+    // data, so they are signed back out. Inactive accounts are rejected the same
+    // way — and with the same generic message, because a distinct one would confirm
+    // that the credentials just tried belong to a real account.
     if (!signIn?.user || role !== "STUDENT" || account?.isActive === false) {
       await auth.api.signOut({ headers: await headers() });
-      return {
-        ok: false,
-        error: "This portal is for students. Staff should use the admin sign-in.",
-      };
+      return { ok: false, error: GENERIC_LOGIN_ERROR };
     }
 
     await prisma.user.update({

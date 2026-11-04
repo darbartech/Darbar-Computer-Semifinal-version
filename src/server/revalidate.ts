@@ -57,7 +57,6 @@ export function invalidateDetached(...tags: string[]): void {
 
 export const LEAD_TAGS = ['leads', 'dashboard'] as const
 export const MESSAGE_TAGS = ['messages', 'dashboard'] as const
-export const SUBSCRIBER_TAGS = ['subscribers', 'dashboard'] as const
 export const COURSE_TAGS = ['courses', 'sitemap'] as const
 export const CATEGORY_TAGS = ['courses', 'categories'] as const
 export const SETTINGS_TAGS = ['settings', 'courses', 'sitemap'] as const

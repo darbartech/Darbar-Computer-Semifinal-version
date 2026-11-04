@@ -86,7 +86,7 @@ export function MessagesTable({ rows, total, page, pageCount, filters, canUpdate
       else params.delete("status");
       params.delete("page");
 
-      router.replace(`/admin/messages?${params.toString()}`, { scroll: false });
+      router.replace(`/techdarbar/messages?${params.toString()}`, { scroll: false });
     },
     [filters, router, searchParams]
   );
@@ -293,7 +293,7 @@ export function MessagesTable({ rows, total, page, pageCount, filters, canUpdate
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/messages?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/messages?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -305,7 +305,7 @@ export function MessagesTable({ rows, total, page, pageCount, filters, canUpdate
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/messages?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/messages?${params.toString()}`, { scroll: false });
             }}
           >
             Next

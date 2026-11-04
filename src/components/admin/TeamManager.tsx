@@ -90,7 +90,7 @@ export function TeamManager({
     if (merged.isPublished) params.set("isPublished", merged.isPublished);
     else params.delete("isPublished");
     params.delete("page");
-    router.replace(`/admin/team?${params.toString()}`, { scroll: false });
+    router.replace(`/techdarbar/team?${params.toString()}`, { scroll: false });
   };
 
   const startCreate = () => {
@@ -425,7 +425,7 @@ export function TeamManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/team?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/team?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -437,7 +437,7 @@ export function TeamManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/team?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/team?${params.toString()}`, { scroll: false });
             }}
           >
             Next

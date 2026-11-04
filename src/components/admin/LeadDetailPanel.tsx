@@ -187,7 +187,7 @@ export function LeadDetailPanel({
       return;
     }
     setDeleteOpen(false);
-    router.push("/admin/leads");
+    router.push("/techdarbar/leads");
     router.refresh();
   };
 
@@ -204,7 +204,7 @@ export function LeadDetailPanel({
               {duplicates.map((duplicate) => (
                 <li key={duplicate.id}>
                   <Link
-                    href={`/admin/leads/${duplicate.id}`}
+                    href={`/techdarbar/leads/${duplicate.id}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {duplicate.fullName}

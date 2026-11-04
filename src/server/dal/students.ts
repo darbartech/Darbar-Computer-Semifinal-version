@@ -326,7 +326,6 @@ export type StudentCertificateView = {
   revokedAt: string | null;
   reissuedAt: string | null;
   verificationToken: string | null;
-  pdfUrl: string | null;
 };
 
 /**
@@ -355,7 +354,6 @@ export async function listStudentCertificates(
       revokedAt: true,
       reissuedAt: true,
       verificationToken: true,
-      pdfUrl: true,
     },
   });
   return rows.map((row) => ({
@@ -371,8 +369,26 @@ export async function listStudentCertificates(
     revokedAt: row.revokedAt?.toISOString() ?? null,
     reissuedAt: row.reissuedAt?.toISOString() ?? null,
     verificationToken: row.verificationToken,
-    pdfUrl: row.pdfUrl,
   }));
+}
+
+/**
+ * Download metadata for one certificate owned by this student. The `OR` mirrors
+ * `listStudentCertificates` — linked by `studentId`, or surfaced because an admin
+ * pasted the student code as the recipient id. Any other id returns null, so another
+ * graduate's document is invisible rather than merely forbidden.
+ */
+export async function getStudentCertificateDownloadMeta(
+  profile: { id: string; studentCode: string },
+  id: string
+): Promise<{ certificateNumber: string | null; pdfUrl: string | null; status: string } | null> {
+  return db.certificate.findFirst({
+    where: {
+      id,
+      OR: [{ studentId: profile.id }, { recipientIdNumber: profile.studentCode }],
+    },
+    select: { certificateNumber: true, pdfUrl: true, status: true },
+  });
 }
 
 // ───────────── Portfolio projects (private, owner-scoped) ─────────────

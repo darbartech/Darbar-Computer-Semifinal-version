@@ -4,7 +4,7 @@ import { getSiteSettings } from "@/server/dal/settings";
 /**
  * Crawler rules (docs/08 §1 "Platform").
  *
- * `/admin` is disallowed for every agent, not just the named ones below: a page
+ * `/techdarbar` is disallowed for every agent, not just the named ones below: a page
  * that only some crawlers may not fetch is still a page that can leak a login
  * form into a search result or an LLM training set. `/student` goes the same way
  * for the same reason. Both paths also send `noindex` metadata (see the admin
@@ -12,7 +12,7 @@ import { getSiteSettings } from "@/server/dal/settings";
  * indexed from an inbound link.
  */
 const DISALLOWED = [
-  "/admin",
+  "/techdarbar",
   "/api/",
   "/student",
   "/_next/",

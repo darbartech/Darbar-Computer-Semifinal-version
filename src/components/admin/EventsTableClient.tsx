@@ -107,7 +107,7 @@ export function EventsTableClient<TRow extends EventRow = EventRow>({
       if (merged.page > 1) params.set("page", String(merged.page));
       else params.delete("page");
 
-      router.replace(`/admin/events?${params.toString()}`, { scroll: false });
+      router.replace(`/techdarbar/events?${params.toString()}`, { scroll: false });
 
       setLoading(true);
       try {
@@ -232,7 +232,7 @@ export function EventsTableClient<TRow extends EventRow = EventRow>({
                   <td className="px-4 py-3">
                     <div className="min-w-0">
                       <Link
-                        href={`/admin/events/${row.id}`}
+                        href={`/techdarbar/events/${row.id}`}
                         className="font-semibold text-neutral-900 hover:text-primary"
                       >
                         {row.title}
@@ -280,7 +280,7 @@ export function EventsTableClient<TRow extends EventRow = EventRow>({
                       </Link>
                       {canWrite && (
                         <Link
-                          href={`/admin/events/${row.id}`}
+                          href={`/techdarbar/events/${row.id}`}
                           title="Edit event"
                           className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
                         >

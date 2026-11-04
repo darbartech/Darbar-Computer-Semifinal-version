@@ -7,20 +7,17 @@ import type { PdfCertificateData } from "@/server/certificates/pdf/types";
 /**
  * Regression: certificates could not be downloaded.
  *
- * `persistCertificatePdf` prefixed the stored URL with `NEXT_PUBLIC_SITE_URL`, so a
- * `next dev` server running on :3001 stored links to :3000. Those 404'd because a
- * different app occupied that port. The stored URL must be root-relative so the
- * browser resolves it against whichever origin served the page.
+ * `persistCertificatePdf` used to prefix the stored URL with `NEXT_PUBLIC_SITE_URL`,
+ * so a `next dev` server running on :3001 stored links to :3000 and those 404'd. The
+ * stored value must stay origin-free. It is now a key under the private PDF directory
+ * rather than a `/uploads/` URL, because a URL under `public/` is served to anyone
+ * without a session.
  */
-const PDF_DIR = path.join("public", "uploads", "certificates");
+const PDF_DIR = path.join("storage", "certificates");
 
-/**
- * Map a stored URL onto its file on disk, tolerating an absolute URL so that
- * cleanup still works if the URL-building behaviour regresses (and a run fails).
- */
-function absOf(url: string): string {
-  const rel = /^\//.test(url) ? url : (/\/uploads\/.*$/.exec(url) ?? ["", url])[0];
-  return path.join("public", rel.replace(/^\//, ""));
+/** Maps a stored `/certificates/...` key onto its file under the private root. */
+function absOf(key: string): string {
+  return path.join("storage", key.replace(/^\//, ""));
 }
 
 function makeData(overrides: Partial<PdfCertificateData> = {}): PdfCertificateData {
@@ -58,15 +55,16 @@ describe("certificate PDF persistence", () => {
     else process.env.MEDIA_STORAGE_PROVIDER = previousProvider;
   });
 
-  it("stores a root-relative URL that does not leak the site origin", async () => {
+  it("stores a private key that does not leak the site origin", async () => {
     const result = await persistCertificatePdf(makeData(), Buffer.from("%PDF-1.4 test"));
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.pdfUrl.startsWith("/uploads/certificates/")).toBe(true);
+    expect(result.pdfUrl.startsWith("/certificates/")).toBe(true);
     expect(result.pdfUrl).not.toMatch(/^https?:\/\//i);
     expect(result.pdfUrl).not.toContain("localhost:3000");
+    expect(result.pdfUrl).not.toContain("uploads");
     created.push(result.pdfUrl);
   });
 
@@ -78,7 +76,7 @@ describe("certificate PDF persistence", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    // A root-relative URL maps 1:1 onto the public/ directory.
+    // The key maps 1:1 onto the private storage directory.
     const abs = absOf(result.pdfUrl);
     const info = await stat(abs);
     expect(info.size).toBeGreaterThan(0);
@@ -113,11 +111,11 @@ describe("certificate PDF persistence", () => {
     if (!result.ok) return;
 
     expect(result.pdfUrl).not.toContain("..");
-    expect(result.pdfUrl).toMatch(/^\/uploads\/certificates\/[\w-]+\/[\w.-]+\.pdf$/);
+    expect(result.pdfUrl).toMatch(/^\/certificates\/[\w-]+\/[\w.-]+\.pdf$/);
     created.push(result.pdfUrl);
   });
 
-  it("keeps every persisted URL inside the uploads directory", async () => {
+  it("keeps every persisted key inside the private certificate directory", async () => {
     for (const url of created) {
       const resolved = path.resolve(absOf(url));
       const root = path.resolve(PDF_DIR);

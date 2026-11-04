@@ -12,18 +12,12 @@ import {
   updateMessageStatusSchema,
 } from "../src/lib/validators/contact";
 import {
-  newsletterSchema,
-  subscriberFilterSchema,
-  setSubscriberStatusSchema,
-} from "../src/lib/validators/newsletter";
-import {
   LEAD_SOURCES,
   LEAD_STATUSES,
   MANUAL_ACTIVITY_TYPES,
   MESSAGE_STATUSES,
   NAME_PATTERN,
   PREFERRED_BATCHES,
-  SUBSCRIBER_STATUSES,
 } from "../src/lib/validators/shared";
 import {
   COURSE_LEVELS,
@@ -60,7 +54,6 @@ import {
   NoticeType,
   PreferredBatch,
   PublishStatus,
-  SubscriberStatus,
   SubmissionReviewStatus,
 } from "../src/generated/prisma/enums";
 
@@ -125,12 +118,13 @@ describe("inquirySchema", () => {
     expect(inquirySchema.safeParse(withoutConsent).success).toBe(false);
   });
 
-  it("rejects a filled honeypot", () => {
+  it("accepts a filled honeypot so the action can drop it silently", () => {
+    // A field error here would name `website` and teach the bot what to leave blank.
     const parsed = inquirySchema.safeParse({
       ...validInquiry,
       website: "http://spam.example",
     });
-    expect(parsed.success).toBe(false);
+    expect(parsed.success).toBe(true);
   });
 
   it("requires a Turnstile token", () => {
@@ -243,34 +237,10 @@ describe("contactSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("rejects a filled honeypot", () => {
+  it("accepts a filled honeypot so the action can drop it silently", () => {
     expect(
       contactSchema.safeParse({ ...validContact, website: "spam" }).success
-    ).toBe(false);
-  });
-});
-
-describe("newsletterSchema", () => {
-  it("accepts a valid signup", () => {
-    const parsed = newsletterSchema.safeParse({
-      email: "Reader@Example.com",
-      source: "footer",
-      website: "",
-      turnstileToken: "token-789",
-    });
-    expect(parsed.success).toBe(true);
-    if (parsed.success) expect(parsed.data.email).toBe("reader@example.com");
-  });
-
-  it("rejects an invalid email", () => {
-    expect(
-      newsletterSchema.safeParse({
-        email: "reader",
-        source: "",
-        website: "",
-        turnstileToken: "t",
-      }).success
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
@@ -398,12 +368,6 @@ describe("validator enum literals match the Prisma schema", () => {
     expect([...TIME_SLOTS].sort()).toEqual(Object.keys(TimeSlot).sort());
   });
 
-  it("SubscriberStatus", () => {
-    expect([...SUBSCRIBER_STATUSES].sort()).toEqual(
-      Object.keys(SubscriberStatus).sort()
-    );
-  });
-
   it("manual LeadActivityType subset", () => {
     for (const type of MANUAL_ACTIVITY_TYPES) {
       expect(Object.keys(LeadActivityType)).toContain(type);
@@ -411,7 +375,7 @@ describe("validator enum literals match the Prisma schema", () => {
   });
 });
 
-describe("contact and subscriber admin mutations", () => {
+describe("contact admin mutations", () => {
   it("rejects an unknown message status", () => {
     expect(
       updateMessageStatusSchema.safeParse({ id: "m1", status: "PENDING" })
@@ -424,21 +388,6 @@ describe("contact and subscriber admin mutations", () => {
 
   it("defaults the contact filter", () => {
     expect(contactFilterSchema.parse({}).page).toBe(1);
-  });
-
-  it("only allows ACTIVE and UNSUBSCRIBED for subscribers", () => {
-    expect(
-      setSubscriberStatusSchema.safeParse({ id: "s1", status: "PENDING" }).success
-    ).toBe(false);
-    expect(
-      setSubscriberStatusSchema.safeParse({ id: "s1", status: "UNSUBSCRIBED" })
-        .success
-    ).toBe(true);
-  });
-
-  it("defaults the subscriber filter", () => {
-    expect(subscriberFilterSchema.parse({}).page).toBe(1);
-    expect(subscriberFilterSchema.parse({ page: "x" }).page).toBe(1);
   });
 });
 

@@ -153,7 +153,7 @@ export function BlogFormClient({
     });
 
     if (!post) {
-      router.push(`/admin/blog/${result.data.id}`);
+      router.push(`/techdarbar/blog/${result.data.id}`);
     } else {
       router.refresh();
     }

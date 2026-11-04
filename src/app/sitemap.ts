@@ -76,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    // `/student/login`, `/student/register` and everything under `/admin` are
+    // `/student/login`, `/student/register` and everything under `/techdarbar` are
     // deliberately absent: those routes send `noindex` and are disallowed in
     // robots.ts (docs/08 §1). A noindex URL listed in the sitemap is a
     // contradictory signal.

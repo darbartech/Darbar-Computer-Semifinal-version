@@ -79,7 +79,7 @@ export function MediaGrid({
     const params = new URLSearchParams();
     const trimmed = search.trim();
     if (trimmed) params.set("q", trimmed);
-    router.push(params.size ? `/admin/media?${params}` : "/admin/media");
+    router.push(params.size ? `/techdarbar/media?${params}` : "/techdarbar/media");
   };
 
   const saveAlt = async () => {
@@ -510,7 +510,7 @@ function buildPageHref(query: string, page: number): string {
   if (query) params.set("q", query);
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
-  return qs ? `/admin/media?${qs}` : "/admin/media";
+  return qs ? `/techdarbar/media?${qs}` : "/techdarbar/media";
 }
 
 export function MediaGridSkeleton() {

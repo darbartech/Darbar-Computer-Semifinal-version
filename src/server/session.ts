@@ -13,7 +13,7 @@ export async function getSession() {
 
 export async function requireUser() {
   const s = await getSession();
-  if (!s?.user) redirect("/admin/login");
+  if (!s?.user) redirect("/techdarbar/login");
   const user = s.user as unknown as {
     id: string;
     email: string;
@@ -22,7 +22,7 @@ export async function requireUser() {
     role: Role;
     isActive: boolean;
   };
-  if (!user.isActive) redirect("/admin/login");
+  if (!user.isActive) redirect("/techdarbar/login");
   return user;
 }
 

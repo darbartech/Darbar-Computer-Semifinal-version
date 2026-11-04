@@ -27,13 +27,22 @@ interface DialogProps {
 export function Dialog({ open: controlled, defaultOpen, onOpenChange, children }: DialogProps) {
   const [internal, setInternal] = React.useState(defaultOpen ?? false);
   const open = controlled ?? internal;
+  // Every caller passes an inline arrow, so a dependency on `onOpenChange` made
+  // `setOpen` change identity on each render — which re-ran DialogContent's
+  // focus effect mid-typing and pulled the caret out of the field after every
+  // keystroke. Keep the latest callback in a ref instead.
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  React.useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
   const setOpen = React.useCallback(
     (v: boolean) => {
       if (controlled === undefined) setInternal(v);
-      onOpenChange?.(v);
+      onOpenChangeRef.current?.(v);
     },
-    [controlled, onOpenChange]
+    [controlled]
   );
+  const value = React.useMemo(() => ({ open, setOpen }), [open, setOpen]);
 
   React.useEffect(() => {
     if (open) {
@@ -45,7 +54,7 @@ export function Dialog({ open: controlled, defaultOpen, onOpenChange, children }
     }
   }, [open]);
 
-  return <DialogContext.Provider value={{ open, setOpen }}>{children}</DialogContext.Provider>;
+  return <DialogContext.Provider value={value}>{children}</DialogContext.Provider>;
 }
 
 export function DialogTrigger({

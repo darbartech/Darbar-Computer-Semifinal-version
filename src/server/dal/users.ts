@@ -28,7 +28,7 @@ export const adminListUsers = async (filters: {
 }) => {
   const conditions: Prisma.UserWhereInput[] = [
     // This is the staff directory; student accounts are managed under
-    // /admin/students, so they never appear here (docs/04 §4.8).
+    // /techdarbar/students, so they never appear here (docs/04 §4.8).
     { role: { not: "STUDENT" } },
   ];
   if (filters.q) {

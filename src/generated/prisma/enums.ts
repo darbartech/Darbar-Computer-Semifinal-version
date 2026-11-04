@@ -139,14 +139,6 @@ export const MessageStatus = {
 export type MessageStatus = (typeof MessageStatus)[keyof typeof MessageStatus]
 
 
-export const SubscriberStatus = {
-  ACTIVE: 'ACTIVE',
-  UNSUBSCRIBED: 'UNSUBSCRIBED'
-} as const
-
-export type SubscriberStatus = (typeof SubscriberStatus)[keyof typeof SubscriberStatus]
-
-
 export const EventCategory = {
   WORKSHOP: 'WORKSHOP',
   SEMINAR: 'SEMINAR',

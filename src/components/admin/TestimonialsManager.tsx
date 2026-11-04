@@ -99,7 +99,7 @@ export function TestimonialsManager({
     if (merged.isPublished) params.set("isPublished", merged.isPublished);
     else params.delete("isPublished");
     params.delete("page");
-    router.replace(`/admin/testimonials?${params.toString()}`, { scroll: false });
+    router.replace(`/techdarbar/testimonials?${params.toString()}`, { scroll: false });
   };
 
   const startCreate = () => {
@@ -468,7 +468,7 @@ export function TestimonialsManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/testimonials?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/testimonials?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -480,7 +480,7 @@ export function TestimonialsManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/testimonials?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/testimonials?${params.toString()}`, { scroll: false });
             }}
           >
             Next

@@ -14,9 +14,7 @@ import type {
   PdfPersistResult,
 } from "./types";
 import { sanitizeForLog, safeFileNamePart } from "../utils";
-
-const LOCAL_PDF_DIR = path.join("public", "uploads", "certificates");
-const LOCAL_PDF_URL_PREFIX = "/uploads/certificates";
+import { CERTIFICATE_PDF_DIR, CERTIFICATE_PDF_KEY_PREFIX } from "@/server/constants";
 
 export type GeneratePdfOptions = {
   /** Printed in the duration sentence, e.g. "DarbarTech Group of Technology". */
@@ -104,7 +102,7 @@ export async function persistCertificatePdf(
 ): Promise<PdfPersistResult> {
   if (isLocalWritable()) {
     try {
-      const dirAbs = path.resolve(LOCAL_PDF_DIR);
+      const dirAbs = path.resolve(/*turbopackIgnore: true*/ CERTIFICATE_PDF_DIR);
       await mkdir(dirAbs, { recursive: true });
 
       const stamp = new Date();
@@ -124,12 +122,11 @@ export async function persistCertificatePdf(
       const absPath = path.join(subDir, fileName);
       await writeFile(absPath, buffer);
 
-      const relUrl = `${LOCAL_PDF_URL_PREFIX}/${sub}/${fileName}`;
+      const relUrl = `${CERTIFICATE_PDF_KEY_PREFIX}/${sub}/${fileName}`;
 
-      // Store a root-relative URL rather than an absolute one. The file is served by
-      // whatever origin the browser is talking to, so baking in NEXT_PUBLIC_SITE_URL
-      // breaks the link whenever the app runs on another port/host than the env var
-      // (e.g. `next dev` on :3001 while the env var still says :3000).
+      // Stored as a key relative to the private PDF directory rather than as a URL.
+      // A root-relative `/uploads/...` value would be served straight off the web
+      // root, so any issued certificate would be downloadable without a session.
       return { ok: true, pdfUrl: relUrl };
     } catch (error) {
       const message =

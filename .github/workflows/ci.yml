@@ -5,6 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      # `npm ci` runs `postinstall: prisma generate`, and `prisma.config.ts`
+      # resolves `env("DATABASE_URL")`. Generate never connects, but the config
+      # load needs the variable to exist — a placeholder keeps install green.
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

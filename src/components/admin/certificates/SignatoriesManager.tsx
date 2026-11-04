@@ -66,7 +66,7 @@ export function SignatoriesManager({
     if (merged.isActive) params.set("isActive", merged.isActive);
     else params.delete("isActive");
     params.delete("page");
-    router.push(`/admin/signatories?${params.toString()}`);
+    router.push(`/techdarbar/signatories?${params.toString()}`);
   };
 
   const edit = (row: Row) => {
@@ -361,7 +361,7 @@ export function SignatoriesManager({
                 onClick={() => {
                   const params = new URLSearchParams(searchParams.toString());
                   params.set("page", String(page - 1));
-                  router.push(`/admin/signatories?${params.toString()}`);
+                  router.push(`/techdarbar/signatories?${params.toString()}`);
                 }}
               >
                 Previous
@@ -373,7 +373,7 @@ export function SignatoriesManager({
                 onClick={() => {
                   const params = new URLSearchParams(searchParams.toString());
                   params.set("page", String(page + 1));
-                  router.push(`/admin/signatories?${params.toString()}`);
+                  router.push(`/techdarbar/signatories?${params.toString()}`);
                 }}
               >
                 Next

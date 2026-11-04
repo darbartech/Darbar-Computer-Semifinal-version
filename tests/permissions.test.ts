@@ -20,9 +20,6 @@ const EXPECTED: Record<Role, string[]> = {
     "lead.delete",
     "contact.read",
     "contact.update",
-    "subscriber.read",
-    "subscriber.export",
-    "subscriber.update",
     "student.read",
     "student.approve",
     "course.read",
@@ -69,9 +66,6 @@ const EXPECTED: Record<Role, string[]> = {
     "lead.export",
     "contact.read",
     "contact.update",
-    "subscriber.read",
-    "subscriber.export",
-    "subscriber.update",
     "student.read",
     "student.approve",
     "course.read",
@@ -108,8 +102,8 @@ const EXPECTED: Record<Role, string[]> = {
     "certificate.signatory.manage",
     "certificate.template.manage",
   ],
-  // Content editor: dashboard + content writes + media, but no leads, contacts,
-  // subscribers or settings.
+  // Content editor: dashboard + content writes + media, but no leads, contacts
+  // or settings.
   EDITOR: [
     "dashboard.view",
     "course.read",
@@ -287,15 +281,13 @@ describe("PERMISSIONS matrix", () => {
       "media.delete",
       "settings.read",
       "settings.write",
-      "subscriber.read",
-      "subscriber.export",
       "lead.export",
     ] as const) {
       expect(can("COUNSELOR", action), `COUNSELOR denied ${action}`).toBe(false);
     }
   });
 
-  it("gives EDITOR no lead, contact, subscriber or settings permission", () => {
+  it("gives EDITOR no lead, contact or settings permission", () => {
     for (const action of [
       "lead.read",
       "lead.update",
@@ -303,8 +295,6 @@ describe("PERMISSIONS matrix", () => {
       "lead.delete",
       "contact.read",
       "contact.update",
-      "subscriber.read",
-      "subscriber.export",
       "settings.read",
       "settings.write",
       "user.manage",

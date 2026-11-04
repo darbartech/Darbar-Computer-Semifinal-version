@@ -486,7 +486,7 @@ export async function listLeadsForExport(
   return rows.map(toListRow);
 }
 
-/** Dashboard/admin badges. One grouped query instead of N counts. */
+/** Dashboard and admin badges. One grouped query instead of N counts. */
 export async function countLeadsByStatus(
   scope?: Prisma.LeadWhereInput
 ): Promise<LeadCountsByStatus> {

@@ -2,13 +2,14 @@
 import type { Prisma } from "../../generated/prisma/client";
 import { db } from "../db";
 import { cached } from "../cache";
+import { PUBLIC_LIST_LIMIT } from "../constants";
 import { TESTIMONIAL_TAGS } from "../revalidate";
 
 const include = { photo: true, course: { select: { id: true, title: true } } } satisfies Prisma.TestimonialInclude;
 export const PAGE_SIZE = 20;
 
 export const listPublishedTestimonials = cached(TESTIMONIAL_TAGS, async () => {
-  return db.testimonial.findMany({ where: { isPublished: true }, include: { photo: true, course: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] });
+  return db.testimonial.findMany({ where: { isPublished: true }, include: { photo: true, course: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }], take: PUBLIC_LIST_LIMIT });
 });
 
 export const adminListTestimonials = async (filters: { q?: string; isPublished?: string; page?: number }) => {

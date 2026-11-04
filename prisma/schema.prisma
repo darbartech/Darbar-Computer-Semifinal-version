@@ -103,11 +103,6 @@ enum MessageStatus {
   SPAM
 }
 
-enum SubscriberStatus {
-  ACTIVE
-  UNSUBSCRIBED
-}
-
 enum EventCategory {
   WORKSHOP
   SEMINAR
@@ -419,15 +414,6 @@ model ContactMessage {
   handledAt    DateTime?
 
   @@index([status, createdAt])
-}
-
-model Subscriber {
-  id             String           @id @default(cuid())
-  email          String           @unique
-  status         SubscriberStatus @default(ACTIVE)
-  source         String?
-  createdAt      DateTime         @default(now())
-  unsubscribedAt DateTime?
 }
 
 // ───────────── Content ─────────────

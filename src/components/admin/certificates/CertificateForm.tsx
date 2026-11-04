@@ -190,7 +190,7 @@ export function CertificateForm({
       });
 
       const id = (result.data as { id: string }).id;
-      router.replace(`/admin/certificates/${id}`);
+      router.replace(`/techdarbar/certificates/${id}`);
       router.refresh();
     } catch (error) {
       console.error(

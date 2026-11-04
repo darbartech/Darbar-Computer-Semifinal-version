@@ -163,8 +163,10 @@ export const getPublicCertificateByNumber = cached(
  * page stays a thin form instead of orchestrating four cached queries:
  *  - a full verification-token URL (or bare token), extracted by the caller
  *  - the verification token itself (case-sensitive, never normalised)
- *  - the printed certificate number / student ID as typed
- *  - a bare sequence number, resolved against any `DT-CERT-…-<digits>` series
+ *  - the printed certificate number / student ID exactly as typed
+ * Only exact values match. Certificate numbers and student IDs are sequential, so a
+ * suffix/prefix match would let `?code=1` walk the whole graduate list; the page that
+ * calls this throttles per visitor as well.
  * Shares the verify tags so one certificate write invalidates every variation.
  */
 export const getPublicCertificateByQuery = cached(
@@ -180,10 +182,6 @@ export const getPublicCertificateByQuery = cached(
       // Student IDs entered by hand may differ in case from the stored value.
       { recipientIdNumber: { equals: compact, mode: "insensitive" } },
     ];
-
-    if (compact.length > 0 && /^\d+$/.test(compact)) {
-      or.push({ certificateNumber: { endsWith: `-${compact}` } });
-    }
 
     const row = await db.certificate.findFirst({
       where: {

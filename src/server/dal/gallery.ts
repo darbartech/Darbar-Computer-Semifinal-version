@@ -2,13 +2,14 @@ import "server-only";
 import type { Prisma } from "../../generated/prisma/client";
 import { db } from "../db";
 import { cached } from "../cache";
+import { PUBLIC_LIST_LIMIT } from "../constants";
 import { GALLERY_TAGS } from "../revalidate";
 
 const include = { media: true } satisfies Prisma.GalleryItemInclude;
 export const PAGE_SIZE = 20;
 
 export const listPublishedGallery = cached(GALLERY_TAGS, async () => {
-  return db.galleryItem.findMany({ where: { isPublished: true }, include: { media: true }, orderBy: [{ sortOrder: "asc" }] });
+  return db.galleryItem.findMany({ where: { isPublished: true }, include: { media: true }, orderBy: [{ sortOrder: "asc" }], take: PUBLIC_LIST_LIMIT });
 });
 
 export const adminListGalleryItems = async (filters: { q?: string; category?: string; isPublished?: string; page?: number }) => {

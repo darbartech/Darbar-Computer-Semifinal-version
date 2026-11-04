@@ -176,7 +176,7 @@ export function AssignmentsManager({
       else params.delete(key);
     }
     params.delete("page");
-    router.replace(`/admin/assignments?${params.toString()}`, { scroll: false });
+    router.replace(`/techdarbar/assignments?${params.toString()}`, { scroll: false });
   };
 
   const startCreate = () => {
@@ -460,7 +460,7 @@ export function AssignmentsManager({
                 <tr key={row.id} className="align-middle hover:bg-neutral-50/70">
                   <td className="px-4 py-3">
                     <Link
-                      href={`/admin/assignments/${row.id}`}
+                      href={`/techdarbar/assignments/${row.id}`}
                       className="font-medium text-neutral-900 hover:text-primary"
                     >
                       {row.title}
@@ -475,7 +475,7 @@ export function AssignmentsManager({
                   <td className="px-4 py-3 text-neutral-700">{toDateInput(row.dueDate) || "—"}</td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/admin/assignments/${row.id}`}
+                      href={`/techdarbar/assignments/${row.id}`}
                       className="inline-flex items-center gap-1 text-neutral-700 hover:text-primary"
                     >
                       <ClipboardList className="size-4" />
@@ -529,7 +529,7 @@ export function AssignmentsManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/assignments?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/assignments?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -541,7 +541,7 @@ export function AssignmentsManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/assignments?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/assignments?${params.toString()}`, { scroll: false });
             }}
           >
             Next

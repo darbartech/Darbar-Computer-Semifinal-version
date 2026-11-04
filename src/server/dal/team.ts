@@ -2,13 +2,14 @@
 import type { Prisma } from "../../generated/prisma/client";
 import { db } from "../db";
 import { cached } from "../cache";
+import { PUBLIC_LIST_LIMIT } from "../constants";
 import { TEAM_TAGS } from "../revalidate";
 
 const include = { photo: true } satisfies Prisma.TeamMemberInclude;
 export const PAGE_SIZE = 20;
 
 export const listPublishedTeam = cached(TEAM_TAGS, async () => {
-  return db.teamMember.findMany({ where: { isPublished: true }, include: { photo: true }, orderBy: [{ sortOrder: "asc" }] });
+  return db.teamMember.findMany({ where: { isPublished: true }, include: { photo: true }, orderBy: [{ sortOrder: "asc" }], take: PUBLIC_LIST_LIMIT });
 });
 
 export const adminListTeam = async (filters: { q?: string; isPublished?: string; page?: number }) => {

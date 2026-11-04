@@ -27,7 +27,7 @@ test("a public inquiry reaches the staff lead list", async ({ page }) => {
 
   // Staff side: the lead must be there without a redeploy.
   await login(page, ACCOUNTS.admin);
-  await page.goto("/admin/leads");
+  await page.goto("/techdarbar/leads");
 
   await expect(
     page.getByRole("heading", { name: /leads/i }).first()

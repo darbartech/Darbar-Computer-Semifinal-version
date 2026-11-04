@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
  * Action is a public endpoint.
  */
 type Props = {
-  /** `undefined` on `/admin/courses/new`. */
+  /** `undefined` on `/techdarbar/courses/new`. */
   course?: AdminCourseDetail;
   categories: { id: string; label: string }[];
   library: LibraryImage[];
@@ -260,7 +260,7 @@ export function CourseForm({ course, categories, library, canWrite }: Props) {
     });
 
     if (!course) {
-      router.push(`/admin/courses/${result.data.id}`);
+      router.push(`/techdarbar/courses/${result.data.id}`);
     } else {
       router.refresh();
     }

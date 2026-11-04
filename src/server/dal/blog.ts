@@ -2,11 +2,12 @@
 import type { Prisma } from "../../generated/prisma/client";
 import { db } from "../db";
 import { cached } from "../cache";
+import { PUBLIC_LIST_LIMIT } from "../constants";
 import { BLOG_TAGS } from "../revalidate";
 
 const blogInclude = {
   cover: true,
-  author: { select: { id: true, name: true, email: true } },
+  author: { select: { id: true, name: true } },
   tags: true,
 } satisfies Prisma.BlogPostInclude;
 
@@ -19,6 +20,7 @@ export const listPublishedBlogPosts = cached(
       where: { status: "PUBLISHED" },
       include: blogInclude,
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: PUBLIC_LIST_LIMIT,
     });
   }
 );

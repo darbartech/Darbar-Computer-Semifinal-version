@@ -102,11 +102,6 @@ export type LeadActivity = Prisma.LeadActivityModel
  */
 export type ContactMessage = Prisma.ContactMessageModel
 /**
- * Model Subscriber
- * 
- */
-export type Subscriber = Prisma.SubscriberModel
-/**
  * Model BlogPost
  * 
  */

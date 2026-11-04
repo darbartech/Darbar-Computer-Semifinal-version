@@ -4,14 +4,12 @@ import { z } from "zod";
 import { after } from "next/server";
 import { contactSchema } from "@/lib/validators/contact";
 import { inquirySchema } from "@/lib/validators/lead";
-import { newsletterSchema } from "@/lib/validators/newsletter";
 import { reviewSchema } from "@/lib/validators/testimonials";
 import { createContactMessage } from "@/server/dal/contact";
 import { createLeadFromInquiry, findPublishedCourseBySlug } from "@/server/dal/leads";
 import { createPublicReview } from "@/server/dal/testimonials";
 import { getSiteSettings } from "@/server/dal/settings";
-import { subscribe } from "@/server/dal/subscribers";
-import { LEAD_TAGS, MESSAGE_TAGS, SUBSCRIBER_TAGS, invalidate } from "@/server/revalidate";
+import { LEAD_TAGS, MESSAGE_TAGS, invalidate } from "@/server/revalidate";
 import {
   notifyNewContactMessage,
   notifyNewLead,
@@ -30,7 +28,6 @@ const VERIFICATION_FAILED = "Please complete the anti-spam check and try again."
 
 /** docs/04 §2.1: five per hour for inquiries and contact messages. */
 const FORM_RATE_LIMIT = { max: 5, windowMinutes: 60 } as const;
-const NEWSLETTER_RATE_LIMIT = { max: 3, windowMinutes: 60 } as const;
 const REVIEW_RATE_LIMIT = { max: 3, windowMinutes: 60 } as const;
 
 function fieldErrors(error: z.ZodError): Record<string, string[]> {
@@ -193,62 +190,6 @@ export async function submitContact(
   } catch (error) {
     console.error(
       "[submitContact]",
-      error instanceof Error ? error.message : "unknown"
-    );
-    return { ok: false, error: GENERIC_FAILURE };
-  }
-}
-
-/** Newsletter signup. Re-subscribing an existing address is not an error. */
-export async function subscribeNewsletter(
-  input: unknown
-): Promise<PublicFormResult<{ status: "created" | "already-subscribed" | "resubscribed" }>> {
-  try {
-    const parsed = newsletterSchema.safeParse(input);
-    if (!parsed.success) {
-      return {
-        ok: false,
-        error: "Please check the form and try again",
-        fieldErrors: fieldErrors(parsed.error),
-      };
-    }
-    const data = parsed.data;
-
-    if (data.website) {
-      return {
-        ok: true,
-        data: { status: "already-subscribed" },
-        message: "Thanks for subscribing!",
-      };
-    }
-
-    const ipHash = await getClientIpHash();
-
-    const turnstile = await verifyTurnstile(data.turnstileToken);
-    if (!turnstile.success) {
-      console.error(
-        "[subscribeNewsletter] turnstile rejected",
-        turnstile.errors.join(",")
-      );
-      return { ok: false, error: VERIFICATION_FAILED };
-    }
-
-    if (!(await allow(`newsletter:${ipHash}`, NEWSLETTER_RATE_LIMIT))) {
-      return { ok: false, error: RATE_LIMITED };
-    }
-
-    const status = await subscribe(data.email, data.source || null);
-
-    invalidate(...SUBSCRIBER_TAGS);
-
-    return {
-      ok: true,
-      data: { status },
-      message: "Thanks for subscribing!",
-    };
-  } catch (error) {
-    console.error(
-      "[subscribeNewsletter]",
       error instanceof Error ? error.message : "unknown"
     );
     return { ok: false, error: GENERIC_FAILURE };

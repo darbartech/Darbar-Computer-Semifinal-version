@@ -12,11 +12,11 @@ import { ACCOUNTS, login } from "./helpers";
 
 /** The first published course in the admin table, opened on its edit screen. */
 async function openFirstCourse(page: import("@playwright/test").Page) {
-  await page.goto("/admin/courses");
+  await page.goto("/techdarbar/courses");
   const firstRowLink = page.getByRole("link", { name: /edit/i }).first();
   await expect(firstRowLink).toBeVisible();
   await firstRowLink.click();
-  await page.waitForURL(/\/admin\/courses\/[^/]+$/);
+  await page.waitForURL(/\/techdarbar\/courses\/[^/]+$/);
 }
 
 test("an admin fee change appears on the public course page", async ({ page }) => {
@@ -46,7 +46,7 @@ test("an admin fee change appears on the public course page", async ({ page }) =
 
   // Restore, so the suite is repeatable.
   await login(page, ACCOUNTS.admin);
-  await page.goto(`/admin/courses/${slug}`);
+  await page.goto(`/techdarbar/courses/${slug}`);
   await page.locator('input[name="feeNPR"]').fill(String(originalFee));
   await page.getByRole("button", { name: /save changes/i }).click();
 });
@@ -54,7 +54,7 @@ test("an admin fee change appears on the public course page", async ({ page }) =
 test("an archived course returns 404 for the public", async ({ page }) => {
   await login(page, ACCOUNTS.superAdmin);
 
-  await page.goto("/admin/courses");
+  await page.goto("/techdarbar/courses");
   const archiveButton = page.getByRole("button", { name: /archive/i }).first();
   await expect(archiveButton).toBeVisible();
   await archiveButton.click();

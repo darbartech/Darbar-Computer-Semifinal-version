@@ -78,11 +78,20 @@ export function validateServerEnv(env: NodeJS.ProcessEnv = process.env): EnvChec
     );
   }
 
-  const turnstileSiteKey = nonEmpty(env.TURNSTILE_SITE_KEY);
+  // The widget is a client component, so the site key has to carry the
+  // NEXT_PUBLIC_ prefix to be readable there. `TURNSTILE_SITE_KEY` without the
+  // prefix is a silent no-op, which used to be the documented name.
+  const turnstileSiteKey =
+    nonEmpty(env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) ?? nonEmpty(env.TURNSTILE_SITE_KEY);
   const turnstileSecret = nonEmpty(env.TURNSTILE_SECRET_KEY);
   if (Boolean(turnstileSiteKey) !== Boolean(turnstileSecret)) {
     warnings.push(
-      "Only one of TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY is set. Turnstile is disabled unless both are present."
+      "Only one of NEXT_PUBLIC_TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY is set. Turnstile is disabled unless both are present."
+    );
+  }
+  if (env.TURNSTILE_SITE_KEY && !env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+    warnings.push(
+      "TURNSTILE_SITE_KEY is set but the widget reads NEXT_PUBLIC_TURNSTILE_SITE_KEY, so the challenge will not render. Rename the variable."
     );
   }
 

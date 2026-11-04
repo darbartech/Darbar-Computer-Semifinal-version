@@ -169,7 +169,7 @@ export function EventFormClient({
     });
 
     if (!event) {
-      router.push(`/admin/events/${result.data.id}`);
+      router.push(`/techdarbar/events/${result.data.id}`);
     } else {
       router.refresh();
     }

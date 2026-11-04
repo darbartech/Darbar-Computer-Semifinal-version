@@ -20,7 +20,7 @@ type AdminLoginInput = z.infer<typeof AdminLoginSchema>;
 
 const GENERIC_ERROR = "Email or password is incorrect";
 
-export function LoginForm({ nextPath = "/admin" }: { nextPath?: string }) {
+export function LoginForm({ nextPath = "/techdarbar" }: { nextPath?: string }) {
   const router = useRouter();
   const [genericError, setGenericError] = React.useState<string | null>(null);
   const {

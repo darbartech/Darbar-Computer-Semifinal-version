@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * Field primitives shared by every public form schema and by the admin lead /
- * message / subscriber forms.
+ * message forms.
  *
  * These modules are imported by "use client" components (docs/02 §4), so they
  * must never import Prisma, `server-only` or anything else server-side. The
@@ -49,8 +49,6 @@ export const MESSAGE_STATUSES = [
   "ARCHIVED",
   "SPAM",
 ] as const;
-
-export const SUBSCRIBER_STATUSES = ["ACTIVE", "UNSUBSCRIBED"] as const;
 
 /** Option list for the inquiry / filter batch selects. */
 export const PREFERRED_BATCH_OPTIONS = [
@@ -106,14 +104,12 @@ export const requiredEmailSchema = z
   );
 
 /**
- * Honeypot (docs/06 §8). The field is rendered hidden and must stay empty;
- * any value means a bot, which is silently dropped by the action.
+ * Honeypot (docs/06 §8). The field is rendered hidden and must stay empty.
+ * Validation deliberately accepts any value: rejecting it here would return a
+ * field error naming `website`, teaching the bot which field to leave blank and
+ * replacing the silent drop in the action with a very informative failure.
  */
-export const honeypotField = z
-  .string()
-  .max(0, "Invalid submission")
-  .optional()
-  .or(z.literal(""));
+export const honeypotField = z.string().max(2000).optional();
 
 /** Campaign parameters read from the URL by the public forms. */
 export const utmFields = {

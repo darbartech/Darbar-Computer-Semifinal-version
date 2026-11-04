@@ -69,7 +69,7 @@ export function CertificateListTable({
       if (merged.courseId) params.set("courseId", merged.courseId);
       else params.delete("courseId");
       params.delete("page");
-      router.replace(`/admin/certificates?${params.toString()}`, { scroll: false });
+      router.replace(`/techdarbar/certificates?${params.toString()}`, { scroll: false });
     },
     [filters, router, searchParams]
   );
@@ -78,7 +78,7 @@ export function CertificateListTable({
     const params = new URLSearchParams(searchParams.toString());
     if (next > 1) params.set("page", String(next));
     else params.delete("page");
-    router.replace(`/admin/certificates?${params.toString()}`, { scroll: false });
+    router.replace(`/techdarbar/certificates?${params.toString()}`, { scroll: false });
   };
 
   const onDelete = async (row: AdminCertificateListRow) => {
@@ -259,7 +259,7 @@ export function CertificateListTable({
                     </td>
                     <td className="px-4 py-3">
                       <Link
-                        href={`/admin/certificates/${row.id}`}
+                        href={`/techdarbar/certificates/${row.id}`}
                         className="font-medium text-neutral-900 hover:text-primary hover:underline"
                       >
                         {row.recipientName}
@@ -276,7 +276,7 @@ export function CertificateListTable({
                       <div className="flex items-center justify-end gap-1">
                         {(row.status === "ISSUED" || row.status === "REISSUED") && (
                           <a
-                            href={`/api/admin/certificates/${row.id}/download`}
+                            href={`/api/techdarbar/certificates/${row.id}/download`}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                             title="Download PDF"
                             aria-label="Download PDF"

@@ -63,7 +63,6 @@ export const ModelName = {
   Lead: 'Lead',
   LeadActivity: 'LeadActivity',
   ContactMessage: 'ContactMessage',
-  Subscriber: 'Subscriber',
   BlogPost: 'BlogPost',
   Tag: 'Tag',
   Event: 'Event',
@@ -321,18 +320,6 @@ export const ContactMessageScalarFieldEnum = {
 } as const
 
 export type ContactMessageScalarFieldEnum = (typeof ContactMessageScalarFieldEnum)[keyof typeof ContactMessageScalarFieldEnum]
-
-
-export const SubscriberScalarFieldEnum = {
-  id: 'id',
-  email: 'email',
-  status: 'status',
-  source: 'source',
-  createdAt: 'createdAt',
-  unsubscribedAt: 'unsubscribedAt'
-} as const
-
-export type SubscriberScalarFieldEnum = (typeof SubscriberScalarFieldEnum)[keyof typeof SubscriberScalarFieldEnum]
 
 
 export const BlogPostScalarFieldEnum = {

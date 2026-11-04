@@ -83,7 +83,7 @@ export function BlogTableClient<TRow extends BlogRow = BlogRow>({
       if (merged.page > 1) params.set("page", String(merged.page));
       else params.delete("page");
 
-      router.replace(`/admin/blog?${params.toString()}`, { scroll: false });
+      router.replace(`/techdarbar/blog?${params.toString()}`, { scroll: false });
 
       setLoading(true);
       try {
@@ -194,7 +194,7 @@ export function BlogTableClient<TRow extends BlogRow = BlogRow>({
                   <td className="px-4 py-3">
                     <div className="min-w-0">
                       <Link
-                        href={`/admin/blog/${row.id}`}
+                        href={`/techdarbar/blog/${row.id}`}
                         className="font-semibold text-neutral-900 hover:text-primary"
                       >
                         {row.title}
@@ -226,7 +226,7 @@ export function BlogTableClient<TRow extends BlogRow = BlogRow>({
                       </Link>
                       {canWrite && (
                         <Link
-                          href={`/admin/blog/${row.id}`}
+                          href={`/techdarbar/blog/${row.id}`}
                           title="Edit post"
                           className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
                         >

@@ -40,7 +40,7 @@ import { LEAD_STATUS_LABELS } from "@/lib/validators/lead";
  *    keys in Kathmandu time so a lead created at 23:30 local counts for that
  *    day, not the next one.
  *  - Each widget is cached on its own (1–5 minutes, `DASHBOARD_TTL`) and tagged
- *    `dashboard`, which `LEAD_TAGS` / `MESSAGE_TAGS` / `SUBSCRIBER_TAGS`
+ *    `dashboard`, which `LEAD_TAGS` / `MESSAGE_TAGS`
  *    already invalidate — so a status change refreshes the numbers immediately
  *    instead of waiting out the timer.
  *  - Counselor scoping is applied in the query (`leadScopeWhere`), never in the
@@ -171,21 +171,6 @@ export const getConversionKpi = cached(
 export const getUnreadMessages = cached(
   DASHBOARD_TAGS,
   async (): Promise<number> => db.contactMessage.count({ where: { status: "NEW" } }),
-  DASHBOARD_TTL.audience
-);
-
-/** Active subscribers + how many joined this calendar month (Kathmandu). */
-export const getSubscriberKpi = cached(
-  DASHBOARD_TAGS,
-  async (): Promise<{ active: number; newThisMonth: number }> => {
-    const now = new Date();
-    return {
-      active: await db.subscriber.count({ where: { status: "ACTIVE" } }),
-      newThisMonth: await db.subscriber.count({
-        where: { createdAt: { gte: startOfKathmanduDay(now) } },
-      }),
-    };
-  },
   DASHBOARD_TTL.audience
 );
 
@@ -594,7 +579,6 @@ export type DashboardData = {
   kpis: DashboardKpisWidget & {
     conversionRange: { enrolled: number; nonSpam: number; ratePct: number | null };
     unreadMessages: number | null;
-    subscribers: { active: number; newThisMonth: number } | null;
   } | null;
   charts: DashboardCharts | null;
   lists: DashboardLists | null;
@@ -633,7 +617,6 @@ export async function getDashboardData(
     ]);
 
   const canReadMessages = can(scope.role, "contact.read");
-  const canReadSubscribers = can(scope.role, "subscriber.read");
 
   return {
     variant,
@@ -642,7 +625,6 @@ export async function getDashboardData(
       ...kpis,
       conversionRange,
       unreadMessages: canReadMessages ? await getUnreadMessages() : null,
-      subscribers: canReadSubscribers ? await getSubscriberKpi() : null,
     },
     charts: { leadsPerDay, funnel, topCourses, sources, batches },
     lists: { latestLeads, followUpsDue },

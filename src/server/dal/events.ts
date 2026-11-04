@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "../../generated/prisma/client";
 import { db } from "../db";
 import { cached } from "../cache";
+import { PUBLIC_LIST_LIMIT } from "../constants";
 import { EVENT_TAGS } from "../revalidate";
 
 const include = { cover: true } satisfies Prisma.EventInclude;
@@ -12,6 +13,7 @@ export const listPublishedEvents = cached(EVENT_TAGS, async () => {
     where: { status: "PUBLISHED" },
     include,
     orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
+    take: PUBLIC_LIST_LIMIT,
   });
 });
 

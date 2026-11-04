@@ -40,15 +40,28 @@ function isForbidden(error: unknown): boolean {
  * Origin this request arrived on. Local uploads echo it back, and in
  * development the admin is often on the LAN address rather than localhost, so
  * verification has to accept both this and the configured site origin.
+ *
+ * `host` names the address the client actually requested. `x-forwarded-host` is
+ * only honoured when it is a loopback or private address — that is the LAN
+ * development case it exists for. Otherwise a caller could forge it and make us
+ * store a Media row whose URL points at a server we do not control.
  */
 async function requestOrigin(): Promise<string | null> {
   const h = await headers();
-  const host = firstValue(h.get("x-forwarded-host")) ?? h.get("host");
+  const host = h.get("host") ?? privateHost(firstValue(h.get("x-forwarded-host")));
   if (!host) return null;
   const proto =
     firstValue(h.get("x-forwarded-proto")) ??
     (/^(localhost|127\.|\[::1\])/i.test(host) ? "http" : "https");
   return `${proto}://${host}`;
+}
+
+const PRIVATE_HOST =
+  /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[::1\]|::1|\[[0-9a-f]*:(?:[0-9a-f]*:)?[0-9a-f]*\])/i;
+
+function privateHost(host: string | null): string | null {
+  if (!host) return null;
+  return PRIVATE_HOST.test(host.replace(/^[a-z]+:\/\//i, "")) ? host : null;
 }
 
 function firstValue(value: string | null): string | null {
@@ -86,7 +99,7 @@ export async function registerMediaUpload(
     }
     const data = parsed.data;
 
-const config = getStorageConfig();
+    const config = getStorageConfig();
     if (!config) {
       return { ok: false, error: "Uploads are not configured on this server" };
     }

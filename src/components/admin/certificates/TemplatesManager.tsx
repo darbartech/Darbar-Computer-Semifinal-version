@@ -52,7 +52,7 @@ export function TemplatesManager({
     if (merged.isActive) params.set("isActive", merged.isActive);
     else params.delete("isActive");
     params.delete("page");
-    router.push(`/admin/templates?${params.toString()}`);
+    router.push(`/techdarbar/templates?${params.toString()}`);
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -294,7 +294,7 @@ export function TemplatesManager({
                 onClick={() => {
                   const params = new URLSearchParams(searchParams.toString());
                   params.set("page", String(page - 1));
-                  router.push(`/admin/templates?${params.toString()}`);
+                  router.push(`/techdarbar/templates?${params.toString()}`);
                 }}
               >
                 Previous
@@ -306,7 +306,7 @@ export function TemplatesManager({
                 onClick={() => {
                   const params = new URLSearchParams(searchParams.toString());
                   params.set("page", String(page + 1));
-                  router.push(`/admin/templates?${params.toString()}`);
+                  router.push(`/techdarbar/templates?${params.toString()}`);
                 }}
               >
                 Next

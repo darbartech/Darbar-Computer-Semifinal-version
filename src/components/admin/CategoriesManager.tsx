@@ -88,7 +88,7 @@ export function CategoriesManager({
     if (merged.group) params.set("group", merged.group);
     else params.delete("group");
     params.delete("page");
-    router.replace(`/admin/categories?${params.toString()}`, { scroll: false });
+    router.replace(`/techdarbar/categories?${params.toString()}`, { scroll: false });
   };
 
   const startCreate = () => {
@@ -344,7 +344,7 @@ export function CategoriesManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page - 1));
-              router.replace(`/admin/categories?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/categories?${params.toString()}`, { scroll: false });
             }}
           >
             Previous
@@ -356,7 +356,7 @@ export function CategoriesManager({
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", String(page + 1));
-              router.replace(`/admin/categories?${params.toString()}`, { scroll: false });
+              router.replace(`/techdarbar/categories?${params.toString()}`, { scroll: false });
             }}
           >
             Next
