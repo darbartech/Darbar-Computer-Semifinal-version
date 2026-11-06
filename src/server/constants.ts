@@ -26,8 +26,21 @@ export const SECURE_SESSION_COOKIE_NAME = `__Secure-${SESSION_COOKIE_NAME}`;
 /** 7 days sliding expiry (docs/08 §1). */
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-/** Every admin route except the login page requires a session. */
+/** Staff URLs a signed-out person may open: login plus the reset flow (docs 01 §S4). */
 export const ADMIN_LOGIN_PATH = "/techdarbar/login";
+export const ADMIN_PASSWORD_FORGOT_PATH = "/techdarbar/forgot-password";
+export const ADMIN_PASSWORD_RESET_PATH = "/techdarbar/reset-password";
+
+/** Student-portal equivalents, outside the `(portal)` guard. */
+export const STUDENT_PASSWORD_FORGOT_PATH = "/student/forgot-password";
+export const STUDENT_PASSWORD_RESET_PATH = "/student/reset-password";
+
+/**
+ * The page a signed-in student sees until they confirm their email
+ * (docs 01 §S3). It reads the session directly instead of going through
+ * `requireStudent()`, so the gate cannot bounce it to itself.
+ */
+export const STUDENT_VERIFY_EMAIL_PATH = "/student/verify-email";
 
 /** Student-portal login. Used by src/proxy.ts and the portal layout guard. */
 export const STUDENT_LOGIN_PATH = "/student/login";
@@ -73,6 +86,17 @@ export const CERTIFICATE_PDF_KEY_PREFIX = "/certificates";
  * together with real pagination.
  */
 export const PUBLIC_LIST_LIMIT = 500;
+
+/**
+ * The same bound for un-paginated admin reads that are pickers rather than
+ * tables: a course dropdown, the roster of tick-boxes on an assignment form,
+ * the list of teachers a batch can be given. The tables page at 20–25 rows
+ * (docs/05); these have no pager, so without a ceiling one big course could
+ * make every admin page view materialise its entire roster.
+ * Above what this campus has — 37 courses, batches well under 50 — so nothing
+ * visible is trimmed; raise it only together with real pagination.
+ */
+export const ADMIN_PICKER_LIMIT = 500;
 
 /** 5 MB (docs/08 §1 "max size (e.g. 5 MB)"). */
 export const MEDIA_MAX_BYTES = 5 * 1024 * 1024;

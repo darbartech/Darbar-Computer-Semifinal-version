@@ -191,10 +191,9 @@ Only when all pass: switch pages to the DAL (already done per phase), then delet
 
 | Stage | What | Notes |
 |-------|------|-------|
-| Seed | All 37 course images, blog covers, gallery → `Media` rows with `source: EXTERNAL` (current Pexels URLs) | Keeps the site looking identical on day one; `next.config.mjs` `remotePatterns` must still allow these hosts |
-| Soon after | Replace gallery, team, campus, and testimonial photos with **real photos of the institute** (consent for any identifiable people) | The code comments already require this before launch |
-| Optional | Script to re-upload external images to your own storage | Check each source's licence terms first; reduces dependency on third-party hotlinks |
-| Cleanup | Remove unused hosts from `remotePatterns` once no `EXTERNAL` media remain | |
+| Seed | Course images, blog covers, gallery and marketing art → `/public/images/seed/*`, referenced as same-origin paths (`/images/seed/pexels-10638075.jpg`) | Done. The files were pulled from the stock hosts once and committed, so no third-party host has to appear in CSP `img-src` or in `next.config.mjs` `images.remotePatterns` — those two lists now name Cloudinary only. Provenance is in the filenames and in `public/images/seed/README.md`; student photographs are never committed here |
+| Soon after | Replace gallery, team, campus, and testimonial photos with **real photos of the institute** (consent for any identifiable people) | Through `/techdarbar/media`, which uploads to Cloudinary and registers the asset — not by dropping files in `public/`. The code comments already require this before launch |
+| Cleanup | Nothing left: no `remotePatterns` entry or `IMAGE_HOSTS` entry points at a stock host, and `tests/seo.test.ts` fails if one comes back | Re-check only if a seed file is ever given an absolute third-party URL again |
 
 Also optimise `public/images/logo/final-logo.png` (1.3 MB) → SVG or a compressed WebP/PNG.
 

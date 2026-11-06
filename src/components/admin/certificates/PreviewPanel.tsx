@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { Eye } from "lucide-react";
+import { fmtDate } from "@/lib/dates";
 import type { AdminCertificateDetail } from "@/server/types/certificates";
 
 type Props = {
@@ -9,10 +10,7 @@ type Props = {
 
 function formatNepaliDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-NP", {
-    dateStyle: "long",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "long" });
 }
 
 /**

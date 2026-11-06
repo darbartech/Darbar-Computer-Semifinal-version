@@ -32,22 +32,26 @@ import {
   getRelatedCourses,
   listPublishedCourseSlugs,
 } from "@/server/dal/courses";
+import { getSeatsSummaryForCourse } from "@/server/dal/batches";
 import { getSiteSettings } from "@/server/dal/settings";
+import { safeStaticParams } from "@/lib/static-params";
 import {
   buildMetadata,
   courseJsonLd,
   breadcrumbListJsonLd,
-  serializeJsonLd,
 } from "@/lib/seo";
+import { JsonLd } from "@/components/common/JsonLd";
 import { cn } from "@/lib/utils";
 
 /**
- * Slugs come from the database, so a course created in the admin is pre-rendered
- * on the next build. `dynamicParams` stays on (the default), which is what lets
- * a brand-new slug render on demand instead of 404-ing between builds.
+ * Every published course is prerendered at build, and a course published after
+ * the build is generated on request and cached afterwards (`dynamicParams`
+ * defaults to true). Re-audit #1: this list was removed when the root layout
+ * still claimed `force-dynamic` for the whole site, because a prerender list
+ * built under that flag was rendered and then thrown away.
  */
-export async function generateStaticParams() {
-  return listPublishedCourseSlugs();
+export function generateStaticParams() {
+  return safeStaticParams("/courses/[slug]", listPublishedCourseSlugs);
 }
 
 export async function generateMetadata({
@@ -86,6 +90,8 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const related = await getRelatedCourses(slug, 3);
+  // Live seat counts, not the marketing copy (docs 02 B1).
+  const seats = await getSeatsSummaryForCourse(course.id);
   const settings = await getSiteSettings();
   const { general, everyCourseIncludes } = settings;
   const siteUrl = general.siteUrl;
@@ -99,14 +105,8 @@ export default async function CourseDetailPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       <div className="bg-neutral-50 border-b border-neutral-200">
         <Container size="xl" className="pt-4 pb-8 sm:pb-10">
           <Breadcrumbs
@@ -165,8 +165,25 @@ export default async function CourseDetailPage({
             <Card>
               <CardContent className="p-3 sm:p-4">
                 <RefreshCw className="size-5 text-primary mb-1.5" />
-                <div className="text-[11px] sm:text-xs text-neutral-500 font-medium">New Batch</div>
-                <div className="mt-0.5 text-sm sm:text-base font-bold text-neutral-900 leading-tight">{course.newBatch}</div>
+                <div className="text-[11px] sm:text-xs text-neutral-500 font-medium">
+                  {seats.nextBatch ? "Next batch" : "New Batch"}
+                </div>
+                <div className="mt-0.5 text-sm sm:text-base font-bold text-neutral-900 leading-tight">
+                  {seats.nextBatch?.name ?? course.newBatch}
+                </div>
+                {seats.openBatchCount > 0 && (
+                  <div
+                    className={cn(
+                      "mt-1 inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold",
+                      seats.seatsLeftTotal > 0 ? "text-primary" : "text-neutral-500"
+                    )}
+                  >
+                    <Users className="size-3.5" />
+                    {seats.seatsLeftTotal > 0
+                      ? `Seats left: ${seats.seatsLeftTotal}`
+                      : "Full — join the waiting list"}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

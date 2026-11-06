@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/common/Badge";
 import { PUBLISH_STATUSES } from "@/lib/validators/blog";
+import { fmtDate } from "@/lib/dates";
 import { listBlogPosts } from "@/server/actions/blog";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -28,11 +29,7 @@ const STATUS_OPTIONS = [
 ];
 
 function formatUpdated(iso: string | Date): string {
-  return new Date(iso).toLocaleString("en-NP", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "medium", timeStyle: "short" });
 }
 
 type BlogRow = {

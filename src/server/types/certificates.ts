@@ -95,10 +95,13 @@ export type UpdateCertificateInput = {
   pdfUrl?: string | null;
 };
 
+/**
+ * Issue request. The certificate number and verification token are NOT inputs:
+ * they are minted inside the issuing transaction (docs 02 B2/B3), so the caller
+ * cannot propose an identity and two concurrent issues cannot collide.
+ */
 export type IssueCertificateInput = {
   id: string;
-  certificateNumber: string;
-  verificationToken: string;
   issueDate?: string | null;
   issuedSignatories: CertificateIssuedSignatoryInput[];
   pdfUrl?: string | null;
@@ -110,11 +113,10 @@ export type RevokeCertificateInput = {
   revokeReason: string;
 };
 
+/** Reissue request; likewise, the new certificate's identity is server-minted. */
 export type ReissueCertificateInput = {
   id: string;
   reissueReason: string;
-  certificateNumber: string;
-  verificationToken: string;
   issueDate?: string | null;
   issuedSignatories: CertificateIssuedSignatoryInput[];
   pdfUrl?: string | null;

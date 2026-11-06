@@ -3,6 +3,11 @@ import { db } from "@/server/db";
 import type { Prisma, CertificateStatus } from "@/generated/prisma/client";
 import { durationFromWeeks } from "@/lib/duration";
 import {
+  maskRecipientName,
+  normalizeCertificateNumber,
+  normalizePersonName,
+} from "@/lib/certificate-reference";
+import {
   CERTIFICATE_PAGE_SIZE,
   REQUIRED_MODULE_COUNT,
   type CertificateFilters,
@@ -30,7 +35,8 @@ import type {
   PdfPersistResult,
 } from "@/server/certificates/pdf/types";
 import { generateAndPersistCertificatePdf } from "@/server/certificates/pdf/generator";
-import { generateStudentId } from "@/server/certificates/issuance";
+import { generateCertificateNumber, generateVerificationToken } from "@/server/certificates/issuance";
+import { nepalYear, parseDateOnly } from "@/lib/dates";
 import { getSiteSettings } from "@/server/dal/settings";
 import { resolveOfficialDomain } from "@/server/certificates/utils";
 
@@ -73,6 +79,10 @@ function certWhere(filters: CertificateFilters): Prisma.CertificateWhereInput {
 function parseOptionalDate(value: string | null | undefined): Date | null | undefined {
   if (value === null) return null;
   if (value === undefined) return undefined;
+  // A `YYYY-MM-DD` picker value becomes UTC midnight. Parsing it in the server's
+  // own zone can land on the day before (docs 02 B10).
+  const dateOnly = parseDateOnly(value);
+  if (dateOnly) return dateOnly;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
@@ -112,6 +122,13 @@ export async function adminGetCertificate(
   return mapToAdminDetail(row);
 }
 
+/**
+ * QR / verification-link arrival: the token is 24 random bytes, so it carries its own
+ * proof and shows the recipient name in full. It is the only public read allowed to
+ * be cached, and callers must reject anything that is not token-shaped
+ * (`verifyTokenSchema`) before invoking it — otherwise a typed string becomes a cache
+ * key and the search box turns into a way to grow the cache on our bill (docs 01 §S12).
+ */
 export const getPublicCertificateByToken = cached(
   PUBLIC_VERIFY_TAGS,
   async (token: string): Promise<PublicVerifyView | null> => {
@@ -135,68 +152,47 @@ export const getPublicCertificateByToken = cached(
 );
 
 /**
- * Public lookup by the printed certificate number (e.g. `DT-CERT-2026-00125`).
- * Shares the verify cache tags so a certificate write invalidates both lookups;
- * the tag set is extended purely so the cached key never collides with the
- * per-token lookup for an identical argument string.
+ * Manual lookup by printed certificate number, seconded by the recipient's full
+ * name (docs 01 §S7). Deliberately NOT cached:
+ *
+ *  - a number is only `DT-CERT-<year>-<sequence>-<4 random>`, so it is guessable
+ *    enough to enumerate. Caching one answer per number would let a crawler fill
+ *    the cache and, worse, would keep a "not found" memo around for every number
+ *    it has *not* yet tried.
+ *  - the name is part of the key. A cached read keyed on the number alone would
+ *    serve the right record to the wrong name on a later hit.
+ *
+ * Only an exact (case- and spacing-insensitive) name match returns a certificate.
+ * Any other outcome — unknown number, right number wrong name — is `null`, so the
+ * caller shows one identical "not found" message and learns nothing about which
+ * half failed. The returned name is masked: whoever typed the number does not get
+ * the full name handed back. Student IDs are sequential too, so `recipientIdNumber`
+ * is no longer searchable from the public side at all.
  */
-export const getPublicCertificateByNumber = cached(
-  [...PUBLIC_VERIFY_TAGS, "verify:by-number"],
-  async (certificateNumber: string): Promise<PublicVerifyView | null> => {
-    const row = await db.certificate.findFirst({
-      where: {
-        certificateNumber,
-        status: { in: ["ISSUED", "REVOKED", "REISSUED", "EXPIRED"] as Array<CertificateStatus> },
-      },
-      include: defaultInclude,
-    });
-    if (!row) return null;
+export async function findPublicCertificateByNumberAndName(
+  certificateNumber: string,
+  recipientName: string
+): Promise<PublicVerifyView | null> {
+  const number = normalizeCertificateNumber(certificateNumber);
+  const name = normalizePersonName(recipientName);
+  if (!number || !name) return null;
 
-    const baseUrl = resolveOfficialDomain();
+  const row = await db.certificate.findFirst({
+    where: {
+      certificateNumber: number,
+      status: { in: ["ISSUED", "REVOKED", "REISSUED", "EXPIRED"] as Array<CertificateStatus> },
+    },
+    orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }],
+    include: defaultInclude,
+  });
+  if (!row) return null;
+  if (normalizePersonName(row.recipientName) !== name) return null;
 
-    return mapToPublicVerify(row, baseUrl);
-  }
-);
-
-/**
- * Everything the public `/verify` search box must accept in one lookup, so the
- * page stays a thin form instead of orchestrating four cached queries:
- *  - a full verification-token URL (or bare token), extracted by the caller
- *  - the verification token itself (case-sensitive, never normalised)
- *  - the printed certificate number / student ID exactly as typed
- * Only exact values match. Certificate numbers and student IDs are sequential, so a
- * suffix/prefix match would let `?code=1` walk the whole graduate list; the page that
- * calls this throttles per visitor as well.
- * Shares the verify tags so one certificate write invalidates every variation.
- */
-export const getPublicCertificateByQuery = cached(
-  [...PUBLIC_VERIFY_TAGS, "verify:by-query"],
-  async (query: string): Promise<PublicVerifyView | null> => {
-    const compact = query.replace(/\s+/g, "").trim();
-    const upper = compact.toUpperCase();
-    const statuses = ["ISSUED", "REVOKED", "REISSUED", "EXPIRED"] as Array<CertificateStatus>;
-
-    const or: Prisma.CertificateWhereInput[] = [
-      { verificationToken: compact },
-      { certificateNumber: upper },
-      // Student IDs entered by hand may differ in case from the stored value.
-      { recipientIdNumber: { equals: compact, mode: "insensitive" } },
-    ];
-
-    const row = await db.certificate.findFirst({
-      where: {
-        status: { in: statuses },
-        OR: or,
-      },
-      orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }],
-      include: defaultInclude,
-    });
-    if (!row) return null;
-
-    const baseUrl = resolveOfficialDomain();
-    return mapToPublicVerify(row, baseUrl);
-  }
-);
+  return {
+    ...mapToPublicVerify(row, resolveOfficialDomain()),
+    recipientName: maskRecipientName(row.recipientName),
+  };
+}
 
 export async function getCertificateByToken(
   token: string
@@ -209,26 +205,21 @@ export async function getCertificateByToken(
   return mapToAdminDetail(row);
 }
 
-export async function certificateNumberExists(
-  certificateNumber: string,
-  exceptId?: string
-): Promise<boolean> {
-  const existing = await db.certificate.findUnique({
-    where: { certificateNumber },
-    select: { id: true },
+/**
+ * Finds the portal account whose student code the staff member typed. Uniqueness
+ * of `certificateNumber` / `verificationToken` is enforced by the database, so the
+ * pre-flight "does this number exist" checks are gone (docs 02 B2) — a collision
+ * surfaces as `P2002` and the caller retries once.
+ */
+async function resolveStudentLink(
+  recipientIdNumber: string | null | undefined
+): Promise<{ id: string; studentCode: string } | null> {
+  const code = recipientIdNumber?.trim();
+  if (!code) return null;
+  return db.studentProfile.findUnique({
+    where: { studentCode: code },
+    select: { id: true, studentCode: true },
   });
-  return !!existing && existing.id !== exceptId;
-}
-
-export async function verificationTokenExists(
-  verificationToken: string,
-  exceptId?: string
-): Promise<boolean> {
-  const existing = await db.certificate.findUnique({
-    where: { verificationToken },
-    select: { id: true },
-  });
-  return !!existing && existing.id !== exceptId;
 }
 
 export async function getCertificateWriteSnapshot(id: string) {
@@ -280,14 +271,19 @@ export async function createCertificate(
     shortLabel: item.shortLabel ?? null,
   }));
 
-  // Auto-assigned when the admin leaves the student ID blank, so a certificate
-  // record always carries a stable `DT-STD-{year}-{NNNNN}` identifier.
+  // `StudentProfile.studentCode` is the only student identifier (docs 02 B4). When
+  // the typed recipient id is a portal code, the link is resolved server-side and
+  // the canonical code is stored; a certificate for someone without a portal
+  // account keeps whatever admission number staff entered. Nothing mints a second
+  // `DT-STD-…` series any more.
+  const linkedStudent = await resolveStudentLink(values.recipientIdNumber);
   const recipientIdNumber =
-    values.recipientIdNumber?.trim() || (await generateStudentId()) || null;
+    linkedStudent?.studentCode ?? (values.recipientIdNumber?.trim() || null);
 
   const data: Prisma.CertificateCreateInput = {
     recipientName: values.recipientName,
     recipientIdNumber,
+    student: linkedStudent ? { connect: { id: linkedStudent.id } } : undefined,
     courseName: values.courseName,
     completionDate: parseOptionalDate(values.completionDate),
     issueDate: parseOptionalDate(values.issueDate),
@@ -320,8 +316,16 @@ export async function updateCertificate(
   const data: Prisma.CertificateUpdateInput = {};
 
   if (values.recipientName !== undefined) data.recipientName = values.recipientName;
-  if (values.recipientIdNumber !== undefined)
-    data.recipientIdNumber = values.recipientIdNumber;
+  if (values.recipientIdNumber !== undefined) {
+    // Same rule as create (docs 02 B4): a code that belongs to a portal account
+    // links the certificate instead of only storing the typed text.
+    const linkedStudent = await resolveStudentLink(values.recipientIdNumber);
+    data.recipientIdNumber =
+      linkedStudent?.studentCode ?? (values.recipientIdNumber?.trim() || null);
+    data.student = linkedStudent
+      ? { connect: { id: linkedStudent.id } }
+      : { disconnect: true };
+  }
   if (values.courseName !== undefined) data.courseName = values.courseName;
   if (values.completionDate !== undefined)
     data.completionDate = parseOptionalDate(values.completionDate);
@@ -389,8 +393,11 @@ export async function returnCertificateToDraft(
  * already enforces this for draft edits; this covers rows written before the rule
  * existed and any other caller that reaches the DAL directly.
  */
-async function assertIssuableModuleCount(id: string): Promise<void> {
-  const itemCount = await db.certificateItem.count({ where: { certificateId: id } });
+async function assertIssuableModuleCount(
+  id: string,
+  tx: Prisma.TransactionClient = db
+): Promise<void> {
+  const itemCount = await tx.certificateItem.count({ where: { certificateId: id } });
   if (itemCount !== REQUIRED_MODULE_COUNT) {
     throw new Error(
       `Certificate has ${itemCount} modules; exactly ${REQUIRED_MODULE_COUNT} are required before it can be issued.`
@@ -398,104 +405,179 @@ async function assertIssuableModuleCount(id: string): Promise<void> {
   }
 }
 
+/** What issuance minted, so the caller can audit and invalidate without re-reading. */
+export type IssuedCertificate = {
+  id: string;
+  status: CertificateStatus;
+  certificateNumber: string;
+  verificationToken: string;
+};
+
+/**
+ * The states a certificate may be issued from. Anything else means somebody else
+ * already acted on this row, which is why the transition below is conditional.
+ */
+const ISSUABLE_FROM: CertificateStatus[] = ["DRAFT", "PENDING_ISSUE"];
+const REVOCABLE_FROM: CertificateStatus[] = ["ISSUED", "REISSUED"];
+/** Only the live document is reissued; a row already marked REISSUED has a replacement. */
+const REISSUABLE_FROM: CertificateStatus[] = ["ISSUED"];
+
+function toIssuedSignatoryRows(
+  certificateId: string,
+  signatories: CertificateIssuedSignatoryInput[]
+) {
+  return signatories.map((sig) => ({
+    certificateId,
+    signatoryId: sig.signatoryId ?? null,
+    name: sig.name,
+    title: sig.title,
+    designation: sig.designation,
+    displayOrder: sig.displayOrder,
+  }));
+}
+
+/**
+ * Issues a certificate. Number, token, status flip and signatory snapshot all
+ * commit in one transaction (docs 02 B3): the update is conditional on the state
+ * the admin saw, so two admins clicking "Issue" at the same moment produce one
+ * certificate, not two numbers. A second click gets `null` and is told to refresh.
+ *
+ * `certificateNumber` is reused only when a legacy draft already carries one;
+ * otherwise it comes from the year's `Counter`, so it is minted inside this same
+ * transaction.
+ */
 export async function issueCertificate(
   values: IssueCertificateInput
-): Promise<{ id: string; status: CertificateStatus }> {
+): Promise<IssuedCertificate | null> {
   const issueDateParsed = parseOptionalDate(values.issueDate);
   const now = new Date();
 
-  await assertIssuableModuleCount(values.id);
+  return db.$transaction(async (tx) => {
+    await assertIssuableModuleCount(values.id, tx);
 
-  return db.certificate.update({
-    where: { id: values.id },
-    data: {
-      certificateNumber: values.certificateNumber,
-      verificationToken: values.verificationToken,
-      status: "ISSUED",
-      issueDate: issueDateParsed,
-      issuedAt: now,
-      pdfUrl: values.pdfUrl ?? null,
-      issuedSignatories: {
-        deleteMany: {},
-        create: values.issuedSignatories.map((sig) => ({
-          // Checked form: this update also writes `issuedSignatories` nested, so a
-          // scalar `signatoryId` is rejected at runtime.
-          signatory: sig.signatoryId ? { connect: { id: sig.signatoryId } } : undefined,
-          name: sig.name,
-          title: sig.title,
-          designation: sig.designation,
-          displayOrder: sig.displayOrder,
-        })),
+    const existing = await tx.certificate.findUnique({
+      where: { id: values.id },
+      select: { certificateNumber: true, verificationToken: true },
+    });
+    if (!existing) return null;
+
+    // The server is the single authority for the document identity.
+    const certificateNumber =
+      existing.certificateNumber ?? (await generateCertificateNumber(nepalYear(), tx));
+    const verificationToken =
+      existing.verificationToken ?? generateVerificationToken();
+
+    const flipped = await tx.certificate.updateMany({
+      where: { id: values.id, status: { in: ISSUABLE_FROM } },
+      data: {
+        certificateNumber,
+        verificationToken,
+        status: "ISSUED",
+        issueDate: issueDateParsed,
+        issuedAt: now,
+        pdfUrl: values.pdfUrl ?? null,
       },
-    },
-    select: { id: true, status: true },
+    });
+    if (flipped.count !== 1) return null;
+
+    await tx.certificateIssuedSignatory.deleteMany({
+      where: { certificateId: values.id },
+    });
+    await tx.certificateIssuedSignatory.createMany({
+      data: toIssuedSignatoryRows(values.id, values.issuedSignatories),
+    });
+
+    return { id: values.id, status: "ISSUED", certificateNumber, verificationToken };
   });
 }
 
+/**
+ * Revokes an issued certificate. Conditional so a double-click, or a revoke that
+ * races a reissue, cannot overwrite the newer state.
+ */
 export async function revokeCertificate(
   values: RevokeCertificateInput
-): Promise<{ id: string; status: CertificateStatus }> {
-  return db.certificate.update({
-    where: { id: values.id },
+): Promise<{ id: string; status: CertificateStatus } | null> {
+  const flipped = await db.certificate.updateMany({
+    where: { id: values.id, status: { in: REVOCABLE_FROM } },
     data: {
       status: "REVOKED",
       revokedAt: new Date(),
       revokeCategory: values.revokeCategory,
       revokeReason: values.revokeReason,
     },
-    select: { id: true, status: true },
   });
+  return flipped.count === 1 ? { id: values.id, status: "REVOKED" } : null;
 }
 
+/**
+ * Reissues: the previous certificate is flipped to REISSUED and a new issued row
+ * cloned from it is inserted in the same transaction (docs 02 B3), so there is
+ * never a moment where neither, or both, are the live document. Returns `null`
+ * when the source row was not the live document any more.
+ *
+ * The flip is guarded by `REISSUABLE_FROM`, not by `REVOCABLE_FROM`: a superseded
+ * original already reads REISSUED, so a second click on the same row would match
+ * its own write and print a second live certificate for one graduate.
+ */
 export async function reissueCertificate(
   values: ReissueCertificateInput
-): Promise<{ id: string; status: CertificateStatus }> {
-  const existing = await db.certificate.findUniqueOrThrow({
-    where: { id: values.id },
-    select: {
-      id: true,
-      recipientName: true,
-      recipientIdNumber: true,
-      courseId: true,
-      courseName: true,
-      completionDate: true,
-      grade: true,
-      programDuration: true,
-      templateId: true,
-      createdById: true,
-      metadata: true,
-      items: true,
-    },
-  });
-
+): Promise<IssuedCertificate | null> {
   const now = new Date();
   const issueDateParsed = parseOptionalDate(values.issueDate);
 
-  // The snapshot is about to be cloned into a freshly issued certificate, so the
-  // module count must be valid before anything is written.
-  if (existing.items.length !== REQUIRED_MODULE_COUNT) {
-    throw new Error(
-      `Certificate has ${existing.items.length} modules; exactly ${REQUIRED_MODULE_COUNT} are required before it can be reissued.`
-    );
-  }
-
-  const [, reissued] = await db.$transaction([
-    db.certificate.update({
+  return db.$transaction(async (tx) => {
+    const existing = await tx.certificate.findUnique({
       where: { id: values.id },
+      select: {
+        id: true,
+        recipientName: true,
+        recipientIdNumber: true,
+        studentId: true,
+        courseId: true,
+        courseName: true,
+        completionDate: true,
+        grade: true,
+        programDuration: true,
+        templateId: true,
+        createdById: true,
+        metadata: true,
+        items: true,
+      },
+    });
+    if (!existing) return null;
+
+    // The snapshot is about to be cloned into a freshly issued certificate, so the
+    // module count must be valid before anything is written.
+    if (existing.items.length !== REQUIRED_MODULE_COUNT) {
+      throw new Error(
+        `Certificate has ${existing.items.length} modules; exactly ${REQUIRED_MODULE_COUNT} are required before it can be reissued.`
+      );
+    }
+
+    const flipped = await tx.certificate.updateMany({
+      where: { id: values.id, status: { in: REISSUABLE_FROM } },
       data: {
         status: "REISSUED",
         reissuedAt: now,
         reissueReason: values.reissueReason,
       },
-      select: { id: true },
-    }),
-    db.certificate.create({
+    });
+    if (flipped.count !== 1) return null;
+
+    const certificateNumber = await generateCertificateNumber(nepalYear(), tx);
+    const verificationToken = generateVerificationToken();
+
+    const reissued = await tx.certificate.create({
       data: {
-        certificateNumber: values.certificateNumber,
-        verificationToken: values.verificationToken,
+        certificateNumber,
+        verificationToken,
         status: "ISSUED",
         recipientName: existing.recipientName,
         recipientIdNumber: existing.recipientIdNumber,
+        student: existing.studentId
+          ? { connect: { id: existing.studentId } }
+          : undefined,
         courseName: existing.courseName,
         completionDate: existing.completionDate,
         grade: existing.grade,
@@ -534,11 +616,16 @@ export async function reissueCertificate(
           })),
         },
       },
-      select: { id: true, status: true },
-    }),
-  ]);
+      select: { id: true },
+    });
 
-  return reissued;
+    return {
+      id: reissued.id,
+      status: "ISSUED",
+      certificateNumber,
+      verificationToken,
+    };
+  });
 }
 
 export async function regenerateCertificatePdf(

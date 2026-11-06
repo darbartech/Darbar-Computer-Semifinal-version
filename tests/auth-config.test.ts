@@ -49,6 +49,17 @@ describe("auth configuration", () => {
     expect(auth.options.rateLimit?.customRules?.["/sign-in/email"]).toBeDefined();
   });
 
+  it("confirms a student email before the portal opens (docs 01 §S3)", () => {
+    // The library must not gate sign-in itself — staff have no verification and
+    // `requireStudent()` is the actual gate. What the config has to provide is
+    // the sender and a short-lived token.
+    expect(auth.options.emailAndPassword?.requireEmailVerification).toBe(false);
+    expect(auth.options.emailVerification?.sendVerificationEmail).toBeTypeOf("function");
+    expect(auth.options.emailVerification?.sendOnSignUp).toBe(false);
+    expect(auth.options.emailVerification?.expiresIn).toBe(3600);
+    expect(auth.options.rateLimit?.customRules?.["/send-verification-email"]).toBeDefined();
+  });
+
   it("does not let a client choose its own role", () => {
     // `input: false` keeps `role`/`isActive` off the public sign-in payload, so
     // a crafted request cannot escalate itself to SUPER_ADMIN.
@@ -57,5 +68,45 @@ describe("auth configuration", () => {
       | undefined;
     expect(additionalFields?.role?.input).toBe(false);
     expect(additionalFields?.isActive?.input).toBe(false);
+  });
+
+  it("mounts the staff two-factor plugin ahead of the cookie plugin (fix guide §4)", () => {
+    const plugins = (auth.options.plugins ?? []) as { id: string }[];
+    const ids = plugins.map((plugin) => plugin.id);
+    expect(ids).toContain("two-factor");
+    // nextCookies() writes the queued cookies from Server Actions in its own
+    // after-hook, so it has to run last or the two-factor challenge cookie set
+    // during sign-in would never reach the browser.
+    expect(ids[ids.length - 1]).toBe("next-cookies");
+    expect(ids.indexOf("two-factor")).toBeLessThan(ids.indexOf("next-cookies"));
+  });
+
+  it("exposes the two-factor calls the server actions use", () => {
+    // The HTTP surface stays allow-listed, so these are reachable only through
+    // `auth.api.*`. If the plugin ever stops registering them, the account page
+    // and the login code step break together.
+    for (const method of [
+      "enableTwoFactor",
+      "disableTwoFactor",
+      "verifyTOTP",
+      "verifyBackupCode",
+    ] as const) {
+      expect(auth.api[method], method).toBeTypeOf("function");
+    }
+  });
+
+  it("locks an account after repeated wrong codes, not after thousands", () => {
+    // The plugin's own challenge budget is five; this is the account-wide one.
+    // It has to be finite, or a leaked secret can be ground through forever.
+    const twoFactorPlugin = (auth.options.plugins as { id: string; options?: {
+      accountLockout?: { enabled?: boolean; maxFailedAttempts?: number; durationSeconds?: number };
+      issuer?: string;
+    } }[]).find((plugin) => plugin.id === "two-factor");
+    expect(twoFactorPlugin?.options?.issuer).toBe("DarbarTech Admin");
+    expect(twoFactorPlugin?.options?.accountLockout).toMatchObject({
+      enabled: true,
+      maxFailedAttempts: 5,
+      durationSeconds: 900,
+    });
   });
 });

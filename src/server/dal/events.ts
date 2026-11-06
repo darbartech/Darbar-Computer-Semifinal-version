@@ -17,6 +17,22 @@ export const listPublishedEvents = cached(EVENT_TAGS, async () => {
   });
 });
 
+/**
+ * Every published slug, for `generateStaticParams()` on `/events/[slug]` and for
+ * the sitemap. The listing above is capped at one page; a prerender list is not a
+ * page, so it reads the whole set. `updatedAt` is the sitemap's `lastmod`.
+ */
+export const listPublishedEventSlugs = cached(
+  EVENT_TAGS,
+  async (): Promise<{ slug: string; updatedAt: Date }[]> => {
+    return db.event.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, updatedAt: true },
+      orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
+    });
+  }
+);
+
 export const getPublishedEventBySlug = cached(["events"], async (slug: string) => {
   return db.event.findFirst({ where: { slug, status: "PUBLISHED" }, include });
 });

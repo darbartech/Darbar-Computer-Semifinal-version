@@ -9,7 +9,6 @@ import {
   invalidate,
 } from "@/server/revalidate";
 import {
-  certificateNumberExists,
   createCertificate,
   deleteCertificate,
   generateAndPersistPdfForCertificate,
@@ -22,8 +21,9 @@ import {
   submitForReviewCertificate,
   updateCertificate,
   updateCertificatePdfUrl,
-  verificationTokenExists,
 } from "@/server/dal/certificates";
+import { retryOnUniqueViolation } from "@/server/dal/counters";
+import { requireStepUp } from "@/server/services/step-up";
 import {
   certificateWriteSchema,
   issueCertificateSchema,
@@ -36,10 +36,6 @@ import type {
   UpdateCertificateInput,
 } from "@/server/types/certificates";
 import { sanitizeForLog } from "@/server/certificates/utils";
-import {
-  generateCertificateNumber,
-  generateVerificationToken,
-} from "@/server/certificates/issuance";
 
 export type CertificateActionResult<T = unknown> =
   | { ok: true; data: T }
@@ -48,6 +44,13 @@ export type CertificateActionResult<T = unknown> =
 const GENERIC_FAILURE = "Something went wrong. Please try again.";
 const NO_PERMISSION = "You don't have permission to do that";
 const NOT_FOUND = "Certificate not found";
+/** Shown when the row moved on under this admin, so their click changed nothing. */
+const STALE_ISSUE =
+  "This certificate was already issued or changed. Refresh the page.";
+const STALE_REVOKE =
+  "This certificate was already revoked or changed. Refresh the page.";
+const STALE_REISSUE =
+  "This certificate was already reissued or changed. Refresh the page.";
 
 /**
  * Issues are confirmed only after the server has persisted the certificate AND
@@ -367,6 +370,11 @@ export async function issueCertificateAction(
     if (!parsed.success) return invalid(parsed.error);
     const data = parsed.data;
 
+    // An issued certificate is the one thing here that cannot be taken back
+    // quietly: it goes public on /verify the moment it lands (task 2).
+    const stepUp = await requireStepUp(user, "certificate.issue", input);
+    if (!stepUp.ok) return fail(stepUp.error);
+
     const before = await getCertificateWriteSnapshot(data.id);
     if (!before) return fail(NOT_FOUND);
 
@@ -376,41 +384,22 @@ export async function issueCertificateAction(
       );
     }
 
-    // The server is the single authority for the document identity: reuse a number
-    // a legacy draft already carries, otherwise mint the next sequential number and
-    // a fresh verify token. The client never proposes these values.
-    const certificateNumber =
-      before.certificateNumber ?? (await generateCertificateNumber());
-    const verificationToken =
-      before.verificationToken ?? generateVerificationToken();
+    // The server is the single authority for the document identity: a legacy draft
+    // that already carries a number keeps it, otherwise the issuing transaction
+    // mints the next sequential number and a fresh verify token. The client never
+    // proposes these values, and a second admin clicking "Issue" concurrently gets
+    // the stale-state message instead of a duplicate certificate (docs 02 B3).
+    const issued = await retryOnUniqueViolation(() =>
+      issueCertificate({
+        id: data.id,
+        issueDate: data.issueDate ?? null,
+        issuedSignatories: data.issuedSignatories,
+      })
+    );
+    if (!issued) return fail(STALE_ISSUE);
 
-    if (await certificateNumberExists(certificateNumber, data.id)) {
-      return {
-        ok: false,
-        error: "Certificate number is already in use",
-        fieldErrors: {
-          certificateNumber: ["This number is already assigned to another certificate"],
-        },
-      };
-    }
-
-    if (await verificationTokenExists(verificationToken, data.id)) {
-      return {
-        ok: false,
-        error: "Verification token is already in use",
-        fieldErrors: {
-          verificationToken: ["This token is already assigned to another certificate"],
-        },
-      };
-    }
-
-    const issued = await issueCertificate({
-      id: data.id,
-      certificateNumber,
-      verificationToken,
-      issueDate: data.issueDate ?? null,
-      issuedSignatories: data.issuedSignatories,
-    });
+    const certificateNumber = issued.certificateNumber;
+    const verificationToken = issued.verificationToken;
 
     const pdfUrl = await generatePdfForIssuedCert(issued.id);
 
@@ -467,6 +456,10 @@ export async function revokeCertificateAction(
     if (!parsed.success) return invalid(parsed.error);
     const data = parsed.data;
 
+    // Revoked is the one state a printed certificate cannot come back from.
+    const stepUp = await requireStepUp(user, "certificate.revoke", input);
+    if (!stepUp.ok) return fail(stepUp.error);
+
     const before = await getCertificateWriteSnapshot(data.id);
     if (!before) return fail(NOT_FOUND);
 
@@ -481,6 +474,7 @@ export async function revokeCertificateAction(
       revokeCategory: data.revokeCategory,
       revokeReason: data.revokeReason,
     });
+    if (!revoked) return fail(STALE_REVOKE);
 
     await audit({
       actor,
@@ -525,48 +519,37 @@ export async function reissueCertificateAction(
     if (!parsed.success) return invalid(parsed.error);
     const data = parsed.data;
 
+    // A reissue is both moves at once: the original stops standing and a new
+    // verifiable document takes its number.
+    const stepUp = await requireStepUp(user, "certificate.reissue", input);
+    if (!stepUp.ok) return fail(stepUp.error);
+
     const before = await getCertificateWriteSnapshot(data.id);
     if (!before) return fail(NOT_FOUND);
 
-    if (before.status !== "ISSUED" && before.status !== "REISSUED") {
+    if (before.status !== "ISSUED") {
       return fail(
-        `Certificate is ${before.status}. Only ISSUED or REISSUED can be reissued.`
+        before.status === "REISSUED"
+          ? "This certificate has already been reissued. Reissue its replacement instead."
+          : `Certificate is ${before.status}. Only an issued certificate can be reissued.`
       );
     }
 
-    // A reissue is a brand-new document, so it always gets a fresh number + token
-    // minted server-side (never reusing the revoked original's identity).
-    const certificateNumber = await generateCertificateNumber();
-    const verificationToken = generateVerificationToken();
+    // A reissue is a brand-new document, so the transaction that flips the original
+    // to REISSUED mints a fresh number + token for the clone (never reusing the
+    // original's identity).
+    const reissued = await retryOnUniqueViolation(() =>
+      reissueCertificate({
+        id: data.id,
+        reissueReason: data.reissueReason,
+        issueDate: data.issueDate ?? null,
+        issuedSignatories: data.issuedSignatories,
+      })
+    );
+    if (!reissued) return fail(STALE_REISSUE);
 
-    if (await certificateNumberExists(certificateNumber)) {
-      return {
-        ok: false,
-        error: "Certificate number is already in use",
-        fieldErrors: {
-          certificateNumber: ["This number is already assigned to another certificate"],
-        },
-      };
-    }
-
-    if (await verificationTokenExists(verificationToken)) {
-      return {
-        ok: false,
-        error: "Verification token is already in use",
-        fieldErrors: {
-          verificationToken: ["This token is already assigned to another certificate"],
-        },
-      };
-    }
-
-    const reissued = await reissueCertificate({
-      id: data.id,
-      reissueReason: data.reissueReason,
-      certificateNumber,
-      verificationToken,
-      issueDate: data.issueDate ?? null,
-      issuedSignatories: data.issuedSignatories,
-    });
+    const certificateNumber = reissued.certificateNumber;
+    const verificationToken = reissued.verificationToken;
 
     const pdfUrl = await generatePdfForIssuedCert(reissued.id);
 

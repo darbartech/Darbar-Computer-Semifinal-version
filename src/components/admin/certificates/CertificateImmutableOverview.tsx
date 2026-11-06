@@ -4,6 +4,7 @@ import { Check, Copy, ExternalLink, Fingerprint, History, ShieldCheck } from "lu
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { copyText } from "@/lib/clipboard";
+import { fmtDate } from "@/lib/dates";
 import type { AdminCertificateDetail } from "@/server/types/certificates";
 import { revokeCategoryLabel } from "@/server/types/certificates";
 
@@ -13,10 +14,7 @@ type Props = {
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-NP", {
-    dateStyle: "long",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "long" });
 }
 
 function CopyButton({ value, label }: { value: string; label: string }) {

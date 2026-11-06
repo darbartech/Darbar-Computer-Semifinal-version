@@ -4,7 +4,7 @@ import { z } from "zod";
 import { isRedirectError } from "@/server/session";
 import { requireApprovedStudentProfile } from "@/server/student-session";
 import { audit } from "@/server/services/audit";
-import { invalidate, portfolioWriteTags, STUDENT_TAGS } from "@/server/revalidate";
+import { invalidate, portfolioWriteTags, BATCH_TAGS, STUDENT_TAGS } from "@/server/revalidate";
 import { destroyAsset } from "@/server/services/storage";
 import { storeAvatarImage } from "@/server/services/avatar";
 import { STUDENT_PHOTO_FOLDER } from "@/server/constants";
@@ -14,6 +14,7 @@ import {
   createStudentProject,
   deleteStudentProject,
   deleteStudentPhotoMedia,
+  dropEnrollment,
   isPortfolioSlugTaken,
   replaceStudentPhoto,
   requestCourseEnrollment,
@@ -22,11 +23,13 @@ import {
 } from "@/server/dal/students";
 import {
   courseEnrollmentRequestSchema,
+  dropEnrollmentSchema,
   portfolioProjectIdSchema,
   portfolioProjectSchema,
   studentProfileSchema,
 } from "@/lib/validators/student";
 import { submissionWriteSchema } from "@/lib/validators/assignments";
+import { formatDate } from "@/lib/format";
 
 /**
  * Student-owned writes. There is no staff permission matrix here: the guard is
@@ -48,6 +51,20 @@ function invalid(error: z.ZodError): StudentActionResult<never> {
     error: "Please fix the highlighted fields",
     fieldErrors: z.flattenError(error).fieldErrors,
   };
+}
+
+/** What a repeated request means for each enrollment state (docs 02 B6). */
+function enrollmentRequestMessage(status: string): string {
+  switch (status) {
+    case "PENDING":
+      return "You already have a request waiting for approval";
+    case "WAITLISTED":
+      return "You are on the waiting list for this course";
+    case "REJECTED":
+      return "This course was declined for you. Contact us if you would like to ask again.";
+    default:
+      return "You are already enrolled in this course";
+  }
 }
 
 export async function updateStudentProfileAction(
@@ -201,14 +218,18 @@ export async function requestCourseEnrollmentAction(
 
     const result = await requestCourseEnrollment(profile.id, parsed.data.courseId);
     if (!result) return { ok: false, error: "This course is no longer available" };
-    if (result.kind === "existing") {
+    if (result.kind === "blocked") {
+      // The date is staff-time context, not a promise about the future: the
+      // block lifts as soon as a staff member reopens the request.
       return {
         ok: false,
-        error:
-          result.status === "PENDING"
-            ? "You already have a request waiting for approval"
-            : "You are already enrolled in this course",
+        error: `This course was declined for you. You can ask again after ${formatDate(
+          result.retryAfter
+        )}, or contact us if something has changed.`,
       };
+    }
+    if (result.kind === "existing") {
+      return { ok: false, error: enrollmentRequestMessage(result.status) };
     }
 
     await audit({
@@ -226,6 +247,51 @@ export async function requestCourseEnrollmentAction(
     if (isRedirectError(error)) throw error;
     console.error(
       "[requestCourseEnrollmentAction]",
+      error instanceof Error ? error.message : "unknown"
+    );
+    return { ok: false, error: GENERIC_FAILURE };
+  }
+}
+
+/**
+ * Student-initiated withdrawal. Distinct from a staff decline so the audit
+ * trail can tell the two apart, and so an ACTIVE row gives its seat back to
+ * the batch (docs 02 B1/B6).
+ */
+export async function dropCourseEnrollmentAction(
+  input: unknown
+): Promise<StudentActionResult<{ enrollmentId: string }>> {
+  let actor: { id: string; email: string } | null = null;
+  try {
+    const guard = await requireApprovedStudentProfile();
+    if (!guard.ok) return { ok: false, error: guard.error };
+    const { user, profile } = guard;
+    actor = { id: user.id, email: user.email };
+
+    const parsed = dropEnrollmentSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+
+    const result = await dropEnrollment(
+      parsed.data.enrollmentId,
+      profile.id,
+      parsed.data.reason?.trim() || null
+    );
+    if (!result.ok) return { ok: false, error: result.error };
+
+    await audit({
+      actor,
+      action: "student.enrollment.drop",
+      entity: "Enrollment",
+      entityId: parsed.data.enrollmentId,
+      summary: "Withdrew from a course",
+    });
+
+    invalidate(...STUDENT_TAGS, ...BATCH_TAGS);
+    return { ok: true, data: { enrollmentId: parsed.data.enrollmentId } };
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    console.error(
+      "[dropCourseEnrollmentAction]",
       error instanceof Error ? error.message : "unknown"
     );
     return { ok: false, error: GENERIC_FAILURE };

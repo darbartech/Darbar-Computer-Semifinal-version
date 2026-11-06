@@ -1,6 +1,14 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "../db";
+import { ADMIN_PICKER_LIMIT } from "../constants";
+import {
+  assignmentScopeWhere,
+  enrollmentScopeWhere,
+  recipientScopeWhere,
+  submissionScopeWhere,
+  type StaffScope,
+} from "./scope";
 
 /**
  * Assignments data access (docs/02 §4: pages call DAL functions, never `db.*`).
@@ -10,6 +18,9 @@ import { db } from "../db";
  * instructor ticked, so one course can carry different tasks per student. Portal
  * reads therefore start from the caller's own recipient rows, and a student can
  * only ever see and answer their own task.
+ *
+ * Every staff read also takes the caller's `StaffScope` (fix guide §5): an
+ * INSTRUCTOR sees the tasks of their own batches, not the institute's.
  */
 
 export const PAGE_SIZE = 20;
@@ -38,8 +49,8 @@ const assignmentListSelect = {
   dueDate: true,
   createdAt: true,
   course: { select: { id: true, title: true, slug: true } },
-  recipients: { select: { studentId: true } },
-  _count: { select: { submissions: true } },
+  recipients: { select: { studentId: true }, take: ADMIN_PICKER_LIMIT },
+  _count: { select: { submissions: true, recipients: true } },
 } satisfies Prisma.AssignmentSelect;
 
 type AssignmentListRow = Prisma.AssignmentGetPayload<{ select: typeof assignmentListSelect }>;
@@ -55,6 +66,7 @@ export type AdminAssignmentView = {
   courseTitle: string;
   courseSlug: string;
   studentIds: string[];
+  recipientCount: number;
   submissionCount: number;
 };
 
@@ -70,17 +82,23 @@ function toAdminAssignment(row: AssignmentListRow): AdminAssignmentView {
     courseTitle: row.course.title,
     courseSlug: row.course.slug,
     studentIds: row.recipients.map((recipient) => recipient.studentId),
+    // The denominator comes from the count, not the capped list above it, so the
+    // "3/25 submitted" column stays honest on a roster the ceiling would trim.
+    recipientCount: row._count.recipients,
     submissionCount: row._count.submissions,
   };
 }
 
-export const adminListAssignments = async (filters: {
-  q?: string;
-  courseId?: string;
-  status?: string;
-  page?: number;
-}) => {
-  const conditions: Prisma.AssignmentWhereInput[] = [];
+export const adminListAssignments = async (
+  filters: {
+    q?: string;
+    courseId?: string;
+    status?: string;
+    page?: number;
+  },
+  scope: StaffScope
+) => {
+  const conditions: Prisma.AssignmentWhereInput[] = [assignmentScopeWhere(scope)];
   if (filters.q) conditions.push({ title: { contains: filters.q, mode: "insensitive" } });
   if (filters.courseId) conditions.push({ courseId: filters.courseId });
   if (filters.status) conditions.push({ status: filters.status as Prisma.EnumPublishStatusFilter });
@@ -100,9 +118,31 @@ export const adminListAssignments = async (filters: {
   return { rows: rows.map(toAdminAssignment), total, page, pageCount };
 };
 
-/** Existence check for the write actions; the detail page uses the view below. */
-export const adminGetAssignment = async (id: string) =>
-  db.assignment.findUnique({ where: { id }, select: { id: true } });
+/**
+ * Existence check for the write actions; the detail page uses the view below.
+ * `findFirst` with the scope folded into the where clause, so an id outside the
+ * caller's batches matches nothing and reads as "not found" (fix guide §5).
+ */
+export const adminGetAssignment = async (id: string, scope: StaffScope) =>
+  db.assignment.findFirst({ where: { AND: [{ id }, assignmentScopeWhere(scope)] }, select: { id: true } });
+
+/**
+ * Write-side check. Reading is "my batches", writing is "my own task": a
+ * teacher who inherits a class reviews its links, but does not rewrite or
+ * delete the task another instructor set.
+ */
+export const adminGetWritableAssignment = async (id: string, scope: StaffScope) =>
+  db.assignment.findFirst({
+    where: {
+      AND: [
+        { id },
+        scope.role === "INSTRUCTOR"
+          ? { createdById: scope.userId }
+          : assignmentScopeWhere(scope),
+      ],
+    },
+    select: { id: true },
+  });
 
 export type AdminAssignmentStudentRow = {
   studentId: string;
@@ -140,10 +180,11 @@ export type AdminAssignmentDetail = {
  * assignment and the student, not to the recipient row.
  */
 export async function adminGetAssignmentDetail(
-  id: string
+  id: string,
+  scope: StaffScope
 ): Promise<AdminAssignmentDetail | null> {
-  const assignment = await db.assignment.findUnique({
-    where: { id },
+  const assignment = await db.assignment.findFirst({
+    where: { AND: [{ id }, assignmentScopeWhere(scope)] },
     select: {
       id: true,
       title: true,
@@ -153,7 +194,9 @@ export async function adminGetAssignmentDetail(
       course: { select: { title: true, slug: true } },
       createdBy: { select: { name: true } },
       recipients: {
+        where: recipientScopeWhere(scope),
         orderBy: { student: { studentCode: "asc" } },
+        take: ADMIN_PICKER_LIMIT,
         select: {
           studentId: true,
           seenAt: true,
@@ -170,8 +213,11 @@ export async function adminGetAssignmentDetail(
   });
   if (!assignment) return null;
 
+  // The roster and its submissions are paired by student, so both carry the same
+  // ceiling; a taller roster than this has never been posted to one task.
   const submissions = await db.assignmentSubmission.findMany({
     where: { assignmentId: id },
+    take: ADMIN_PICKER_LIMIT,
     select: {
       id: true,
       studentId: true,
@@ -257,13 +303,25 @@ export const updateAssignment = async (id: string, data: AssignmentWriteData) =>
   return result;
 };
 
-export const deleteAssignment = async (id: string) => db.assignment.delete({ where: { id } });
+/**
+ * Returns how many rows went away. `deleteMany` with the scope in the where
+ * clause is what stops an instructor from deleting a task they can see but did
+ * not write.
+ */
+export const deleteAssignment = async (id: string, scope: StaffScope): Promise<number> => {
+  const result = await db.assignment.deleteMany({
+    where:
+      scope.role === "INSTRUCTOR" ? { id, createdById: scope.userId } : { id },
+  });
+  return result.count;
+};
 
 /** Students the picker offers for one course, with who is already assigned. */
-export const listCourseStudents = async (courseId: string) => {
+export const listCourseStudents = async (courseId: string, scope: StaffScope) => {
   const rows = await db.enrollment.findMany({
-    where: { courseId, ...ATTENDED_ENROLLMENT },
+    where: { AND: [{ courseId, ...ATTENDED_ENROLLMENT }, enrollmentScopeWhere(scope)] },
     orderBy: { student: { studentCode: "asc" } },
+    take: ADMIN_PICKER_LIMIT,
     select: {
       student: {
         select: {
@@ -284,9 +342,15 @@ export const listCourseStudents = async (courseId: string) => {
 };
 
 /** Enrolment check for a write: which of these ids really belong to the course. */
-export const filterCourseStudentIds = async (courseId: string, studentIds: string[]) => {
+export const filterCourseStudentIds = async (
+  courseId: string,
+  studentIds: string[],
+  scope: StaffScope
+) => {
   const rows = await db.enrollment.findMany({
-    where: { courseId, studentId: { in: studentIds }, ...ATTENDED_ENROLLMENT },
+    where: {
+      AND: [{ courseId, studentId: { in: studentIds }, ...ATTENDED_ENROLLMENT }, enrollmentScopeWhere(scope)],
+    },
     select: { studentId: true },
   });
   return new Set(rows.map((row) => row.studentId));
@@ -301,21 +365,24 @@ export type SubmissionReviewUpdate = {
 /**
  * Record an instructor verdict. The `assignmentId` in the where clause means a
  * tampered submission id from another assignment matches nothing rather than
- * writing across tasks.
+ * writing across tasks, and the scope adds the other half of the same rule: a
+ * submission from another teacher's batch matches nothing either (fix guide §5).
  */
 export const reviewSubmission = async (
   assignmentId: string,
   submissionId: string,
-  data: SubmissionReviewUpdate
+  data: SubmissionReviewUpdate,
+  scope: StaffScope
 ) =>
   db.assignmentSubmission.updateMany({
-    where: { id: submissionId, assignmentId },
+    where: { AND: [{ id: submissionId, assignmentId }, submissionScopeWhere(scope)] },
     data: { ...data, reviewedAt: new Date() },
   });
 
 export const listCoursesForAssignmentForm = async () =>
   db.course.findMany({
     orderBy: { title: "asc" },
+    take: ADMIN_PICKER_LIMIT,
     select: { id: true, title: true, status: true },
   });
 
@@ -324,8 +391,10 @@ export const listCoursesForAssignmentForm = async () =>
  * "Assignments" badge. A re-submitted link resets to SUBMITTED, so it counts
  * again, which is exactly what an instructor needs to know.
  */
-export const countSubmissionsAwaitingReview = async (): Promise<number> =>
-  db.assignmentSubmission.count({ where: { reviewStatus: "SUBMITTED" } });
+export const countSubmissionsAwaitingReview = async (scope: StaffScope): Promise<number> =>
+  db.assignmentSubmission.count({
+    where: { AND: [{ reviewStatus: "SUBMITTED" }, submissionScopeWhere(scope)] },
+  });
 
 // ───────────── Student portal (private, owner-scoped) ─────────────
 
@@ -356,8 +425,11 @@ export async function listStudentAssignments(
   studentId: string
 ): Promise<StudentAssignmentView[]> {
   const now = new Date();
+  // Sorted by nearest deadline, so the ceiling keeps the tasks that matter and
+  // drops only years of history — far more than one student is ever assigned.
   const recipients = await db.assignmentRecipient.findMany({
     where: { studentId, assignment: { status: "PUBLISHED" } },
+    take: ADMIN_PICKER_LIMIT,
     orderBy: [
       { assignment: { dueDate: { sort: "asc", nulls: "last" } } },
       { assignment: { createdAt: "desc" } },

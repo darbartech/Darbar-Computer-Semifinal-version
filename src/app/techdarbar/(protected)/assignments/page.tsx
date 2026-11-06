@@ -25,13 +25,17 @@ export default async function AdminAssignmentsPage({
   );
   const filters = assignmentFilterSchema.parse(raw);
 
+  const scope = { userId: user.id, role: user.role };
   const [result, courseRows] = await Promise.all([
-    adminListAssignments({
-      q: filters.q,
-      courseId: filters.courseId,
-      status: filters.status,
-      page: filters.page,
-    }),
+    adminListAssignments(
+      {
+        q: filters.q,
+        courseId: filters.courseId,
+        status: filters.status,
+        page: filters.page,
+      },
+      scope
+    ),
     listCoursesForAssignmentForm(),
   ]);
 

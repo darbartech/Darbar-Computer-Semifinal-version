@@ -15,7 +15,12 @@ import {
   notifyNewLead,
   sendInquiryAutoReply,
 } from "@/server/services/email";
-import { allow, getClientIpHash, getReferrerUrl } from "@/server/services/rate-limit";
+import {
+  allowByIp,
+  getClientIp,
+  getClientIpHash,
+  getReferrerUrl,
+} from "@/server/services/rate-limit";
 import { verifyTurnstile } from "@/server/services/turnstile";
 
 export type PublicFormResult<T = unknown> =
@@ -23,12 +28,29 @@ export type PublicFormResult<T = unknown> =
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
 const GENERIC_FAILURE = "Something went wrong. Please try again.";
-const RATE_LIMITED = "Too many requests. Please try again later.";
+/**
+ * Wording for a refused public form (reaudit N2).
+ *
+ * The counters below are keyed by address, and one address in Kathmandu is one
+ * building: the lab, the front desk and every phone on the Wi-Fi share it. A flat
+ * "too many requests" reads like the student did something wrong, so the message
+ * names the actual escape route — the front desk, whose IP goes in
+ * `RATE_LIMIT_TRUSTED_IPS` and whose submissions skip the counter entirely.
+ */
+const RATE_LIMITED =
+  "Too many submissions from this connection. If you are at the campus, the front desk can send it for you — otherwise, please try again in an hour.";
 const VERIFICATION_FAILED = "Please complete the anti-spam check and try again.";
 
-/** docs/04 §2.1: five per hour for inquiries and contact messages. */
-const FORM_RATE_LIMIT = { max: 5, windowMinutes: 60 } as const;
-const REVIEW_RATE_LIMIT = { max: 3, windowMinutes: 60 } as const;
+/**
+ * docs/04 §2.1 asked for five per hour; that number assumed one visitor per IP
+ * (reaudit N2). Turnstile and the honeypot are what stop a bot, so the IP
+ * counters only have to stop a script that ignores them, and a budget that a
+ * single admission-day queue can exhaust is a budget that locks the institute out
+ * of its own website. The same is true of `allowByIp`: a campus address in
+ * `RATE_LIMIT_TRUSTED_IPS` does not spend a slot at all.
+ */
+const FORM_RATE_LIMIT = { max: 40, windowMinutes: 60 } as const;
+const REVIEW_RATE_LIMIT = { max: 10, windowMinutes: 60 } as const;
 
 function fieldErrors(error: z.ZodError): Record<string, string[]> {
   return z.flattenError(error).fieldErrors;
@@ -37,9 +59,10 @@ function fieldErrors(error: z.ZodError): Record<string, string[]> {
 /**
  * Public admission inquiry (docs/04 §2.1, docs/06 §8).
  *
- * Order of operations matters: validate → honeypot → Turnstile → rate limit →
- * insert → notify. A bot that fills the honeypot gets a fake success so it
- * cannot learn that the endpoint exists, and nothing is written.
+ * Order of operations matters: validate → honeypot → rate limit → Turnstile →
+ * insert → notify (docs 01 §S9). A bot that fills the honeypot gets a fake success
+ * so it cannot learn that the endpoint exists, and the cheap DB check runs before
+ * the outbound call to Cloudflare, so a flood costs us nothing.
  */
 export async function submitInquiry(
   input: unknown
@@ -60,14 +83,14 @@ export async function submitInquiry(
 
     const ipHash = await getClientIpHash();
 
-    const turnstile = await verifyTurnstile(data.turnstileToken);
+    if (!(await allowByIp(`inquiry:${ipHash}`, FORM_RATE_LIMIT))) {
+      return { ok: false, error: RATE_LIMITED };
+    }
+
+    const turnstile = await verifyTurnstile(data.turnstileToken, await getClientIp());
     if (!turnstile.success) {
       console.error("[submitInquiry] turnstile rejected", turnstile.errors.join(","));
       return { ok: false, error: VERIFICATION_FAILED };
-    }
-
-    if (!(await allow(`inquiry:${ipHash}`, FORM_RATE_LIMIT))) {
-      return { ok: false, error: RATE_LIMITED };
     }
 
     const course = data.courseSlug
@@ -148,14 +171,14 @@ export async function submitContact(
 
     const ipHash = await getClientIpHash();
 
-    const turnstile = await verifyTurnstile(data.turnstileToken);
+    if (!(await allowByIp(`contact:${ipHash}`, FORM_RATE_LIMIT))) {
+      return { ok: false, error: RATE_LIMITED };
+    }
+
+    const turnstile = await verifyTurnstile(data.turnstileToken, await getClientIp());
     if (!turnstile.success) {
       console.error("[submitContact] turnstile rejected", turnstile.errors.join(","));
       return { ok: false, error: VERIFICATION_FAILED };
-    }
-
-    if (!(await allow(`contact:${ipHash}`, FORM_RATE_LIMIT))) {
-      return { ok: false, error: RATE_LIMITED };
     }
 
     const row = await createContactMessage({
@@ -223,14 +246,14 @@ export async function submitReview(
 
     const ipHash = await getClientIpHash();
 
-    const turnstile = await verifyTurnstile(data.turnstileToken);
+    if (!(await allowByIp(`review:${ipHash}`, REVIEW_RATE_LIMIT))) {
+      return { ok: false, error: RATE_LIMITED };
+    }
+
+    const turnstile = await verifyTurnstile(data.turnstileToken, await getClientIp());
     if (!turnstile.success) {
       console.error("[submitReview] turnstile rejected", turnstile.errors.join(","));
       return { ok: false, error: VERIFICATION_FAILED };
-    }
-
-    if (!(await allow(`review:${ipHash}`, REVIEW_RATE_LIMIT))) {
-      return { ok: false, error: RATE_LIMITED };
     }
 
     await createPublicReview({

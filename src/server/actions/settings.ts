@@ -10,7 +10,10 @@ import {
   type SiteSettingJson,
 } from "@/server/dal/settings";
 import { mediaExists } from "@/server/dal/courses";
+import { requireStepUp } from "@/server/services/step-up";
 import {
+  SETTINGS_SCHEMAS,
+  SETTINGS_SENSITIVE_FIELDS,
   SETTINGS_TABS,
   parseSettingsValue,
   settingsWriteSchema,
@@ -25,10 +28,20 @@ import {
  *
  * One action handles all ten tabs: the tab decides the `key`, and the key picks
  * the schema, so a tab can never write another tab's group.
+ *
+ * A tab that moves a money rule or the site URL is the exception to the plain
+ * order above: it takes a fresh second factor first (task 2), because the fee
+ * rules apply to every receipt taken from the moment they change.
  */
 export type SettingsActionResult =
   | { ok: true; data: { key: SettingsKey; updatedAt: string } }
-  | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
+  | {
+      ok: false;
+      error: string;
+      fieldErrors?: Record<string, string[]>;
+      /** The panel shows the code box; a stored row this page cannot read still needs proof. */
+      requiresStepUp?: boolean;
+    };
 
 const GENERIC_FAILURE = "Something went wrong. Please try again.";
 const NO_PERMISSION = "You don't have permission to do that";
@@ -39,6 +52,30 @@ const MEDIA_FIELDS: Partial<Record<SettingsKey, readonly string[]>> = {
   hero: ["imageMediaId", "popupMediaId"],
   about: ["campusMediaId"],
 };
+
+/**
+ * Did a sensitive rule actually move?
+ *
+ * Both sides go through the key's own schema first, so a stored row that predates
+ * a field is compared against the default the public pages already fall back to:
+ * opening the Fees tab and saving the numbers that are already in effect is not a
+ * change, and must not ask for a code. A row that cannot be read at all, or no row
+ * yet, is the rule being set for the first time — that is a change.
+ */
+function changesSensitiveSetting(
+  key: SettingsKey,
+  before: { value: unknown } | null,
+  next: unknown
+): boolean {
+  const fields = SETTINGS_SENSITIVE_FIELDS[key];
+  if (!fields) return false;
+  if (!before) return true;
+  const previous = (SETTINGS_SCHEMAS[key] as z.ZodType).safeParse(before.value);
+  if (!previous.success) return true;
+  const beforeValue = previous.data as Record<string, unknown>;
+  const afterValue = next as Record<string, unknown>;
+  return fields.some((field) => !Object.is(beforeValue[field], afterValue[field]));
+}
 
 function isForbidden(error: unknown): boolean {
   return error instanceof Error && error.message.includes("FORBIDDEN");
@@ -92,7 +129,15 @@ export async function saveSetting(input: unknown): Promise<SettingsActionResult>
     const mediaError = await assertMediaExists(key, parsed.data);
     if (mediaError) return mediaError;
 
+    // Read before writing, both to tell a first save from an edit and to know
+    // which rules this save actually moves.
     const before = await adminGetSettingRow(key);
+
+    if (changesSensitiveSetting(key, before, parsed.data)) {
+      const stepUp = await requireStepUp(user, "settings.sensitive", input);
+      if (!stepUp.ok) return { ok: false, error: stepUp.error, requiresStepUp: true };
+    }
+
     const saved = await upsertSiteSetting(key, parsed.data as SiteSettingJson, user.id);
 
     await audit({

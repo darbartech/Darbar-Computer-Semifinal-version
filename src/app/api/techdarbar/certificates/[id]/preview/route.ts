@@ -5,7 +5,7 @@ import {
   getCertificateDownloadMeta,
 } from "@/server/dal/certificates";
 import { generateCertificatePdfBuffer } from "@/server/certificates/pdf/generator";
-import { generateCertificateNumber } from "@/server/certificates/issuance";
+import { peekCertificateNumber } from "@/server/certificates/issuance";
 import { resolveOfficialDomain } from "@/server/certificates/utils";
 import { certificatePreviewSchema } from "@/lib/validators/certificates";
 import { durationFromWeeks } from "@/lib/duration";
@@ -54,13 +54,15 @@ export async function POST(
       );
     }
 
-    // The preview number matches what issuance would mint next. Drafts that already
-    // carry a legacy number keep it; any other state shows a fresh one (a reissue
-    // always gets a brand-new identity anyway). Never persisted here.
+    // The preview number is the one issuance would mint next, read without
+    // consuming it — repeatedly previewing a draft must not burn through the
+    // year's sequence. Drafts that already carry a legacy number keep it; any other
+    // state shows a fresh one (a reissue always gets a brand-new identity anyway).
+    // Nothing here is persisted.
     const certificateNumber =
       isDraftable && meta.certificateNumber
         ? meta.certificateNumber
-        : await generateCertificateNumber();
+        : await peekCertificateNumber();
     const previewToken = `preview-${id.slice(0, 10)}`;
 
     const pdfData = await adminBuildPreviewPdfData(id, {

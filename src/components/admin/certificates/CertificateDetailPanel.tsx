@@ -69,7 +69,9 @@ export function CertificateDetailPanel({
     (certificate.status === "ISSUED" || certificate.status === "REISSUED");
   const canReissueBtn =
     canReissue &&
-    (certificate.status === "ISSUED" || certificate.status === "REISSUED");
+    // Only the live document is reissued: the row a previous reissue superseded
+    // has its own replacement, and re-issuing it would print a second live copy.
+    certificate.status === "ISSUED";
   const canRegenerateBtn =
     canRegeneratePdf &&
     (certificate.status === "ISSUED" || certificate.status === "REISSUED");

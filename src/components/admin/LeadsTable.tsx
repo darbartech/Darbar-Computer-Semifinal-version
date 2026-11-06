@@ -10,8 +10,9 @@ import {
   Trash2,
   UserCheck,
   Filter,
+  Download,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -34,6 +35,7 @@ import {
   updateLeadStatus,
 } from "@/server/actions/leads";
 import {
+  LEAD_EXPORT_MAX_RANGE_DAYS,
   LEAD_PAGE_SIZE,
   LEAD_STATUS_FLOW,
   LEAD_STATUS_LABELS,
@@ -54,6 +56,8 @@ export type LeadsTableProps = {
   assignees: { id: string; name: string }[];
   courses: { slug: string; title: string }[];
   canDelete: boolean;
+  /** Renders the CSV download, which the server still has to authorise. */
+  canExport: boolean;
 };
 
 const VIEWS = [
@@ -112,6 +116,7 @@ export function LeadsTable({
   assignees,
   courses,
   canDelete,
+  canExport,
 }: LeadsTableProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -176,6 +181,27 @@ export function LeadsTable({
   const goToPage = (next: number) => {
     router.push(`/techdarbar/leads?${buildQuery(filters, { page: next > 1 ? String(next) : undefined })}`);
   };
+
+  /**
+   * The download carries the filters in the form, not the ones last applied —
+   * picking a month and pressing Export should not quietly export the whole
+   * view that is still on screen. The route re-checks permission and caps the
+   * window; this only decides what is asked for.
+   */
+  const exportQuery = buildQuery(filters, {
+    q: search.trim() || undefined,
+    status: statusDraft || undefined,
+    course: courseDraft || undefined,
+    source: sourceDraft || undefined,
+    campaign: campaignDraft.trim() || undefined,
+    assignee: assigneeDraft || undefined,
+    from: fromDraft || undefined,
+    to: toDraft || undefined,
+    followUpDue: dueDraft ? "true" : undefined,
+    sort: undefined,
+    dir: undefined,
+    page: undefined,
+  }).toString();
 
   const toggle = (id: string) => {
     setSelected((prev) =>
@@ -413,8 +439,20 @@ export function LeadsTable({
               <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
                 Reset
               </Button>
-              <span className="ml-auto text-xs text-neutral-500">
-                {total} lead{total === 1 ? "" : "s"}
+              <span className="ml-auto flex items-center gap-3">
+                <span className="text-xs text-neutral-500">
+                  {total} lead{total === 1 ? "" : "s"}
+                </span>
+                {canExport && (
+                  <a
+                    href={`/api/techdarbar/leads/export?${exportQuery}`}
+                    title={`CSV of these filters. A download covers at most ${LEAD_EXPORT_MAX_RANGE_DAYS} days and is written to the audit log.`}
+                    className={buttonVariants({ size: "sm", variant: "outline" })}
+                  >
+                    <Download className="size-4" />
+                    Export CSV
+                  </a>
+                )}
               </span>
             </div>
           </form>

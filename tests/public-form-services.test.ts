@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const rateLimitHit = {
-  count: vi.fn(),
-  create: vi.fn(),
-  deleteMany: vi.fn(),
-};
+const queryRaw = vi.fn();
+const bucketFindUnique = vi.fn();
 
-vi.mock("@/server/db", () => ({ db: { rateLimitHit } }));
+vi.mock("@/server/db", () => ({
+  db: {
+    $queryRaw: (...args: unknown[]) => queryRaw(...args),
+    rateLimitBucket: { findUnique: (...args: unknown[]) => bucketFindUnique(...args) },
+  },
+}));
 
-const { allow, hashIp } = await import("../src/server/services/rate-limit");
+const { allow, hashIp, isBlocked, recordHit } = await import(
+  "../src/server/services/rate-limit"
+);
 const { verifyTurnstile, getTurnstileSiteKey } = await import(
   "../src/server/services/turnstile"
 );
@@ -40,40 +44,57 @@ describe("hashIp", () => {
 
 describe("allow", () => {
   beforeEach(() => {
-    rateLimitHit.count.mockReset().mockResolvedValue(0);
-    rateLimitHit.create.mockReset().mockResolvedValue({});
-    rateLimitHit.deleteMany.mockReset().mockResolvedValue({ count: 0 });
+    queryRaw.mockReset().mockResolvedValue([{ count: 1 }]);
+    bucketFindUnique.mockReset().mockResolvedValue(null);
   });
 
-  it("allows a request below the limit", async () => {
-    await expect(allow("inquiry:abc", { max: 5, windowMinutes: 60 })).resolves.toBe(
-      true
-    );
-    expect(rateLimitHit.create).toHaveBeenCalledOnce();
+  it("allows a request while the bucket is below the limit", async () => {
+    queryRaw.mockResolvedValue([{ count: 5 }]);
+    await expect(allow("inquiry:abc", { max: 5, windowMinutes: 60 })).resolves.toBe(true);
   });
 
-  it("blocks once the window is full", async () => {
-    rateLimitHit.count.mockResolvedValue(5);
-    await expect(allow("inquiry:abc", { max: 5, windowMinutes: 60 })).resolves.toBe(
-      false
-    );
-    expect(rateLimitHit.create).not.toHaveBeenCalled();
+  it("blocks the request the bucket exceeds the limit", async () => {
+    // The count comes back from the increment itself, so two parallel callers
+    // can never both read "4 of 5" and both pass.
+    queryRaw.mockResolvedValue([{ count: 6 }]);
+    await expect(allow("inquiry:abc", { max: 5, windowMinutes: 60 })).resolves.toBe(false);
   });
 
-  it("scopes the counter per key", async () => {
+  it("is one statement per call, with the key bound as a parameter", async () => {
     await allow("contact:abc", { max: 5, windowMinutes: 60 });
-    expect(rateLimitHit.count).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ key: "contact:abc" }),
-      })
-    );
+    expect(queryRaw).toHaveBeenCalledOnce();
+    const [text, ...values] = queryRaw.mock.calls[0];
+    expect(String(text)).toContain("RateLimitBucket");
+    expect(String(text)).toContain("ON CONFLICT");
+    expect(values).toContain("contact:abc");
   });
 
-  it("still allows the request when cleanup fails", async () => {
-    rateLimitHit.deleteMany.mockRejectedValue(new Error("deadlock"));
-    await expect(allow("inquiry:abc", { max: 5, windowMinutes: 60 })).resolves.toBe(
-      true
-    );
+  it("treats a missing RETURNING row as blocked rather than open", async () => {
+    queryRaw.mockResolvedValue([]);
+    await expect(allow("inquiry:abc", { max: 5, windowMinutes: 60 })).resolves.toBe(false);
+  });
+});
+
+describe("isBlocked / recordHit", () => {
+  beforeEach(() => {
+    queryRaw.mockReset().mockResolvedValue([{ count: 1 }]);
+    bucketFindUnique.mockReset().mockResolvedValue(null);
+  });
+
+  it("isBlocked reads the bucket without writing to it", async () => {
+    bucketFindUnique.mockResolvedValue({ count: 5 });
+    await expect(isBlocked("signin:acc-ip:x", 5, 15)).resolves.toBe(true);
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
+  it("isBlocked lets the first attempt through when no bucket exists", async () => {
+    await expect(isBlocked("signin:acc-ip:x", 5, 15)).resolves.toBe(false);
+  });
+
+  it("recordHit returns the incremented count so a caller can detect the threshold", async () => {
+    queryRaw.mockResolvedValue([{ count: 31 }]);
+    await expect(recordHit("signin:acc:x", 60)).resolves.toBe(31);
+    expect(bucketFindUnique).not.toHaveBeenCalled();
   });
 });
 

@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/common/Badge";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/components/ui/toast";
 import { deleteAssignmentAction, listCourseStudentsAction, saveAssignmentAction } from "@/server/actions/assignments";
 import {
@@ -41,6 +42,7 @@ type AssignmentRow = {
   courseTitle: string;
   courseSlug: string;
   studentIds: string[];
+  recipientCount: number;
   submissionCount: number;
 };
 
@@ -91,6 +93,7 @@ export function AssignmentsManager({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { ask, dialog } = useConfirm();
   const [editing, setEditing] = React.useState<Editing | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [students, setStudents] = React.useState<CourseStudent[]>([]);
@@ -216,17 +219,26 @@ export function AssignmentsManager({
     router.refresh();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this assignment? Every student link for it is deleted too.")) return;
-    setDeletingId(id);
-    const result = await deleteAssignmentAction(id);
-    setDeletingId(null);
-    if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
-      return;
-    }
-    toast({ title: "Assignment deleted", variant: "success" });
-    router.refresh();
+  const handleDelete = async (row: AssignmentRow) => {
+    await ask({
+      title: "Delete assignment?",
+      description: (
+        <>
+          <span className="font-medium text-neutral-900">{row.title}</span> and every student
+          link for it are deleted, including the submissions students filed against it. Set it
+          to DRAFT instead if the work is only being retimed.
+        </>
+      ),
+      run: async () => {
+        setDeletingId(row.id);
+        const result = await deleteAssignmentAction(row.id);
+        setDeletingId(null);
+        if (!result.ok) return result.error;
+        toast({ title: "Assignment deleted", variant: "success" });
+        router.refresh();
+        return null;
+      },
+    });
   };
 
   const statusFilterOptions: SelectOption[] = [
@@ -479,7 +491,7 @@ export function AssignmentsManager({
                       className="inline-flex items-center gap-1 text-neutral-700 hover:text-primary"
                     >
                       <ClipboardList className="size-4" />
-                      {row.submissionCount}/{row.studentIds.length}
+                      {row.submissionCount}/{row.recipientCount}
                       <ExternalLink className="size-3.5 text-neutral-400" />
                     </Link>
                   </td>
@@ -497,7 +509,7 @@ export function AssignmentsManager({
                           type="button"
                           variant="ghost"
                           size="xs"
-                          onClick={() => handleDelete(row.id)}
+                          onClick={() => void handleDelete(row)}
                           disabled={deletingId === row.id}
                         >
                           {deletingId === row.id ? (
@@ -548,6 +560,8 @@ export function AssignmentsManager({
           </Button>
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }

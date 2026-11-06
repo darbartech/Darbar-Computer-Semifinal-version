@@ -2,9 +2,11 @@ import type {
   AboutSettings,
   ContactSettings,
   FacilitiesSettings,
+  FeesSettings,
   GeneralSettings,
   HeroSettings,
   HoursSettings,
+  RetentionSettings,
   SocialsSettings,
   StatsSettings,
   WhyChooseUsSettings,
@@ -14,8 +16,8 @@ import type {
  * Baseline `SiteSetting` rows (docs/03 §4, docs/07 §1).
  *
  * These literals are a verbatim copy of what the static site renders today
- * (`src/content/institute.ts` + `SITE_CONFIG` in `src/lib/constants.ts`). Two
- * reasons they live here instead of importing those modules:
+ * (`prisma/seed-data/institute.ts` + `SITE_CONFIG` in `src/lib/constants.ts`). Two
+ * reasons they are copies rather than imports:
  *
  * 1. docs/04 Phase 4 "Definition of Done": once a module is migrated, the public
  *    runtime must not import `src/content/*`. The DAL uses this file as the
@@ -29,15 +31,15 @@ import type {
 
 /** Stock campus photo used until an editor uploads a real one (docs/07 §1). */
 export const PLACEHOLDER_CAMPUS_IMAGE =
-  "https://images.pexels.com/photos/10127241/pexels-photo-10127241.jpeg?auto=compress&cs=tinysrgb&w=1400";
+  "/images/seed/pexels-10127241.jpg";
 
 /** Home page hero artwork, until an editor uploads a real image. */
 export const HERO_IMAGE_FALLBACK =
-  "https://cdn.prod.website-files.com/640021754b75fb0c4b535941/64539e138771820ebcb7619d_hero-image.png";
+  "/images/seed/template-64539e138771820ebcb7619d_hero-image.png";
 
 /** Home page hero pop-up artwork, until an editor uploads a real image. */
 export const HERO_POPUP_IMAGE_FALLBACK =
-  "https://cdn.prod.website-files.com/640021754b75fb0c4b535941/6451ec7f19901e54999d5d0c_hero-popup-image-2.png";
+  "/images/seed/template-6451ec7f19901e54999d5d0c_hero-popup-image-2.png";
 
 /** Media folder for the images referenced by the settings keys. */
 export const SETTINGS_MEDIA_FOLDER = "site";
@@ -187,6 +189,35 @@ const everyCourseIncludes: string[] = [
   "AI-Assisted Learning",
 ];
 
+/**
+ * Fees rules (docs 05 §7). Unlike the ten content keys above, there is no static
+ * predecessor to copy: these are the documented starting values, and the discount
+ * threshold is the only one that gates a write. `bankDetails` starts empty rather
+ * than with a plausible-looking account number.
+ */
+const fees: FeesSettings = {
+  currency: "NPR",
+  discountApprovalThresholdPct: 10,
+  lateFeePerWeek: 0,
+  certificateRequiresClearance: false,
+  allowedDueAmount: 0,
+  maxBackdateDays: 3,
+  bankDetails: "",
+  receiptFooter: "",
+};
+
+/**
+ * Retention windows (docs/08 §1). An enquiry that went nowhere and a message
+ * nobody needed for a year are the two rows on this site that hold a stranger's
+ * name, phone number and words — so the baseline keeps them for the period the
+ * institute can defend (two years of marketing history, one year of postbag) and
+ * no longer. The `retention` cron job is the only reader.
+ */
+const retention: RetentionSettings = {
+  leadMonths: 24,
+  messageMonths: 12,
+};
+
 export const SETTING_DEFAULTS = {
   general,
   hero,
@@ -198,6 +229,8 @@ export const SETTING_DEFAULTS = {
   whyChooseUs,
   facilities,
   everyCourseIncludes,
+  fees,
+  retention,
 } as const;
 
 export type SettingDefaults = typeof SETTING_DEFAULTS;

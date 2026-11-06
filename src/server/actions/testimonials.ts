@@ -71,7 +71,10 @@ export async function saveTestimonial(input: unknown): Promise<ActionResult<{ id
 export async function deleteTestimonialAction(id: string): Promise<ActionResult> {
   let actor: AuditActor | null = null;
   try {
-    const user = await requirePermission("testimonials.write");
+    // The row is where the consent note lives, so deleting it destroys evidence
+    // as well as content. Unpublishing answers 99% of the cases; the hard delete
+    // is SUPER_ADMIN-only (docs/08).
+    const user = await requirePermission("testimonials.delete");
     actor = { id: user.id, email: user.email };
     await deleteTestimonial(id);
     if (actor) await audit({ actor, action: "testimonial.delete", entity: "Testimonial", entityId: id });

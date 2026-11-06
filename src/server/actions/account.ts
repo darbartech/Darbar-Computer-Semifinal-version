@@ -1,6 +1,6 @@
 "use server";
 import "server-only";
-import { isRedirectError, requireUser } from "@/server/session";
+import { isRedirectError, requireSessionUser } from "@/server/session";
 import { audit } from "@/server/services/audit";
 import { invalidate, USER_TAGS } from "@/server/revalidate";
 import { destroyAsset } from "@/server/services/storage";
@@ -29,7 +29,9 @@ export async function uploadOwnAvatarAction(
 ): Promise<AvatarActionResult> {
   let actor: { id: string; email: string } | null = null;
   try {
-    const user = await requireUser();
+    // The owner's own account page, which stays open before two-factor exists,
+    // so this uses the ungated primitive and checks the role itself.
+    const user = await requireSessionUser();
     if (user.role === "STUDENT") {
       return { ok: false, error: "Students update their photo from their own profile." };
     }

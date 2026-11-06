@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/common/Badge";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import {
   saveSignatory,
   deleteSignatoryAction,
@@ -54,6 +55,7 @@ export function SignatoriesManager({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { ask, dialog } = useConfirm();
   const [form, setForm] = React.useState(EMPTY);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -127,19 +129,26 @@ export function SignatoriesManager({
   };
 
   const onDelete = async (row: Row) => {
-    if (!window.confirm(`Delete signatory "${row.name}"? Issued certificates keep their own snapshot.`)) {
-      return;
-    }
-    setPendingId(row.id);
-    const result = await deleteSignatoryAction({ id: row.id });
-    setPendingId(null);
-    if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
-      return;
-    }
-    if (form.id === row.id) setForm(EMPTY);
-    toast({ title: "Signatory deleted", variant: "success" });
-    router.refresh();
+    await ask({
+      title: "Delete signatory?",
+      description: (
+        <>
+          <span className="font-medium text-neutral-900">{row.name}</span> is removed from the
+          picker for future certificates. Certificates already issued keep the name, title and
+          signature they were printed with, so nothing that has left the building changes.
+        </>
+      ),
+      run: async () => {
+        setPendingId(row.id);
+        const result = await deleteSignatoryAction({ id: row.id });
+        setPendingId(null);
+        if (!result.ok) return result.error;
+        if (form.id === row.id) setForm(EMPTY);
+        toast({ title: "Signatory deleted", variant: "success" });
+        router.refresh();
+        return null;
+      },
+    });
   };
 
   return (
@@ -382,6 +391,8 @@ export function SignatoriesManager({
           </div>
         )}
       </div>
+
+      {dialog}
     </div>
   );
 }

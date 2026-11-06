@@ -13,6 +13,9 @@ enum Role {
   ADMIN
   EDITOR
   COUNSELOR
+  INSTRUCTOR
+  ACCOUNTANT
+  RECEPTION
   STUDENT
 }
 
@@ -135,6 +138,8 @@ enum EnrollmentStatus {
   ACTIVE
   COMPLETED
   DROPPED
+  REJECTED
+  WAITLISTED
 }
 
 enum StudentApprovalStatus {
@@ -151,17 +156,19 @@ enum SubmissionReviewStatus {
 
 // ───────────── Users & auth ─────────────
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  role          Role      @default(EDITOR)
-  isActive      Boolean   @default(true)
-  lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
+  image            String?
+  role             Role      @default(EDITOR)
+  isActive         Boolean   @default(true)
+  lastLoginAt      DateTime?
+  twoFactorEnabled Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
+  batchesTaught       Batch[]                @relation("BatchInstructor")
   assignedLeads       Lead[]
   activities          LeadActivity[]
   posts               BlogPost[]
@@ -173,6 +180,11 @@ model User {
   studentProfile      StudentProfile?
   assignmentsCreated  Assignment[]           @relation("AssignmentAuthor")
   submissionsReviewed AssignmentSubmission[] @relation("SubmissionReviewer")
+  invoicesCreated     Invoice[]              @relation("InvoiceCreator")
+  paymentsReceived    Payment[]              @relation("PaymentReceiver")
+  paymentsVoided      Payment[]              @relation("PaymentVoider")
+  daysClosed          DayClose[]             @relation("DayCloser")
+  twoFactor           TwoFactor?
 }
 
 model Session {
@@ -187,7 +199,6 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([token])
 }
 
 model Account {
@@ -219,6 +230,26 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
+}
+
+/// Better Auth's two-factor plugin (fix guide §4): one row per staff account.
+/// `secret` and `backupCodes` are stored encrypted with `AUTH_SECRET`, never as
+/// plain text; `verified` is false while an authenticator is being enrolled, and
+/// the two failure columns are how a guessed code is throttled.
+model TwoFactor {
+  id                      String    @id @default(cuid())
+  secret                  String
+  backupCodes             String
+  userId                  String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([secret])
 }
 
 // ───────────── Media ─────────────
@@ -331,21 +362,26 @@ model Course {
 }
 
 model Batch {
-  id         String      @id @default(cuid())
-  courseId   String
-  course     Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  name       String
-  startDate  DateTime    @db.Date
-  timeSlot   TimeSlot
-  seatsTotal Int
-  seatsTaken Int         @default(0)
-  status     BatchStatus @default(UPCOMING)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String      @id @default(cuid())
+  courseId     String
+  // Deleting a course must not silently erase its batches; archive instead.
+  course       Course      @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  name         String
+  startDate    DateTime    @db.Date
+  timeSlot     TimeSlot
+  seatsTotal   Int
+  seatsTaken   Int         @default(0)
+  status       BatchStatus @default(UPCOMING)
+  /// The teacher of record (fix guide §5): what scopes an INSTRUCTOR's reads.
+  instructorId String?
+  instructor   User?       @relation("BatchInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   enrollments Enrollment[]
 
   @@index([courseId, startDate])
+  @@index([instructorId])
 }
 
 // ───────────── CRM ─────────────
@@ -378,12 +414,25 @@ model Lead {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  /// Set by the retention purge instead of DELETE, so a wrongly removed lead
+  /// can be restored (docs 01 S13).
+  deletedAt       DateTime?
+  /// E.164 phone (+97798XXXXXXXX) used for duplicate detection; `phone` keeps
+  /// exactly what the visitor typed (docs 04 §4).
+  phoneNormalized String?
+  /// Set when the lead is converted by staff (docs 04 §3).
+  studentId       String?         @unique
+  student         StudentProfile? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
   activities LeadActivity[]
 
   @@index([status, createdAt])
   @@index([assignedToId, status])
   @@index([phone])
   @@index([courseId])
+  @@index([phoneNormalized])
+  @@index([deletedAt])
+  @@index([followUpAt])
 }
 
 model LeadActivity {
@@ -552,14 +601,28 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([entity, entityId])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
 }
 
-model RateLimitHit {
-  id        String   @id @default(cuid())
-  key       String
-  createdAt DateTime @default(now())
+/// Monotonic sequence for human-readable numbers (certificate, student,
+/// invoice, receipt). `UPDATE ... ON CONFLICT ... RETURNING` makes the value
+/// race-free, which `max() + 1` over the row set is not.
+model Counter {
+  key       String   @id
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
 
-  @@index([key, createdAt])
+/// One row per (limiter key, fixed window). `allow()` increments it with a
+/// single upsert, so a parallel burst cannot all read the same count.
+model RateLimitBucket {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
 }
 
 // ───────────── Certificate System ─────────────
@@ -657,8 +720,6 @@ model Certificate {
   items             CertificateItem[]
   issuedSignatories CertificateIssuedSignatory[]
 
-  @@index([verificationToken])
-  @@index([certificateNumber])
   @@index([status])
   @@index([courseId])
   @@index([issuedAt])
@@ -741,29 +802,49 @@ model StudentProfile {
   certificates         Certificate[]
   assignments          AssignmentSubmission[]
   assignmentRecipients AssignmentRecipient[]
+  invoices             Invoice[]
+  lead                 Lead?
 
   @@index([portfolioPublic])
   @@index([approvalStatus])
 }
 
 model Enrollment {
-  id          String           @id @default(cuid())
-  studentId   String
-  student     StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  courseId    String
-  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  batchId     String?
-  batch       Batch?           @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  status      EnrollmentStatus @default(PENDING)
-  enrolledAt  DateTime         @default(now())
-  completedAt DateTime?
-  note        String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id           String           @id @default(cuid())
+  studentId    String
+  student      StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId     String
+  // Enrollment history survives course deletion (docs 02: Restrict, not Cascade).
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  batchId      String?
+  batch        Batch?           @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  status       EnrollmentStatus @default(PENDING)
+  enrolledAt   DateTime         @default(now())
+  completedAt  DateTime?
+  note         String?
+  /// Staff decision trail (docs 02 B6): why a request was rejected or waitlisted.
+  decisionNote String?
+  decidedById  String?
+  decidedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  @@unique([studentId, courseId])
+  invoices Invoice[]
+
+  // Uniqueness belongs to the LIVE statuses only. A plain
+  // `@@unique([studentId, courseId])` here made a finished relationship permanent:
+  // once a row was DROPPED, REJECTED or COMPLETED the student could never ask for
+  // that course again, because the retake would collide with the history they are
+  // allowed to have. The real guard is the partial unique index
+  // `Enrollment_live_student_course_key` (see migration
+  // 20261105140000_enrollment_live_unique) — Prisma cannot express a `WHERE`
+  // clause, so the schema declares the lookup index and the migration declares
+  // the constraint.
+  @@index([studentId, courseId])
   @@index([courseId])
   @@index([batchId])
+  @@index([studentId, status])
+  @@index([batchId, status])
 }
 
 /// A portfolio project the student adds to their public showcase.
@@ -792,7 +873,7 @@ model PortfolioProject {
 model Assignment {
   id           String        @id @default(cuid())
   courseId     String
-  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Restrict)
   title        String
   instructions String?
   dueDate      DateTime?
@@ -865,4 +946,151 @@ model Notice {
   updatedAt DateTime      @updatedAt
 
   @@index([status, endsAt])
+}
+
+// ───────────── Fees & payments ─────────────
+/// Append-only ledger (docs 05). Money is whole NPR in an `Int`, matching
+/// `Course.feeNPR`; a balance is never stored, it is computed from the payments.
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIAL
+  PAID
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  ESEWA
+  KHALTI
+  FONEPAY
+  CONNECTIPS
+  OTHER
+}
+
+/// A payment is never edited or deleted — `VOIDED` keeps the receipt number in
+/// the sequence so the day book stays explainable.
+enum PaymentStatus {
+  RECEIVED
+  VOIDED
+}
+
+// `PaymentProvider`, `IntentStatus` and the `PaymentIntent` table used to sit
+// here as the gateway handshake from docs/05 §6. Nothing read or wrote them: the
+// initiate/callback actions were never built, so the schema advertised a payment
+// route no code could walk. They return with that phase, in their own migration —
+// see prisma/migrations/20261106100000_drop_payment_intent.
+
+/// A student's bill for one course/batch. `netAmount` is stored (not derived)
+/// because it must stay exactly what was invoiced even if the course fee, or the
+/// discount policy, changes later.
+model Invoice {
+  id           String         @id @default(cuid())
+  number       String         @unique
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  /// The enrollment this bill came from. Nullable: a walk-in admission is
+  /// invoiced before the enrollment row exists, and dropping the enrollment must
+  /// not erase the money record.
+  enrollmentId String?
+  enrollment   Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  title          String
+  grossAmount    Int
+  discountAmount Int           @default(0)
+  discountReason String?
+  netAmount      Int
+  status         InvoiceStatus @default(DRAFT)
+  dueDate        DateTime?     @db.Date
+  note           String?
+  /// Voiding is the only way to change an issued invoice (docs 05 §2), so the
+  /// reason is kept next to the row it explains.
+  voidReason     String?
+  createdById    String?
+  createdBy      User?         @relation("InvoiceCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  installments InvoiceInstallment[]
+  payments     Payment[]
+
+  @@index([studentId, status])
+  @@index([dueDate, status])
+}
+
+/// An instalment is a *schedule*, not a debt: payments settle the invoice, and
+/// "next due" is derived from the earliest instalment whose cumulative amount
+/// exceeds what has been paid (docs 05 §2).
+model InvoiceInstallment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  seq       Int
+  amount    Int
+  dueDate   DateTime @db.Date
+
+  @@unique([invoiceId, seq])
+  @@index([dueDate])
+}
+
+model Payment {
+  id        String  @id @default(cuid())
+  receiptNo String  @unique
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  amount    Int
+  method    PaymentMethod
+  /// Bank slip / cheque / gateway reference — whatever the money came in on.
+  /// Stored normalised (trimmed, inner spaces collapsed, upper case) so the index
+  /// below cannot be fooled by two typings of one slip; see
+  /// normalizePaymentReference() in src/lib/validators/fees.ts and
+  /// prisma/migrations/20261106090000_payment_reference_normalized.
+  /// One live receipt per (method, reference): a partial unique index keeps it that
+  /// way (prisma/migrations/20261105110000_payment_reference_unique), because Prisma
+  /// cannot express the WHERE clause. A VOIDED receipt leaves the index, so voiding
+  /// the first frees the slip for the corrected receipt; CASH is outside it too,
+  /// since cash has no slip to match.
+  reference String?
+  status    PaymentStatus @default(RECEIVED)
+
+  receivedAt   DateTime @default(now())
+  receivedById String?
+  receivedBy   User?    @relation("PaymentReceiver", fields: [receivedById], references: [id], onDelete: SetNull)
+
+  voidedAt   DateTime?
+  voidedById String?
+  voidedBy   User?     @relation("PaymentVoider", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?
+
+  /// One value per opening of the payment dialog, sent with every click of Save.
+  /// A double-click or a retry after a lost response comes back with this key
+  /// already used, and the first receipt is reported instead of a second one.
+  idempotencyKey String? @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([receivedAt])
+}
+
+/// A campus day that has been counted and shut (fix guide §2). `day` is the
+/// Kathmandu calendar date, stored as UTC midnight so it matches the date the
+/// day book prints rather than the server's zone. While a row exists, no receipt
+/// can be added to or voided on that day — only `fee.reopenDay` can undo it.
+model DayClose {
+  id  String   @id @default(cuid())
+  day DateTime @unique @db.Date
+
+  /// The drawer as counted, in whole NPR, next to the system's cash total.
+  cashCounted Int?
+  note        String?
+
+  closedById String?
+  closedBy   User?   @relation("DayCloser", fields: [closedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
 }

@@ -6,6 +6,7 @@ import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { StudentDataControls } from "@/components/admin/StudentDataControls";
 import {
   EnrollmentDecisionList,
   StudentReviewControls,
@@ -13,6 +14,10 @@ import {
 import { requirePermission } from "@/server/session";
 import { can } from "@/server/permissions";
 import { getStudentForAdmin } from "@/server/dal/students";
+import { seesStudentPii } from "@/server/dal/scope";
+import { listSeatOptionsForCourses } from "@/server/dal/batches";
+import { getStudentFeeSummaries, listBillableEnrollments } from "@/server/dal/fees";
+import { StudentFeesCard } from "@/components/admin/fees/StudentFeesCard";
 import { formatDate } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -42,10 +47,35 @@ export default async function AdminStudentDetailPage({
 }) {
   const user = await requirePermission("student.read");
   const { id } = await params;
-  const student = await getStudentForAdmin(id);
+  // The scope travels with the id: a student outside this person's batches
+  // reads as "not found", the same way an out-of-scope lead does (docs 04 §1).
+  const student = await getStudentForAdmin(id, { userId: user.id, role: user.role });
   if (!student) notFound();
 
+  const seesPii = seesStudentPii(user.role);
+
+  // Only batches of the courses this student asked about can be offered (docs 02 B1).
+  const batches = await listSeatOptionsForCourses([
+    ...new Set(student.enrollments.map((enrollment) => enrollment.courseId)),
+  ]);
+
   const canManage = can(user.role, "student.approve");
+
+  // Data requests are the one student capability that is not a job function
+  // (brief task 9): reading a record is a work need, handing the whole file over
+  // or destroying the identity in it is not.
+  const canExport = can(user.role, "student.export");
+  const canErase = can(user.role, "student.erase");
+
+  // Fees sit behind their own permission: an instructor may review a registration
+  // without ever seeing the money (docs 05 §3).
+  const canSeeFees = can(user.role, "fee.read");
+  const fees = canSeeFees
+    ? {
+        invoices: await getStudentFeeSummaries(student.id, { includeDrafts: true }),
+        enrollments: await listBillableEnrollments(student.id),
+      }
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -107,29 +137,50 @@ export default async function AdminStudentDetailPage({
         </CardContent>
       </Card>
 
+      {(canExport || canErase) && (
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-neutral-900">Data requests</h2>
+            <StudentDataControls
+              studentId={student.id}
+              studentName={student.name}
+              can={{ export: canExport, erase: canErase }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardContent className="p-5">
             <h2 className="mb-4 text-sm font-semibold text-neutral-900">Details</h2>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
-              <Field label="Email" value={student.email} />
-              <Field label="Phone" value={student.phone} />
-              <Field label="Date of birth" value={student.dateOfBirth} />
-              <Field label="City" value={student.city} />
-              <Field label="Country" value={student.country} />
-              <Field label="Address" value={student.address} />
-              <Field label="GitHub" value={student.githubUrl} />
-              <Field label="LinkedIn" value={student.linkedinUrl} />
-              <Field label="Website" value={student.websiteUrl} />
-              <Field
-                label="Portfolio"
-                value={
-                  student.portfolioSlug
-                    ? `/portfolio/${student.portfolioSlug}${student.portfolioPublic ? " (public)" : " (unpublished)"}`
-                    : null
-                }
-              />
-            </dl>
+            {seesPii ? (
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
+                <Field label="Email" value={student.email} />
+                <Field label="Phone" value={student.phone} />
+                <Field label="Date of birth" value={student.dateOfBirth} />
+                <Field label="City" value={student.city} />
+                <Field label="Country" value={student.country} />
+                <Field label="Address" value={student.address} />
+                <Field label="GitHub" value={student.githubUrl} />
+                <Field label="LinkedIn" value={student.linkedinUrl} />
+                <Field label="Website" value={student.websiteUrl} />
+                <Field
+                  label="Portfolio"
+                  value={
+                    student.portfolioSlug
+                      ? `/portfolio/${student.portfolioSlug}${student.portfolioPublic ? " (public)" : " (unpublished)"}`
+                      : null
+                  }
+                />
+              </dl>
+            ) : (
+              <p className="text-sm text-neutral-600">
+                Contact details, date of birth and the home address belong to the office: the
+                approval, enrolment and fee jobs keep them. What you need here is the name, the
+                student code below and the class list.
+              </p>
+            )}
             {(student.headline || student.bio) && (
               <div className="mt-4 space-y-1 border-t border-neutral-100 pt-4">
                 {student.headline && (
@@ -147,11 +198,15 @@ export default async function AdminStudentDetailPage({
               <h2 className="mb-4 text-sm font-semibold text-neutral-900">Course requests</h2>
               <EnrollmentDecisionList
                 canManage={canManage}
+                batches={batches}
                 enrollments={student.enrollments.map((e) => ({
                   id: e.id,
                   status: e.status,
+                  courseId: e.courseId,
                   courseTitle: e.course.title,
                   requestedAt: formatDate(e.enrolledAt),
+                  batchName: e.batch?.name ?? null,
+                  decisionNote: e.decisionNote,
                 }))}
               />
             </CardContent>
@@ -166,6 +221,19 @@ export default async function AdminStudentDetailPage({
           </Card>
         </div>
       </div>
+
+      {fees && (
+        <StudentFeesCard
+          studentId={student.id}
+          studentName={student.name}
+          invoices={fees.invoices}
+          enrollments={fees.enrollments}
+          can={{
+            create: can(user.role, "fee.write"),
+            record: can(user.role, "payment.record"),
+          }}
+        />
+      )}
     </div>
   );
 }

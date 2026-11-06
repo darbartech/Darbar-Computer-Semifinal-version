@@ -335,6 +335,8 @@ export type StudentProfileWhereInput = {
   certificates?: Prisma.CertificateListRelationFilter
   assignments?: Prisma.AssignmentSubmissionListRelationFilter
   assignmentRecipients?: Prisma.AssignmentRecipientListRelationFilter
+  invoices?: Prisma.InvoiceListRelationFilter
+  lead?: Prisma.XOR<Prisma.LeadNullableScalarRelationFilter, Prisma.LeadWhereInput> | null
 }
 
 export type StudentProfileOrderByWithRelationInput = {
@@ -369,6 +371,8 @@ export type StudentProfileOrderByWithRelationInput = {
   certificates?: Prisma.CertificateOrderByRelationAggregateInput
   assignments?: Prisma.AssignmentSubmissionOrderByRelationAggregateInput
   assignmentRecipients?: Prisma.AssignmentRecipientOrderByRelationAggregateInput
+  invoices?: Prisma.InvoiceOrderByRelationAggregateInput
+  lead?: Prisma.LeadOrderByWithRelationInput
 }
 
 export type StudentProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -406,6 +410,8 @@ export type StudentProfileWhereUniqueInput = Prisma.AtLeast<{
   certificates?: Prisma.CertificateListRelationFilter
   assignments?: Prisma.AssignmentSubmissionListRelationFilter
   assignmentRecipients?: Prisma.AssignmentRecipientListRelationFilter
+  invoices?: Prisma.InvoiceListRelationFilter
+  lead?: Prisma.XOR<Prisma.LeadNullableScalarRelationFilter, Prisma.LeadWhereInput> | null
 }, "id" | "userId" | "studentCode" | "portfolioSlug">
 
 export type StudentProfileOrderByWithAggregationInput = {
@@ -498,6 +504,8 @@ export type StudentProfileCreateInput = {
   certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateInput = {
@@ -530,6 +538,8 @@ export type StudentProfileUncheckedCreateInput = {
   certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUpdateInput = {
@@ -562,6 +572,8 @@ export type StudentProfileUpdateInput = {
   certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateInput = {
@@ -594,6 +606,8 @@ export type StudentProfileUncheckedUpdateInput = {
   certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileCreateManyInput = {
@@ -846,6 +860,22 @@ export type StudentProfileUncheckedUpdateManyWithoutPhotoNestedInput = {
   deleteMany?: Prisma.StudentProfileScalarWhereInput | Prisma.StudentProfileScalarWhereInput[]
 }
 
+export type StudentProfileCreateNestedOneWithoutLeadInput = {
+  create?: Prisma.XOR<Prisma.StudentProfileCreateWithoutLeadInput, Prisma.StudentProfileUncheckedCreateWithoutLeadInput>
+  connectOrCreate?: Prisma.StudentProfileCreateOrConnectWithoutLeadInput
+  connect?: Prisma.StudentProfileWhereUniqueInput
+}
+
+export type StudentProfileUpdateOneWithoutLeadNestedInput = {
+  create?: Prisma.XOR<Prisma.StudentProfileCreateWithoutLeadInput, Prisma.StudentProfileUncheckedCreateWithoutLeadInput>
+  connectOrCreate?: Prisma.StudentProfileCreateOrConnectWithoutLeadInput
+  upsert?: Prisma.StudentProfileUpsertWithoutLeadInput
+  disconnect?: Prisma.StudentProfileWhereInput | boolean
+  delete?: Prisma.StudentProfileWhereInput | boolean
+  connect?: Prisma.StudentProfileWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.StudentProfileUpdateToOneWithWhereWithoutLeadInput, Prisma.StudentProfileUpdateWithoutLeadInput>, Prisma.StudentProfileUncheckedUpdateWithoutLeadInput>
+}
+
 export type StudentProfileCreateNestedOneWithoutCertificatesInput = {
   create?: Prisma.XOR<Prisma.StudentProfileCreateWithoutCertificatesInput, Prisma.StudentProfileUncheckedCreateWithoutCertificatesInput>
   connectOrCreate?: Prisma.StudentProfileCreateOrConnectWithoutCertificatesInput
@@ -940,6 +970,20 @@ export type StudentProfileUpdateOneRequiredWithoutAssignmentRecipientsNestedInpu
   update?: Prisma.XOR<Prisma.XOR<Prisma.StudentProfileUpdateToOneWithWhereWithoutAssignmentRecipientsInput, Prisma.StudentProfileUpdateWithoutAssignmentRecipientsInput>, Prisma.StudentProfileUncheckedUpdateWithoutAssignmentRecipientsInput>
 }
 
+export type StudentProfileCreateNestedOneWithoutInvoicesInput = {
+  create?: Prisma.XOR<Prisma.StudentProfileCreateWithoutInvoicesInput, Prisma.StudentProfileUncheckedCreateWithoutInvoicesInput>
+  connectOrCreate?: Prisma.StudentProfileCreateOrConnectWithoutInvoicesInput
+  connect?: Prisma.StudentProfileWhereUniqueInput
+}
+
+export type StudentProfileUpdateOneRequiredWithoutInvoicesNestedInput = {
+  create?: Prisma.XOR<Prisma.StudentProfileCreateWithoutInvoicesInput, Prisma.StudentProfileUncheckedCreateWithoutInvoicesInput>
+  connectOrCreate?: Prisma.StudentProfileCreateOrConnectWithoutInvoicesInput
+  upsert?: Prisma.StudentProfileUpsertWithoutInvoicesInput
+  connect?: Prisma.StudentProfileWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.StudentProfileUpdateToOneWithWhereWithoutInvoicesInput, Prisma.StudentProfileUpdateWithoutInvoicesInput>, Prisma.StudentProfileUncheckedUpdateWithoutInvoicesInput>
+}
+
 export type StudentProfileCreateWithoutUserInput = {
   id?: string
   studentCode: string
@@ -969,6 +1013,8 @@ export type StudentProfileCreateWithoutUserInput = {
   certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateWithoutUserInput = {
@@ -1000,6 +1046,8 @@ export type StudentProfileUncheckedCreateWithoutUserInput = {
   certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileCreateOrConnectWithoutUserInput = {
@@ -1047,6 +1095,8 @@ export type StudentProfileUpdateWithoutUserInput = {
   certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateWithoutUserInput = {
@@ -1078,6 +1128,8 @@ export type StudentProfileUncheckedUpdateWithoutUserInput = {
   certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileCreateWithoutPhotoInput = {
@@ -1109,6 +1161,8 @@ export type StudentProfileCreateWithoutPhotoInput = {
   certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateWithoutPhotoInput = {
@@ -1140,6 +1194,8 @@ export type StudentProfileUncheckedCreateWithoutPhotoInput = {
   certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileCreateOrConnectWithoutPhotoInput = {
@@ -1198,6 +1254,154 @@ export type StudentProfileScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"StudentProfile"> | Date | string
 }
 
+export type StudentProfileCreateWithoutLeadInput = {
+  id?: string
+  studentCode: string
+  phone?: string | null
+  dateOfBirth?: Date | string | null
+  address?: string | null
+  city?: string | null
+  country?: string | null
+  headline?: string | null
+  bio?: string | null
+  skills?: Prisma.StudentProfileCreateskillsInput | string[]
+  interests?: Prisma.StudentProfileCreateinterestsInput | string[]
+  githubUrl?: string | null
+  linkedinUrl?: string | null
+  websiteUrl?: string | null
+  portfolioSlug?: string | null
+  portfolioPublic?: boolean
+  approvalStatus?: $Enums.StudentApprovalStatus
+  reviewedAt?: Date | string | null
+  reviewedById?: string | null
+  rejectionReason?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutStudentProfileInput
+  photo?: Prisma.MediaCreateNestedOneWithoutStudentPhotosInput
+  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutStudentInput
+  projects?: Prisma.PortfolioProjectCreateNestedManyWithoutStudentInput
+  certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
+  assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
+  assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+}
+
+export type StudentProfileUncheckedCreateWithoutLeadInput = {
+  id?: string
+  userId: string
+  studentCode: string
+  phone?: string | null
+  dateOfBirth?: Date | string | null
+  address?: string | null
+  city?: string | null
+  country?: string | null
+  headline?: string | null
+  bio?: string | null
+  skills?: Prisma.StudentProfileCreateskillsInput | string[]
+  interests?: Prisma.StudentProfileCreateinterestsInput | string[]
+  githubUrl?: string | null
+  linkedinUrl?: string | null
+  websiteUrl?: string | null
+  photoId?: string | null
+  portfolioSlug?: string | null
+  portfolioPublic?: boolean
+  approvalStatus?: $Enums.StudentApprovalStatus
+  reviewedAt?: Date | string | null
+  reviewedById?: string | null
+  rejectionReason?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutStudentInput
+  projects?: Prisma.PortfolioProjectUncheckedCreateNestedManyWithoutStudentInput
+  certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
+  assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
+  assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+}
+
+export type StudentProfileCreateOrConnectWithoutLeadInput = {
+  where: Prisma.StudentProfileWhereUniqueInput
+  create: Prisma.XOR<Prisma.StudentProfileCreateWithoutLeadInput, Prisma.StudentProfileUncheckedCreateWithoutLeadInput>
+}
+
+export type StudentProfileUpsertWithoutLeadInput = {
+  update: Prisma.XOR<Prisma.StudentProfileUpdateWithoutLeadInput, Prisma.StudentProfileUncheckedUpdateWithoutLeadInput>
+  create: Prisma.XOR<Prisma.StudentProfileCreateWithoutLeadInput, Prisma.StudentProfileUncheckedCreateWithoutLeadInput>
+  where?: Prisma.StudentProfileWhereInput
+}
+
+export type StudentProfileUpdateToOneWithWhereWithoutLeadInput = {
+  where?: Prisma.StudentProfileWhereInput
+  data: Prisma.XOR<Prisma.StudentProfileUpdateWithoutLeadInput, Prisma.StudentProfileUncheckedUpdateWithoutLeadInput>
+}
+
+export type StudentProfileUpdateWithoutLeadInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  studentCode?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  headline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  skills?: Prisma.StudentProfileUpdateskillsInput | string[]
+  interests?: Prisma.StudentProfileUpdateinterestsInput | string[]
+  githubUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedinUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  websiteUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  approvalStatus?: Prisma.EnumStudentApprovalStatusFieldUpdateOperationsInput | $Enums.StudentApprovalStatus
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutStudentProfileNestedInput
+  photo?: Prisma.MediaUpdateOneWithoutStudentPhotosNestedInput
+  enrollments?: Prisma.EnrollmentUpdateManyWithoutStudentNestedInput
+  projects?: Prisma.PortfolioProjectUpdateManyWithoutStudentNestedInput
+  certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
+  assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
+  assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+}
+
+export type StudentProfileUncheckedUpdateWithoutLeadInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  studentCode?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  headline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  skills?: Prisma.StudentProfileUpdateskillsInput | string[]
+  interests?: Prisma.StudentProfileUpdateinterestsInput | string[]
+  githubUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedinUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  websiteUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  photoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  approvalStatus?: Prisma.EnumStudentApprovalStatusFieldUpdateOperationsInput | $Enums.StudentApprovalStatus
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutStudentNestedInput
+  projects?: Prisma.PortfolioProjectUncheckedUpdateManyWithoutStudentNestedInput
+  certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
+  assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
+  assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+}
+
 export type StudentProfileCreateWithoutCertificatesInput = {
   id?: string
   studentCode: string
@@ -1227,6 +1431,8 @@ export type StudentProfileCreateWithoutCertificatesInput = {
   projects?: Prisma.PortfolioProjectCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateWithoutCertificatesInput = {
@@ -1258,6 +1464,8 @@ export type StudentProfileUncheckedCreateWithoutCertificatesInput = {
   projects?: Prisma.PortfolioProjectUncheckedCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileCreateOrConnectWithoutCertificatesInput = {
@@ -1305,6 +1513,8 @@ export type StudentProfileUpdateWithoutCertificatesInput = {
   projects?: Prisma.PortfolioProjectUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateWithoutCertificatesInput = {
@@ -1336,6 +1546,8 @@ export type StudentProfileUncheckedUpdateWithoutCertificatesInput = {
   projects?: Prisma.PortfolioProjectUncheckedUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileCreateWithoutEnrollmentsInput = {
@@ -1367,6 +1579,8 @@ export type StudentProfileCreateWithoutEnrollmentsInput = {
   certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateWithoutEnrollmentsInput = {
@@ -1398,6 +1612,8 @@ export type StudentProfileUncheckedCreateWithoutEnrollmentsInput = {
   certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileCreateOrConnectWithoutEnrollmentsInput = {
@@ -1445,6 +1661,8 @@ export type StudentProfileUpdateWithoutEnrollmentsInput = {
   certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateWithoutEnrollmentsInput = {
@@ -1476,6 +1694,8 @@ export type StudentProfileUncheckedUpdateWithoutEnrollmentsInput = {
   certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileCreateWithoutProjectsInput = {
@@ -1507,6 +1727,8 @@ export type StudentProfileCreateWithoutProjectsInput = {
   certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateWithoutProjectsInput = {
@@ -1538,6 +1760,8 @@ export type StudentProfileUncheckedCreateWithoutProjectsInput = {
   certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileCreateOrConnectWithoutProjectsInput = {
@@ -1585,6 +1809,8 @@ export type StudentProfileUpdateWithoutProjectsInput = {
   certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateWithoutProjectsInput = {
@@ -1616,6 +1842,8 @@ export type StudentProfileUncheckedUpdateWithoutProjectsInput = {
   certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileCreateWithoutAssignmentsInput = {
@@ -1647,6 +1875,8 @@ export type StudentProfileCreateWithoutAssignmentsInput = {
   projects?: Prisma.PortfolioProjectCreateNestedManyWithoutStudentInput
   certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateWithoutAssignmentsInput = {
@@ -1678,6 +1908,8 @@ export type StudentProfileUncheckedCreateWithoutAssignmentsInput = {
   projects?: Prisma.PortfolioProjectUncheckedCreateNestedManyWithoutStudentInput
   certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileCreateOrConnectWithoutAssignmentsInput = {
@@ -1725,6 +1957,8 @@ export type StudentProfileUpdateWithoutAssignmentsInput = {
   projects?: Prisma.PortfolioProjectUpdateManyWithoutStudentNestedInput
   certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateWithoutAssignmentsInput = {
@@ -1756,6 +1990,8 @@ export type StudentProfileUncheckedUpdateWithoutAssignmentsInput = {
   projects?: Prisma.PortfolioProjectUncheckedUpdateManyWithoutStudentNestedInput
   certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileCreateWithoutAssignmentRecipientsInput = {
@@ -1787,6 +2023,8 @@ export type StudentProfileCreateWithoutAssignmentRecipientsInput = {
   projects?: Prisma.PortfolioProjectCreateNestedManyWithoutStudentInput
   certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileUncheckedCreateWithoutAssignmentRecipientsInput = {
@@ -1818,6 +2056,8 @@ export type StudentProfileUncheckedCreateWithoutAssignmentRecipientsInput = {
   projects?: Prisma.PortfolioProjectUncheckedCreateNestedManyWithoutStudentInput
   certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
   assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
 }
 
 export type StudentProfileCreateOrConnectWithoutAssignmentRecipientsInput = {
@@ -1865,6 +2105,8 @@ export type StudentProfileUpdateWithoutAssignmentRecipientsInput = {
   projects?: Prisma.PortfolioProjectUpdateManyWithoutStudentNestedInput
   certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateWithoutAssignmentRecipientsInput = {
@@ -1896,6 +2138,156 @@ export type StudentProfileUncheckedUpdateWithoutAssignmentRecipientsInput = {
   projects?: Prisma.PortfolioProjectUncheckedUpdateManyWithoutStudentNestedInput
   certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
+}
+
+export type StudentProfileCreateWithoutInvoicesInput = {
+  id?: string
+  studentCode: string
+  phone?: string | null
+  dateOfBirth?: Date | string | null
+  address?: string | null
+  city?: string | null
+  country?: string | null
+  headline?: string | null
+  bio?: string | null
+  skills?: Prisma.StudentProfileCreateskillsInput | string[]
+  interests?: Prisma.StudentProfileCreateinterestsInput | string[]
+  githubUrl?: string | null
+  linkedinUrl?: string | null
+  websiteUrl?: string | null
+  portfolioSlug?: string | null
+  portfolioPublic?: boolean
+  approvalStatus?: $Enums.StudentApprovalStatus
+  reviewedAt?: Date | string | null
+  reviewedById?: string | null
+  rejectionReason?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutStudentProfileInput
+  photo?: Prisma.MediaCreateNestedOneWithoutStudentPhotosInput
+  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutStudentInput
+  projects?: Prisma.PortfolioProjectCreateNestedManyWithoutStudentInput
+  certificates?: Prisma.CertificateCreateNestedManyWithoutStudentInput
+  assignments?: Prisma.AssignmentSubmissionCreateNestedManyWithoutStudentInput
+  assignmentRecipients?: Prisma.AssignmentRecipientCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadCreateNestedOneWithoutStudentInput
+}
+
+export type StudentProfileUncheckedCreateWithoutInvoicesInput = {
+  id?: string
+  userId: string
+  studentCode: string
+  phone?: string | null
+  dateOfBirth?: Date | string | null
+  address?: string | null
+  city?: string | null
+  country?: string | null
+  headline?: string | null
+  bio?: string | null
+  skills?: Prisma.StudentProfileCreateskillsInput | string[]
+  interests?: Prisma.StudentProfileCreateinterestsInput | string[]
+  githubUrl?: string | null
+  linkedinUrl?: string | null
+  websiteUrl?: string | null
+  photoId?: string | null
+  portfolioSlug?: string | null
+  portfolioPublic?: boolean
+  approvalStatus?: $Enums.StudentApprovalStatus
+  reviewedAt?: Date | string | null
+  reviewedById?: string | null
+  rejectionReason?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutStudentInput
+  projects?: Prisma.PortfolioProjectUncheckedCreateNestedManyWithoutStudentInput
+  certificates?: Prisma.CertificateUncheckedCreateNestedManyWithoutStudentInput
+  assignments?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutStudentInput
+  assignmentRecipients?: Prisma.AssignmentRecipientUncheckedCreateNestedManyWithoutStudentInput
+  lead?: Prisma.LeadUncheckedCreateNestedOneWithoutStudentInput
+}
+
+export type StudentProfileCreateOrConnectWithoutInvoicesInput = {
+  where: Prisma.StudentProfileWhereUniqueInput
+  create: Prisma.XOR<Prisma.StudentProfileCreateWithoutInvoicesInput, Prisma.StudentProfileUncheckedCreateWithoutInvoicesInput>
+}
+
+export type StudentProfileUpsertWithoutInvoicesInput = {
+  update: Prisma.XOR<Prisma.StudentProfileUpdateWithoutInvoicesInput, Prisma.StudentProfileUncheckedUpdateWithoutInvoicesInput>
+  create: Prisma.XOR<Prisma.StudentProfileCreateWithoutInvoicesInput, Prisma.StudentProfileUncheckedCreateWithoutInvoicesInput>
+  where?: Prisma.StudentProfileWhereInput
+}
+
+export type StudentProfileUpdateToOneWithWhereWithoutInvoicesInput = {
+  where?: Prisma.StudentProfileWhereInput
+  data: Prisma.XOR<Prisma.StudentProfileUpdateWithoutInvoicesInput, Prisma.StudentProfileUncheckedUpdateWithoutInvoicesInput>
+}
+
+export type StudentProfileUpdateWithoutInvoicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  studentCode?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  headline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  skills?: Prisma.StudentProfileUpdateskillsInput | string[]
+  interests?: Prisma.StudentProfileUpdateinterestsInput | string[]
+  githubUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedinUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  websiteUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  approvalStatus?: Prisma.EnumStudentApprovalStatusFieldUpdateOperationsInput | $Enums.StudentApprovalStatus
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutStudentProfileNestedInput
+  photo?: Prisma.MediaUpdateOneWithoutStudentPhotosNestedInput
+  enrollments?: Prisma.EnrollmentUpdateManyWithoutStudentNestedInput
+  projects?: Prisma.PortfolioProjectUpdateManyWithoutStudentNestedInput
+  certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
+  assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
+  assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
+}
+
+export type StudentProfileUncheckedUpdateWithoutInvoicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  studentCode?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  headline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  skills?: Prisma.StudentProfileUpdateskillsInput | string[]
+  interests?: Prisma.StudentProfileUpdateinterestsInput | string[]
+  githubUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedinUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  websiteUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  photoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  approvalStatus?: Prisma.EnumStudentApprovalStatusFieldUpdateOperationsInput | $Enums.StudentApprovalStatus
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutStudentNestedInput
+  projects?: Prisma.PortfolioProjectUncheckedUpdateManyWithoutStudentNestedInput
+  certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
+  assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
+  assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileCreateManyPhotoInput = {
@@ -1953,6 +2345,8 @@ export type StudentProfileUpdateWithoutPhotoInput = {
   certificates?: Prisma.CertificateUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateWithoutPhotoInput = {
@@ -1984,6 +2378,8 @@ export type StudentProfileUncheckedUpdateWithoutPhotoInput = {
   certificates?: Prisma.CertificateUncheckedUpdateManyWithoutStudentNestedInput
   assignments?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutStudentNestedInput
   assignmentRecipients?: Prisma.AssignmentRecipientUncheckedUpdateManyWithoutStudentNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutStudentNestedInput
+  lead?: Prisma.LeadUncheckedUpdateOneWithoutStudentNestedInput
 }
 
 export type StudentProfileUncheckedUpdateManyWithoutPhotoInput = {
@@ -2023,6 +2419,7 @@ export type StudentProfileCountOutputType = {
   certificates: number
   assignments: number
   assignmentRecipients: number
+  invoices: number
 }
 
 export type StudentProfileCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2031,6 +2428,7 @@ export type StudentProfileCountOutputTypeSelect<ExtArgs extends runtime.Types.Ex
   certificates?: boolean | StudentProfileCountOutputTypeCountCertificatesArgs
   assignments?: boolean | StudentProfileCountOutputTypeCountAssignmentsArgs
   assignmentRecipients?: boolean | StudentProfileCountOutputTypeCountAssignmentRecipientsArgs
+  invoices?: boolean | StudentProfileCountOutputTypeCountInvoicesArgs
 }
 
 /**
@@ -2078,6 +2476,13 @@ export type StudentProfileCountOutputTypeCountAssignmentRecipientsArgs<ExtArgs e
   where?: Prisma.AssignmentRecipientWhereInput
 }
 
+/**
+ * StudentProfileCountOutputType without action
+ */
+export type StudentProfileCountOutputTypeCountInvoicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InvoiceWhereInput
+}
+
 
 export type StudentProfileSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2111,6 +2516,8 @@ export type StudentProfileSelect<ExtArgs extends runtime.Types.Extensions.Intern
   certificates?: boolean | Prisma.StudentProfile$certificatesArgs<ExtArgs>
   assignments?: boolean | Prisma.StudentProfile$assignmentsArgs<ExtArgs>
   assignmentRecipients?: boolean | Prisma.StudentProfile$assignmentRecipientsArgs<ExtArgs>
+  invoices?: boolean | Prisma.StudentProfile$invoicesArgs<ExtArgs>
+  lead?: boolean | Prisma.StudentProfile$leadArgs<ExtArgs>
   _count?: boolean | Prisma.StudentProfileCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["studentProfile"]>
 
@@ -2208,6 +2615,8 @@ export type StudentProfileInclude<ExtArgs extends runtime.Types.Extensions.Inter
   certificates?: boolean | Prisma.StudentProfile$certificatesArgs<ExtArgs>
   assignments?: boolean | Prisma.StudentProfile$assignmentsArgs<ExtArgs>
   assignmentRecipients?: boolean | Prisma.StudentProfile$assignmentRecipientsArgs<ExtArgs>
+  invoices?: boolean | Prisma.StudentProfile$invoicesArgs<ExtArgs>
+  lead?: boolean | Prisma.StudentProfile$leadArgs<ExtArgs>
   _count?: boolean | Prisma.StudentProfileCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type StudentProfileIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2229,6 +2638,8 @@ export type $StudentProfilePayload<ExtArgs extends runtime.Types.Extensions.Inte
     certificates: Prisma.$CertificatePayload<ExtArgs>[]
     assignments: Prisma.$AssignmentSubmissionPayload<ExtArgs>[]
     assignmentRecipients: Prisma.$AssignmentRecipientPayload<ExtArgs>[]
+    invoices: Prisma.$InvoicePayload<ExtArgs>[]
+    lead: Prisma.$LeadPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2669,6 +3080,8 @@ export interface Prisma__StudentProfileClient<T, Null = never, ExtArgs extends r
   certificates<T extends Prisma.StudentProfile$certificatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudentProfile$certificatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CertificatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assignments<T extends Prisma.StudentProfile$assignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudentProfile$assignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssignmentSubmissionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assignmentRecipients<T extends Prisma.StudentProfile$assignmentRecipientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudentProfile$assignmentRecipientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssignmentRecipientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  invoices<T extends Prisma.StudentProfile$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudentProfile$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  lead<T extends Prisma.StudentProfile$leadArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudentProfile$leadArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3259,6 +3672,49 @@ export type StudentProfile$assignmentRecipientsArgs<ExtArgs extends runtime.Type
   take?: number
   skip?: number
   distinct?: Prisma.AssignmentRecipientScalarFieldEnum | Prisma.AssignmentRecipientScalarFieldEnum[]
+}
+
+/**
+ * StudentProfile.invoices
+ */
+export type StudentProfile$invoicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Invoice
+   */
+  select?: Prisma.InvoiceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Invoice
+   */
+  omit?: Prisma.InvoiceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InvoiceInclude<ExtArgs> | null
+  where?: Prisma.InvoiceWhereInput
+  orderBy?: Prisma.InvoiceOrderByWithRelationInput | Prisma.InvoiceOrderByWithRelationInput[]
+  cursor?: Prisma.InvoiceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InvoiceScalarFieldEnum | Prisma.InvoiceScalarFieldEnum[]
+}
+
+/**
+ * StudentProfile.lead
+ */
+export type StudentProfile$leadArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Lead
+   */
+  select?: Prisma.LeadSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Lead
+   */
+  omit?: Prisma.LeadOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LeadInclude<ExtArgs> | null
+  where?: Prisma.LeadWhereInput
 }
 
 /**

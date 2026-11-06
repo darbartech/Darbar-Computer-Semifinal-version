@@ -4,12 +4,12 @@ import { Pool } from "pg";
 import { PrismaClient, Role } from "../src/generated/prisma/client";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
-import { courses } from "../src/content/courses";
-import { getAllBlogPosts } from "../src/content/blog-posts";
-import { events as staticEvents } from "../src/content/events";
-import { galleryImages } from "../src/content/gallery";
-import { faqCategories } from "../src/content/faq";
-import { instituteInfo } from "../src/content/institute";
+import { courses } from "./seed-data/courses";
+import { getAllBlogPosts } from "./seed-data/blog-posts";
+import { events as staticEvents } from "./seed-data/events";
+import { galleryImages } from "./seed-data/gallery";
+import { faqCategories } from "./seed-data/faq";
+import { instituteInfo } from "./seed-data/institute";
 import { COURSE_CATEGORY_GROUPS } from "../src/lib/constants";
 import { slugify, toCourseSeedFields } from "./seed-data/course-rules";
 import {
@@ -592,9 +592,9 @@ async function seedContent() {
     `Content: BlogPost=${posts} Tag=${tags} GalleryItem=${gallery} Event=${eventRows} FaqCategory=${faqCategoriesStored} Faq=${faqs} TeamMember=${team}`
   );
 
-  // Testimonials stay empty on purpose: src/content/testimonials.ts is an empty
-  // array because the real quotes need student names and written consent
-  // (docs/07 §1). Nothing to seed.
+  // Testimonials stay empty on purpose: there is no seed file for them because
+  // the real quotes need student names and written consent (docs/07 §1).
+  // Nothing to seed.
   const testimonials = await prisma.testimonial.count();
   console.log(
     `Content: Testimonial=${testimonials} (no seed data — add real, consented quotes in the admin)`

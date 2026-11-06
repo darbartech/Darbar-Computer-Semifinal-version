@@ -65,7 +65,9 @@ export async function saveTeamMember(input: unknown): Promise<ActionResult<{ id:
 export async function deleteTeamMemberAction(id: string): Promise<ActionResult> {
   let actor: AuditActor | null = null;
   try {
-    const user = await requirePermission("team.write");
+    // A team member row has no archive flag, so this is the irreversible delete —
+    // `team.delete` is SUPER_ADMIN-only while editing stays with the content roles.
+    const user = await requirePermission("team.delete");
     actor = { id: user.id, email: user.email };
     await deleteTeamMember(id);
     if (actor) await audit({ actor, action: "team.delete", entity: "TeamMember", entityId: id });

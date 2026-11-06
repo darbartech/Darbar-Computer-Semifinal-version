@@ -13,7 +13,12 @@ import type { Role } from "../src/generated/prisma/client";
 
 /** Mutable stand-in for the authenticated session. */
 const sessionState = vi.hoisted(() => ({
-  user: null as null | { role: string; isActive: boolean; email: string },
+  user: null as null | {
+    role: string;
+    isActive: boolean;
+    email: string;
+    twoFactorEnabled: boolean;
+  },
 }));
 
 vi.mock("../src/server/auth", () => ({
@@ -41,7 +46,12 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import { requireRole, requireUser, requirePermission } from "../src/server/session";
+import {
+  requireRole,
+  requireSessionUser,
+  requireUser,
+  requirePermission,
+} from "../src/server/session";
 import { PERMISSIONS } from "../src/server/permissions";
 
 /** Roles allowed to touch staff accounts, site settings and audit history. */
@@ -58,11 +68,12 @@ const ADMIN_ONLY_PERMISSIONS = [
 const ADMIN_ONLY_ROLES: Role[] = ["SUPER_ADMIN", "ADMIN"];
 const NON_ADMIN_ROLES: Role[] = ["EDITOR", "COUNSELOR"];
 
-function signInAs(role: Role, isActive = true) {
+function signInAs(role: Role, isActive = true, twoFactorEnabled = true) {
   sessionState.user = {
     role,
     isActive,
     email: `${role.toLowerCase()}@example.com`,
+    twoFactorEnabled,
   };
 }
 
@@ -162,6 +173,60 @@ describe("requireUser", () => {
     signOut();
     await expect(requireRole(["SUPER_ADMIN"])).rejects.toMatchObject({
       digest: expect.stringContaining("NEXT_REDIRECT"),
+    });
+  });
+});
+
+/**
+ * Fix guide §4: a password alone must not open the admin area for the roles that
+ * move money or issue certificates. The gate lives in `requireUser`, so every
+ * action built on `requirePermission` inherits it.
+ *
+ * RECEPTION joined the gated list with task 2: it holds `payment.record`, so it
+ * writes the receipts an invoice balance is computed from, and the counter is the
+ * least controlled keyboard in the building.
+ */
+describe("two-factor gate (fix guide §4)", () => {
+  const GATED: Role[] = ["SUPER_ADMIN", "ADMIN", "ACCOUNTANT", "RECEPTION"];
+  const UNGATED: Role[] = ["EDITOR", "COUNSELOR", "INSTRUCTOR", "STUDENT"];
+
+  it.each(GATED)(
+    "%s with no second factor is sent to the account page, not through",
+    async (role) => {
+      signInAs(role, true, false);
+      await expect(requireUser()).rejects.toMatchObject({
+        digest: expect.stringContaining("/techdarbar/account"),
+      });
+      await expect(requirePermission("dashboard.view")).rejects.toMatchObject({
+        digest: expect.stringContaining("/techdarbar/account"),
+      });
+    }
+  );
+
+  it.each(GATED)("%s with a second factor passes the gate", async (role) => {
+    signInAs(role, true, true);
+    await expect(requireUser()).resolves.toMatchObject({ role });
+  });
+
+  it.each(UNGATED)("%s is not gated by two-factor", async (role) => {
+    signInAs(role, true, false);
+    await expect(requireUser()).resolves.toMatchObject({ role });
+  });
+
+  it("still refuses a deactivated gated role before the account page", async () => {
+    // Being locked out must not become a way to reach the enrolment screen.
+    signInAs("ADMIN", false, false);
+    await expect(requireUser()).rejects.toMatchObject({
+      digest: expect.stringContaining("/techdarbar/login"),
+    });
+  });
+
+  it("leaves the ungated primitive reachable so enrolment is possible", async () => {
+    // The account page itself must not gate, or it redirects to itself forever.
+    signInAs("ACCOUNTANT", true, false);
+    await expect(requireSessionUser()).resolves.toMatchObject({
+      role: "ACCOUNTANT",
+      twoFactorEnabled: false,
     });
   });
 });

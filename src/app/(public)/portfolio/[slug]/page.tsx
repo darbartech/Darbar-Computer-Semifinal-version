@@ -23,7 +23,9 @@ export async function generateMetadata({
   ]);
 
   if (!portfolio) {
-    return buildMetadata({ title: "Portfolio not found" }, settings);
+    // `path` even for the miss: without it this page's canonical would name the
+    // home page, telling Google an unknown portfolio slug is a duplicate of "/".
+    return buildMetadata({ title: "Portfolio not found", path: `/portfolio/${slug}` }, settings);
   }
 
   return buildMetadata(

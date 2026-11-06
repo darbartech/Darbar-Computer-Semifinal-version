@@ -14,6 +14,9 @@ export const Role = {
   ADMIN: 'ADMIN',
   EDITOR: 'EDITOR',
   COUNSELOR: 'COUNSELOR',
+  INSTRUCTOR: 'INSTRUCTOR',
+  ACCOUNTANT: 'ACCOUNTANT',
+  RECEPTION: 'RECEPTION',
   STUDENT: 'STUDENT'
 } as const
 
@@ -182,7 +185,9 @@ export const EnrollmentStatus = {
   PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
   COMPLETED: 'COMPLETED',
-  DROPPED: 'DROPPED'
+  DROPPED: 'DROPPED',
+  REJECTED: 'REJECTED',
+  WAITLISTED: 'WAITLISTED'
 } as const
 
 export type EnrollmentStatus = (typeof EnrollmentStatus)[keyof typeof EnrollmentStatus]
@@ -216,3 +221,36 @@ export const CertificateStatus = {
 } as const
 
 export type CertificateStatus = (typeof CertificateStatus)[keyof typeof CertificateStatus]
+
+
+export const InvoiceStatus = {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  PARTIAL: 'PARTIAL',
+  PAID: 'PAID',
+  VOID: 'VOID'
+} as const
+
+export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus]
+
+
+export const PaymentMethod = {
+  CASH: 'CASH',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  CHEQUE: 'CHEQUE',
+  ESEWA: 'ESEWA',
+  KHALTI: 'KHALTI',
+  FONEPAY: 'FONEPAY',
+  CONNECTIPS: 'CONNECTIPS',
+  OTHER: 'OTHER'
+} as const
+
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
+
+
+export const PaymentStatus = {
+  RECEIVED: 'RECEIVED',
+  VOIDED: 'VOIDED'
+} as const
+
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]

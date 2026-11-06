@@ -24,6 +24,7 @@ import {
   type CourseWriteValues,
 } from "@/lib/validators/course";
 import type { AdminCourseDetail } from "@/server/dal/courses";
+import { fmtDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 /**
@@ -275,7 +276,7 @@ export function CourseForm({ course, categories, library, canWrite }: Props) {
               <span className="font-medium text-neutral-900">Editing</span>
               <span className="truncate">{course.title}</span>
               <span className="text-xs text-neutral-500">
-                · updated {new Date(course.updatedAt).toLocaleDateString("en-NP")}
+                · updated {fmtDate(course.updatedAt)}
               </span>
             </>
           ) : (

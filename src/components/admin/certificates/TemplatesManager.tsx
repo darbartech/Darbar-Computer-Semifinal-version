@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/common/Badge";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { saveTemplate, deleteTemplateAction } from "@/server/actions/certificates";
 import { templateWriteSchema } from "@/lib/validators/certificates";
 
@@ -40,6 +41,7 @@ export function TemplatesManager({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { ask, dialog } = useConfirm();
   const [form, setForm] = React.useState(EMPTY);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -94,23 +96,27 @@ export function TemplatesManager({
   };
 
   const onDelete = async (row: Row) => {
-    if (
-      !window.confirm(
-        `Delete template "${row.name}" v${row.version}? Certificates already issued keep their PDF.`
-      )
-    ) {
-      return;
-    }
-    setPendingId(row.id);
-    const result = await deleteTemplateAction({ id: row.id });
-    setPendingId(null);
-    if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
-      return;
-    }
-    if (form.id === row.id) setForm(EMPTY);
-    toast({ title: "Template deleted", variant: "success" });
-    router.refresh();
+    await ask({
+      title: "Delete template?",
+      description: (
+        <>
+          Template <span className="font-medium text-neutral-900">{row.name}</span> v{row.version}
+          is deleted. Certificates already issued keep their own snapshot and PDF, so this only
+          removes it from the list of layouts a new certificate can pick. Deactivating it has the
+          same effect and keeps the record.
+        </>
+      ),
+      run: async () => {
+        setPendingId(row.id);
+        const result = await deleteTemplateAction({ id: row.id });
+        setPendingId(null);
+        if (!result.ok) return result.error;
+        if (form.id === row.id) setForm(EMPTY);
+        toast({ title: "Template deleted", variant: "success" });
+        router.refresh();
+        return null;
+      },
+    });
   };
 
   return (
@@ -315,6 +321,8 @@ export function TemplatesManager({
           </div>
         )}
       </div>
+
+      {dialog}
     </div>
   );
 }

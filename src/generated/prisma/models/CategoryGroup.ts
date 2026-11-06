@@ -339,14 +339,6 @@ export type CategoryGroupScalarRelationFilter = {
   isNot?: Prisma.CategoryGroupWhereInput
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type CategoryGroupCreateNestedOneWithoutCategoriesInput = {
   create?: Prisma.XOR<Prisma.CategoryGroupCreateWithoutCategoriesInput, Prisma.CategoryGroupUncheckedCreateWithoutCategoriesInput>
   connectOrCreate?: Prisma.CategoryGroupCreateOrConnectWithoutCategoriesInput

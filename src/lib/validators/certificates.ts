@@ -1,5 +1,14 @@
 ﻿import { z } from "zod";
-import { cuidLike, optionalDateString, pageParamSchema } from "./shared";
+import {
+  isCertificateNumber,
+  tokenFromReference,
+} from "@/lib/certificate-reference";
+import {
+  turnstileTokenSchema,
+  cuidLike,
+  optionalDateString,
+  pageParamSchema,
+} from "./shared";
 import {
   CERTIFICATE_STATUSES,
   REVOKE_CATEGORY_VALUES,
@@ -140,20 +149,85 @@ export type CertificatePreviewValidationInput = z.input<typeof certificatePrevie
 export type CertificatePreviewValidationValues = z.output<typeof certificatePreviewSchema>;
 
 /**
- * Public certificate lookup: users can enter either the printed certificate number
- * (e.g. `DT-CERT-2026-00125`) or the verification code/token. Parsed loosely here,
- * disambiguated server-side (a full token shape wins over the number).
+ * Public certificate search (docs 01 §S7).
+ *
+ * A verification token — typed by hand or inside a pasted `…/verify/<token>` link —
+ * is 24 random bytes, so it proves itself and needs nothing more. A printed
+ * certificate number is sequential underneath its random suffix, so manual search
+ * requires the recipient's full name as the second factor. Anything that is neither
+ * shape is rejected before it reaches the database.
+ *
+ * Split like the contact form: `…FormSchema` is what the browser validates (no
+ * Turnstile token yet), `…Schema` is what the Server Action validates.
  */
-export const certificateLookupSchema = z.object({
+const certificateSearchFields = {
   code: z
     .string()
     .trim()
     .min(1, "Enter the certificate number or verification code")
     .max(128, "That value is too long to be a certificate reference"),
-});
+  recipientName: z
+    .string()
+    .trim()
+    .max(120, "That name is too long")
+    .optional()
+    .or(z.literal("")),
+};
 
-export type CertificateLookupInput = z.input<typeof certificateLookupSchema>;
-export type CertificateLookupValues = z.output<typeof certificateLookupSchema>;
+type SearchInput = { code: string; recipientName?: string };
+type SearchIssue = { code: "custom"; path: string[]; message: string };
+
+/**
+ * Both schema halves share this rule. Returning the problems instead of pushing them
+ * keeps the rule callable from the browser as well as the Server Action, without
+ * depending on zod's internal refinement-context type.
+ */
+function certificateSearchProblems(
+  value: SearchInput
+): Array<{ field: "code" | "recipientName"; message: string }> {
+  if (tokenFromReference(value.code)) return [];
+
+  const problems: Array<{ field: "code" | "recipientName"; message: string }> = [];
+  if (!isCertificateNumber(value.code)) {
+    return [
+      {
+        field: "code",
+        message: "Enter the certificate number or the verification code from the QR link",
+      },
+    ];
+  }
+  if (!value.recipientName?.trim()) {
+    problems.push({
+      field: "recipientName",
+      message: "Enter the recipient's full name exactly as printed on the certificate",
+    });
+  }
+  return problems;
+}
+
+function rejectSearch(
+  value: SearchInput,
+  ctx: { addIssue: (issue: SearchIssue) => void }
+): void {
+  for (const problem of certificateSearchProblems(value)) {
+    ctx.addIssue({
+      code: "custom",
+      path: [problem.field],
+      message: problem.message,
+    });
+  }
+}
+
+export const certificateSearchFormSchema = z
+  .object(certificateSearchFields)
+  .superRefine(rejectSearch);
+
+export const certificateSearchSchema = z
+  .object({ ...certificateSearchFields, turnstileToken: turnstileTokenSchema })
+  .superRefine(rejectSearch);
+
+export type CertificateSearchInput = z.input<typeof certificateSearchSchema>;
+export type CertificateSearchValues = z.output<typeof certificateSearchSchema>;
 
 export const revokeCertificateSchema = z.object({
   id: cuidLike,

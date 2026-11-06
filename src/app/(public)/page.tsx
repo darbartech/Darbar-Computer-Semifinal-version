@@ -32,9 +32,14 @@ export async function generateMetadata() {
 }
 
 export default async function HomePage() {
-  const settings = await getSiteSettings();
-  const featuredCourses = await getFeaturedCourses(6);
-  const rawT = await listPublishedTestimonials();
+  // Four independent reads, issued together: awaited one after another they cost
+  // the sum of their round trips, and none of them feeds the next.
+  const [settings, featuredCourses, rawT, faqs] = await Promise.all([
+    getSiteSettings(),
+    getFeaturedCourses(6),
+    listPublishedTestimonials(),
+    listPublishedFaqs(),
+  ]);
   const tData = rawT.map(t => ({
     id: t.id,
     name: t.name,
@@ -45,7 +50,6 @@ export default async function HomePage() {
     isPlaceholder: false,
   }));
 
-  const faqs = await listPublishedFaqs();
   const faqMap = new Map<string, FAQCatView>();
   faqs.forEach((faq) => {
     if (!faqMap.has(faq.category.id)) {

@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Suspense } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Search,
   X,
@@ -35,13 +35,14 @@ import type { Course } from "@/types/course";
  * Catalog data arrives as props from the server page (docs/06 §3): a client
  * component may not import the DAL or `src/content/*`. The shared benefits list
  * is the `everyCourseIncludes` SiteSetting, passed in for the same reason.
+ *
+ * The filters are not props. This document is static, so the query string a
+ * visitor arrived with is read here, after hydration, rather than by the page.
  */
 export type CoursesClientProps = {
   courses: Course[];
   categoryGroups: { id: string; label: string; categories: string[] }[];
   everyCourseIncludes: string[];
-  /** Parsed from the URL by the server page; keeps this component SSR-able. */
-  initialFilters: { search: string; categoryGroup: string; level: string };
 };
 
 const BENEFIT_ICONS: Record<string, React.ReactNode> = {
@@ -76,7 +77,6 @@ function CoursesClientPage({
   courses,
   categoryGroups,
   everyCourseIncludes,
-  initialFilters,
 }: CoursesClientProps) {  const allCategoryGroups = React.useMemo(
     () => [{ id: "All", label: "All", categories: [] as string[] }, ...categoryGroups],
     [categoryGroups]
@@ -98,24 +98,46 @@ function CoursesClientPage({
 
   const router = useRouter();
   const pathname = usePathname();
+  const params = useSearchParams();
 
-  const [search, setSearch] = React.useState(initialFilters.search);
-  const [categoryGroup, setCategoryGroup] = React.useState(initialFilters.categoryGroup);
-  const [level, setLevel] = React.useState(initialFilters.level);
+  const [search, setSearch] = React.useState("");
+  const [categoryGroup, setCategoryGroup] = React.useState("All");
+  const [level, setLevel] = React.useState("All");
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+
+  /** The query string this component wrote last, so a URL event can be told
+   *  from the one the typing itself caused. */
+  const ownQuery = React.useRef<string | null>(null);
 
   const syncToUrl = React.useCallback(
     (nextSearch: string, nextCategoryGroup: string, nextLevel: string) => {
-      const params = new URLSearchParams();
-      if (nextSearch) params.set("search", nextSearch);
-      if (nextCategoryGroup && nextCategoryGroup !== "All") params.set("category", nextCategoryGroup);
-      if (nextLevel && nextLevel !== "All") params.set("level", nextLevel);
-      const query = params.toString();
-      const url = query ? `${pathname}?${query}` : pathname;
+      const query = new URLSearchParams();
+      if (nextSearch) query.set("search", nextSearch);
+      if (nextCategoryGroup && nextCategoryGroup !== "All") query.set("category", nextCategoryGroup);
+      if (nextLevel && nextLevel !== "All") query.set("level", nextLevel);
+      const written = query.toString();
+      const url = written ? `${pathname}?${written}` : pathname;
+      ownQuery.current = written;
       router.replace(url, { scroll: false });
     },
     [router, pathname]
   );
+
+  /**
+   * A static document cannot see the query string at build time, so the filters
+   * come from the URL after hydration: a bookmark, a link from the course JSON-LD
+   * breadcrumb, or the back button all open the list they always did. The values
+   * the component wrote itself are skipped, or a keystroke mid-debounce would be
+   * pulled back to the query the previous keystroke produced.
+   */
+  React.useEffect(() => {
+    const query = params.toString();
+    if (query === ownQuery.current) return;
+    ownQuery.current = query;
+    setSearch(params.get("search") ?? "");
+    setCategoryGroup(params.get("category") ?? "All");
+    setLevel(params.get("level") ?? "All");
+  }, [params]);
 
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 

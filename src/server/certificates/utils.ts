@@ -1,14 +1,15 @@
 import "server-only";
 
+import { fmtDate } from "@/lib/dates";
+
 export function formatNepaliLongDate(iso: string | null | undefined): string {
   if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-NP", {
+  return fmtDate(date, {
     year: "numeric",
     month: "long",
     day: "numeric",
-    timeZone: "Asia/Kathmandu",
   }).toUpperCase();
 }
 
@@ -16,11 +17,10 @@ export function formatNepaliShortDate(iso: string | null | undefined): string {
   if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-NP", {
+  return fmtDate(date, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    timeZone: "Asia/Kathmandu",
   });
 }
 

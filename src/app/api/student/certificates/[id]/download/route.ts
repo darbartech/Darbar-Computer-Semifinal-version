@@ -21,10 +21,7 @@ export async function GET(
   const { profile } = await requireStudentProfile();
   const { id } = await params;
 
-  const meta = await getStudentCertificateDownloadMeta(
-    { id: profile.id, studentCode: profile.studentCode },
-    id
-  );
+  const meta = await getStudentCertificateDownloadMeta({ id: profile.id }, id);
   if (!meta || !meta.certificateNumber) {
     return NextResponse.json({ error: "Certificate not found" }, { status: 404 });
   }

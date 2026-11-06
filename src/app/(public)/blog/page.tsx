@@ -9,6 +9,7 @@ import { Badge } from '@/components/common/Badge'
 import { Calendar, Clock, ArrowRight, User, Newspaper } from 'lucide-react'
 import { listPublishedBlogPosts } from '@/server/dal/blog'
 import { getSiteSettings } from '@/server/dal/settings'
+import { fmtDate } from '@/lib/dates'
 import { buildMetadata } from '@/lib/seo'
 import { cn } from '@/lib/utils'
 
@@ -105,7 +106,7 @@ export default async function BlogPage() {
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Calendar className="size-3.5 text-primary" aria-hidden="true" />
-                        {new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-US", {
+                        {fmtDate(post.publishedAt || post.createdAt, {
                           year: "numeric",
                           month: "short",
                           day: "numeric",

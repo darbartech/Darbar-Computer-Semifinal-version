@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Check,
@@ -15,6 +15,8 @@ import {
   PowerOff,
   Search,
   Shield,
+  ShieldCheck,
+  ShieldOff,
   Trash2,
   X,
   XCircle,
@@ -27,6 +29,7 @@ import { Badge } from "@/components/common/Badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDate } from "@/lib/format";
 import {
+  TWO_FACTOR_REQUIRED_ROLES,
   USER_PASSWORD_MIN,
   USER_ROLE_OPTIONS,
   userCreateSchema,
@@ -38,12 +41,21 @@ import {
   type UserUpdateValues,
 } from "@/lib/validators/users";
 import {
+  EMPTY_STEP_UP,
+  isStepUpComplete,
+  StepUpFields,
+  stepUpPayload,
+  type StepUpValue,
+} from "@/components/admin/StepUpFields";
+import { StepUpDialog } from "@/components/admin/StepUpDialog";
+import {
   createUserAction,
   deleteUserAction,
   resetUserPasswordAction,
   setUserActiveAction,
   updateUserAction,
 } from "@/server/actions/users";
+import { resetUserTwoFactorAction } from "@/server/actions/two-factor";
 import type { Role } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +64,9 @@ const ROLE_VARIANT: Record<Role, "default" | "accent" | "success" | "warning"> =
   ADMIN: "accent",
   EDITOR: "success",
   COUNSELOR: "warning",
+  INSTRUCTOR: "success",
+  ACCOUNTANT: "accent",
+  RECEPTION: "warning",
   STUDENT: "default",
 };
 
@@ -62,6 +77,7 @@ type UserRow = {
   role: Role;
   isActive: boolean;
   emailVerified: boolean | Date | string | null;
+  twoFactorEnabled: boolean;
   lastLoginAt: string | Date | null;
   createdAt: string | Date;
 };
@@ -97,16 +113,86 @@ type Panel =
   | { mode: "edit"; id: string }
   | null;
 
+/**
+ * The row buttons that change what an account can do, or hand it back to its
+ * owner, answered with a code (task 2). Every one of them goes through
+ * `requireStepUp` server-side, so the dialog is the only way to submit them.
+ */
+type StepUpAsk = {
+  kind: "delete" | "two-factor" | "password" | "activate" | "deactivate";
+  row: UserRow;
+};
+
+const STEP_UP_ASK_COPY: Record<
+  StepUpAsk["kind"],
+  {
+    title: string;
+    description: (email: string) => string;
+    confirm: string;
+    variant: "destructive" | "default";
+    done: string;
+  }
+> = {
+  delete: {
+    title: "Delete this account",
+    description: (email) =>
+      `${email} is removed with their sessions and password. Invoices, receipts and audit entries they touched stay in the ledger.`,
+    confirm: "Delete user",
+    variant: "destructive",
+    done: "User deleted",
+  },
+  "two-factor": {
+    title: "Reset their two-factor",
+    description: (email) =>
+      `${email} loses the enrolled authenticator and its backup codes, is signed out everywhere, and must set one up again on next sign-in.`,
+    confirm: "Reset two-factor",
+    variant: "destructive",
+    done: "Two-factor reset",
+  },
+  password: {
+    title: "Send a reset link",
+    description: (email) =>
+      `${email} is sent a one-time link to their own address, valid for 30 minutes, and sets a new password themselves. Their live sessions close as soon as the link goes — you no longer choose their password.`,
+    confirm: "Send reset link",
+    variant: "default",
+    done: "Reset link sent",
+  },
+  deactivate: {
+    title: "Deactivate this account",
+    description: (email) =>
+      `${email} is signed out immediately and cannot sign back in until the status is turned on again.`,
+    confirm: "Deactivate user",
+    variant: "destructive",
+    done: "User deactivated",
+  },
+  activate: {
+    title: "Activate this account",
+    description: (email) =>
+      `${email} can sign in again, with whatever role and permissions the account holds.`,
+    confirm: "Activate user",
+    variant: "default",
+    done: "User activated",
+  },
+} as const;
+
+/** A staff role whose creation has to be confirmed with a code. */
+const isPrivilegedRole = (role: Role) => TWO_FACTOR_REQUIRED_ROLES.includes(role);
+
 export function UsersTable({ rows, total, page, pageCount, filters, currentUserId, canWrite }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [panel, setPanel] = React.useState<Panel>(null);
-  const [busyId, setBusyId] = React.useState<string | null>(null);
-  const [resetting, setResetting] = React.useState<UserRow | null>(null);
-  const [resetPassword, setResetPassword] = React.useState("");
-  const [resetError, setResetError] = React.useState<string | null>(null);
-  const [resetBusy, setResetBusy] = React.useState(false);
+  const [stepUpAsk, setStepUpAsk] = React.useState<StepUpAsk | null>(null);
+  const [stepUpAskError, setStepUpAskError] = React.useState<string | null>(null);
+  const [stepUpAskBusy, setStepUpAskBusy] = React.useState(false);
+  const [editOriginal, setEditOriginal] = React.useState<{ email: string; role: Role } | null>(
+    null
+  );
+  const [editStepUp, setEditStepUp] = React.useState<StepUpValue>(EMPTY_STEP_UP);
+  const [editStepUpError, setEditStepUpError] = React.useState<string | null>(null);
+  const [createStepUp, setCreateStepUp] = React.useState<StepUpValue>(EMPTY_STEP_UP);
+  const [createStepUpError, setCreateStepUpError] = React.useState<string | null>(null);
 
   const createForm = useForm<UserCreateInput, unknown, UserCreateValues>({
     resolver: zodResolver(userCreateSchema),
@@ -117,6 +203,19 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
     resolver: zodResolver(userUpdateSchema),
     defaultValues: EMPTY_EDIT,
   });
+
+  // What the edit panel holds, against what the row was when it was opened: a code
+  // is asked for when the role or the address moves, not for a typo in a name.
+  const editEmail = useWatch({ control: editForm.control, name: "email" });
+  const editRole = useWatch({ control: editForm.control, name: "role" });
+  const editIdentityMoved =
+    editOriginal !== null &&
+    (editEmail !== editOriginal.email || editRole !== editOriginal.role);
+
+  // And what the create panel is about to make: four of the seven roles can move
+  // money, so hiring one of them is confirmed the same way as editing into it.
+  const createRole = useWatch({ control: createForm.control, name: "role" });
+  const createNeedsCode = isPrivilegedRole(createRole);
 
   const applyFilters = React.useCallback(
     (next: Partial<UserFilters>) => {
@@ -138,19 +237,26 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
 
   const closePanel = () => {
     setPanel(null);
+    setEditOriginal(null);
+    setEditStepUp(EMPTY_STEP_UP);
+    setEditStepUpError(null);
+    setCreateStepUp(EMPTY_STEP_UP);
+    setCreateStepUpError(null);
     createForm.reset(EMPTY_CREATE);
     editForm.reset(EMPTY_EDIT);
   };
 
   const startCreate = () => {
-    setResetting(null);
+    setStepUpAsk(null);
     createForm.reset(EMPTY_CREATE);
+    setCreateStepUp(EMPTY_STEP_UP);
+    setCreateStepUpError(null);
     setPanel({ mode: "create" });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const startEdit = (row: UserRow) => {
-    setResetting(null);
+    setStepUpAsk(null);
     editForm.reset({
       id: row.id,
       name: row.name ?? "",
@@ -158,16 +264,25 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
       role: row.role,
       isActive: row.isActive,
     });
+    setEditOriginal({ email: row.email, role: row.role });
+    setEditStepUp(EMPTY_STEP_UP);
+    setEditStepUpError(null);
     setPanel({ mode: "edit", id: row.id });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const onSubmitCreate = async (values: UserCreateValues) => {
-    const result = await createUserAction(values);
+    const needsCode = isPrivilegedRole(values.role);
+    const result = await createUserAction(
+      needsCode ? { ...values, ...stepUpPayload(createStepUp) } : values
+    );
+    // Spent or refused, the 30-second window has passed; a retry types fresh digits.
+    if (needsCode) setCreateStepUp(EMPTY_STEP_UP);
     if (!result.ok) {
       for (const [field, messages] of Object.entries(result.fieldErrors ?? {})) {
         if (messages?.[0]) createForm.setError(field as keyof UserCreateInput, { message: messages[0] });
       }
+      setCreateStepUpError(needsCode && !result.fieldErrors ? result.error : null);
       toast({ title: result.error, variant: "error" });
       return;
     }
@@ -177,11 +292,17 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
   };
 
   const onSubmitEdit = async (values: UserUpdateValues) => {
-    const result = await updateUserAction(values);
+    const needsCode = editIdentityMoved;
+    const result = await updateUserAction(
+      needsCode ? { ...values, ...stepUpPayload(editStepUp) } : values
+    );
+    // The code window closed either way: a retry needs the digits valid now.
+    if (needsCode) setEditStepUp(EMPTY_STEP_UP);
     if (!result.ok) {
       for (const [field, messages] of Object.entries(result.fieldErrors ?? {})) {
         if (messages?.[0]) editForm.setError(field as keyof UserUpdateInput, { message: messages[0] });
       }
+      setEditStepUpError(needsCode && !result.fieldErrors ? result.error : null);
       toast({ title: result.error, variant: "error" });
       return;
     }
@@ -190,59 +311,64 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
     router.refresh();
   };
 
-  const handleToggleActive = async (row: UserRow) => {
-    const next = !row.isActive;
-    if (!next && !confirm(`Deactivate ${row.email}? They will be signed out immediately.`)) return;
-    setBusyId(row.id);
-    const result = await setUserActiveAction({ id: row.id, isActive: next });
-    setBusyId(null);
+  /**
+   * Every row button that changes what an account can do is answered with a code,
+   * so the click that hands over, disarms, disables or removes an account is made
+   * by whoever holds the phone, not by whoever has an open tab. The dialog
+   * collects the proof; the action below spends it.
+   */
+  const askStepUp = (kind: StepUpAsk["kind"], row: UserRow) => {
+    setStepUpAskError(null);
+    setStepUpAsk({ kind, row });
+  };
+
+  const closeStepUpAsk = () => {
+    if (stepUpAskBusy) return;
+    setStepUpAsk(null);
+    setStepUpAskError(null);
+  };
+
+  const submitStepUpAsk = async (payload: ReturnType<typeof stepUpPayload>) => {
+    if (!stepUpAsk) return;
+    const { kind, row } = stepUpAsk;
+    setStepUpAskBusy(true);
+    setStepUpAskError(null);
+    const result =
+      kind === "delete"
+        ? await deleteUserAction({ id: row.id, ...payload })
+        : kind === "two-factor"
+          ? await resetUserTwoFactorAction({ id: row.id, ...payload })
+          : kind === "password"
+            ? await resetUserPasswordAction({ id: row.id, ...payload })
+            : await setUserActiveAction({
+                id: row.id,
+                isActive: kind === "activate",
+                ...payload,
+              });
+    setStepUpAskBusy(false);
     if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
+      // Read the refusal at the box it was typed into; a wrong digit is retyped,
+      // not re-found in a toast that already faded.
+      setStepUpAskError(result.error);
       return;
     }
-    toast({ title: next ? "User activated" : "User deactivated", variant: "success" });
+    setStepUpAsk(null);
+    toast({
+      title: STEP_UP_ASK_COPY[kind].done,
+      description: kind === "delete" ? undefined : row.email,
+      variant: "success",
+    });
+    // An open edit panel on that row now holds a stale status, or a row that no
+    // longer exists.
+    if (
+      panel?.mode === "edit" &&
+      panel.id === row.id &&
+      kind !== "password" &&
+      kind !== "two-factor"
+    ) {
+      closePanel();
+    }
     router.refresh();
-  };
-
-  const handleDelete = async (row: UserRow) => {
-    if (!confirm(`Delete ${row.email}? This permanently removes the account and its sessions.`)) return;
-    setBusyId(row.id);
-    const result = await deleteUserAction({ id: row.id });
-    setBusyId(null);
-    if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
-      return;
-    }
-    toast({ title: "User deleted", variant: "success" });
-    if (panel?.mode === "edit" && panel.id === row.id) closePanel();
-    router.refresh();
-  };
-
-  const startReset = (row: UserRow) => {
-    closePanel();
-    setResetPassword("");
-    setResetError(null);
-    setResetting(row);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const submitReset = async () => {
-    if (!resetting) return;
-    if (resetPassword.length < USER_PASSWORD_MIN) {
-      setResetError(`Password must be at least ${USER_PASSWORD_MIN} characters`);
-      return;
-    }
-    setResetBusy(true);
-    const result = await resetUserPasswordAction({ id: resetting.id, password: resetPassword });
-    setResetBusy(false);
-    if (!result.ok) {
-      const fieldMessage = result.fieldErrors?.password?.[0];
-      setResetError(fieldMessage ?? result.error);
-      return;
-    }
-    toast({ title: "Password reset", description: resetting.email, variant: "success" });
-    setResetting(null);
-    setResetPassword("");
   };
 
   const hasFilters = !!(filters.q || filters.role || filters.isActive);
@@ -317,8 +443,30 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
             Active — can sign in immediately
           </label>
 
+          {createNeedsCode && (
+            <div className="max-w-md rounded-lg border border-primary/30 bg-white p-4">
+              <p className="mb-2.5 text-sm font-medium text-neutral-900">
+                {createRole} can take money or issue certificates. Creating the account is
+                confirmed with your own code.
+              </p>
+              <StepUpFields
+                value={createStepUp}
+                onChange={(next) => {
+                  setCreateStepUp(next);
+                  setCreateStepUpError(null);
+                }}
+                error={createStepUpError}
+                disabled={createForm.formState.isSubmitting}
+                idPrefix="create"
+              />
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
-            <Button type="submit" disabled={createForm.formState.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={createForm.formState.isSubmitting || (createNeedsCode && !isStepUpComplete(createStepUp))}
+            >
               {createForm.formState.isSubmitting ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -400,8 +548,36 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
             )}
           </label>
 
+          {editIdentityMoved && (
+            <div className="max-w-md rounded-lg border border-primary/30 bg-white p-4">
+              <p className="mb-2.5 text-sm font-medium text-neutral-900">
+                {editRole !== editOriginal?.role && editEmail !== editOriginal?.email
+                  ? "This changes their role and where their sign-in arrives."
+                  : editRole !== editOriginal?.role
+                    ? "A new role inherits a new set of permissions."
+                    : "A new email is where this account signs in and gets password resets."}
+              </p>
+              <StepUpFields
+                value={editStepUp}
+                onChange={(next) => {
+                  setEditStepUp(next);
+                  setEditStepUpError(null);
+                }}
+                error={editStepUpError}
+                disabled={editForm.formState.isSubmitting}
+                idPrefix="edit"
+              />
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
-            <Button type="submit" disabled={editForm.formState.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={
+                editForm.formState.isSubmitting ||
+                (editIdentityMoved && !isStepUpComplete(editStepUp))
+              }
+            >
               {editForm.formState.isSubmitting ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -414,63 +590,6 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
             </Button>
           </div>
         </form>
-      )}
-
-      {canWrite && resetting && (
-        <div className="flex flex-col gap-4 rounded-xl border border-warning/30 bg-warning/5 p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
-              <KeyRound className="size-4" />
-              Reset password for {resetting.email}
-            </h2>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => {
-                setResetting(null);
-                setResetPassword("");
-                setResetError(null);
-              }}
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
-          <div className="max-w-md">
-            <Label className="mb-1.5 block text-sm font-medium text-neutral-800">New password *</Label>
-            <Input
-              type="password"
-              value={resetPassword}
-              onChange={(event) => {
-                setResetPassword(event.target.value);
-                setResetError(null);
-              }}
-              placeholder={`At least ${USER_PASSWORD_MIN} characters`}
-              autoComplete="new-password"
-            />
-            {renderFieldError(resetError ?? undefined)}
-            <p className="mt-1 text-xs text-neutral-500">
-              The user will be signed out of all sessions and must use the new password.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button type="button" onClick={submitReset} disabled={resetBusy}>
-              {resetBusy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
-              Set password
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setResetting(null);
-                setResetPassword("");
-                setResetError(null);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
       )}
 
       <div className="rounded-xl border border-neutral-200 bg-white p-4">
@@ -563,6 +682,7 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
                 <th className="px-4 py-3 font-semibold">Role</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Verified</th>
+                <th className="px-4 py-3 font-semibold">Two-factor</th>
                 <th className="px-4 py-3 font-semibold">Last login</th>
                 <th className="px-4 py-3 font-semibold">Created</th>
                 <th className="px-4 py-3 text-right font-semibold">Actions</th>
@@ -571,14 +691,13 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
             <tbody className="divide-y divide-neutral-100">
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-neutral-500">
+                  <td colSpan={9} className="px-4 py-16 text-center text-neutral-500">
                     <Shield className="mx-auto mb-2 size-8 text-neutral-300" />
                     No users match these filters.
                   </td>
                 </tr>
               )}
               {rows.map((row) => {
-                const busy = busyId === row.id;
                 const self = isSelf(row.id);
                 return (
                   <tr key={row.id} className="align-middle hover:bg-neutral-50/70">
@@ -614,6 +733,19 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
                         </div>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {row.twoFactorEnabled ? (
+                        <div className="flex items-center gap-1.5 text-success">
+                          <ShieldCheck className="size-4" />
+                          <span className="text-xs font-medium">On</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-warning">
+                          <ShieldOff className="size-4" />
+                          <span className="text-xs font-medium">Off</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-neutral-500">
                       {formatDate(row.lastLoginAt)}
                     </td>
@@ -629,7 +761,6 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
                             size="icon-sm"
                             title="Edit"
                             aria-label={`Edit ${row.email}`}
-                            disabled={busy}
                             onClick={() => startEdit(row)}
                           >
                             <Pencil className="size-4" />
@@ -640,12 +771,10 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
                             size="icon-sm"
                             title={row.isActive ? "Deactivate" : "Activate"}
                             aria-label={row.isActive ? `Deactivate ${row.email}` : `Activate ${row.email}`}
-                            disabled={busy || (self && row.isActive)}
-                            onClick={() => handleToggleActive(row)}
+                            disabled={self && row.isActive}
+                            onClick={() => askStepUp(row.isActive ? "deactivate" : "activate", row)}
                           >
-                            {busy ? (
-                              <Loader2 className="size-4 animate-spin" />
-                            ) : row.isActive ? (
+                            {row.isActive ? (
                               <PowerOff className="size-4 text-warning" />
                             ) : (
                               <Power className="size-4 text-success" />
@@ -655,21 +784,32 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            title="Reset password"
-                            aria-label={`Reset password for ${row.email}`}
-                            disabled={busy}
-                            onClick={() => startReset(row)}
+                            title="Send a password-reset link"
+                            aria-label={`Send a password-reset link to ${row.email}`}
+                            onClick={() => askStepUp("password", row)}
                           >
                             <KeyRound className="size-4" />
                           </Button>
+                          {row.twoFactorEnabled && !self && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              title="Reset two-factor"
+                              aria-label={`Reset two-factor for ${row.email}`}
+                              onClick={() => askStepUp("two-factor", row)}
+                            >
+                              <ShieldOff className="size-4 text-warning" />
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon-sm"
                             title="Delete"
                             aria-label={`Delete ${row.email}`}
-                            disabled={busy || self}
-                            onClick={() => handleDelete(row)}
+                            disabled={self}
+                            onClick={() => askStepUp("delete", row)}
                           >
                             <Trash2 className="size-4 text-destructive" />
                           </Button>
@@ -717,6 +857,19 @@ export function UsersTable({ rows, total, page, pageCount, filters, currentUserI
           </Button>
         </div>
       </div>
+      <StepUpDialog
+        open={stepUpAsk !== null}
+        title={stepUpAsk ? STEP_UP_ASK_COPY[stepUpAsk.kind].title : ""}
+        description={
+          stepUpAsk ? STEP_UP_ASK_COPY[stepUpAsk.kind].description(stepUpAsk.row.email) : ""
+        }
+        confirmLabel={stepUpAsk ? STEP_UP_ASK_COPY[stepUpAsk.kind].confirm : ""}
+        variant={stepUpAsk ? STEP_UP_ASK_COPY[stepUpAsk.kind].variant : "destructive"}
+        pending={stepUpAskBusy}
+        error={stepUpAskError}
+        onCancel={closeStepUpAsk}
+        onConfirm={submitStepUpAsk}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/common/Badge";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/components/ui/toast";
 import { ImagePicker, type LibraryImage, type PickedImage } from "@/components/admin/ImagePicker";
 import { saveTeamMember, deleteTeamMemberAction } from "@/server/actions/team";
@@ -39,6 +40,8 @@ type Props = {
   filters: { q: string; isPublished: string };
   library: LibraryImage[];
   canWrite: boolean;
+  /** Hard delete is a SUPER_ADMIN action (docs/08): the row has no archive flag. */
+  canDelete: boolean;
 };
 
 type Editing = TeamMemberWriteInput & { id: string };
@@ -62,10 +65,12 @@ export function TeamManager({
   filters,
   library,
   canWrite,
+  canDelete,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { ask, dialog } = useConfirm();
   const [editing, setEditing] = React.useState<Editing | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [photo, setPhoto] = React.useState<PickedImage>(null);
@@ -138,17 +143,25 @@ export function TeamManager({
     router.refresh();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this team member? This cannot be undone.")) return;
-    setDeletingId(id);
-    const result = await deleteTeamMemberAction(id);
-    setDeletingId(null);
-    if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
-      return;
-    }
-    toast({ title: "Team member deleted", variant: "success" });
-    router.refresh();
+  const handleDelete = async (row: TeamMemberRow) => {
+    await ask({
+      title: "Delete team member?",
+      description: (
+        <>
+          <span className="font-medium text-neutral-900">{row.name}</span> will be removed from
+          the About page and the instructor listings. This cannot be undone.
+        </>
+      ),
+      run: async () => {
+        setDeletingId(row.id);
+        const result = await deleteTeamMemberAction(row.id);
+        setDeletingId(null);
+        if (!result.ok) return result.error;
+        toast({ title: "Team member deleted", variant: "success" });
+        router.refresh();
+        return null;
+      },
+    });
   };
 
   const statusOptions: SelectOption[] = [
@@ -389,20 +402,22 @@ export function TeamManager({
                           <Pencil className="size-3.5" />
                           Edit
                         </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="xs"
-                          onClick={() => handleDelete(row.id)}
-                          disabled={deletingId === row.id}
-                        >
-                          {deletingId === row.id ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3.5 text-destructive" />
-                          )}
-                          Delete
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => void handleDelete(row)}
+                            disabled={deletingId === row.id}
+                          >
+                            {deletingId === row.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="size-3.5 text-destructive" />
+                            )}
+                            Delete
+                          </Button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -444,6 +459,8 @@ export function TeamManager({
           </Button>
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }

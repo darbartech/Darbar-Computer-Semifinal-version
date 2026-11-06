@@ -3,12 +3,34 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Re-audit #1 moved the public pages back to prerendering, so `npm run build`
+    # now runs the DAL at build time (`generateStaticParams` plus the pages'
+    # own reads) and needs a real schema. An empty database is the strictest
+    # case: it is what a fresh deploy is built against, and it proves no page
+    # assumes a seeded row.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       # `npm ci` runs `postinstall: prisma generate`, and `prisma.config.ts`
       # resolves `env("DATABASE_URL")`. Generate never connects, but the config
       # load needs the variable to exist — a placeholder keeps install green.
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      # better-auth reads a secret while the pages that import `src/server/auth`
+      # are being prerendered. Test-only value; nothing here signs a real token.
+      AUTH_SECRET: ci-only-insecure-secret-please-never-use-this-one
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,7 +38,82 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Fix guide §12: a schema that no migration matches must fail here, not on
+      # a deploy. `validate` reads the files only — the placeholder DATABASE_URL
+      # above is enough, no database is contacted.
+      - run: npx prisma validate
+      # `npm ci` generates the client through `postinstall`, but `src/generated`
+      # is gitignored, so an install that skips the hook (restored node_modules
+      # cache, `--ignore-scripts`) would reach typecheck with no client at all.
+      # Naming it costs seconds and makes the dependency explicit.
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # docs/08 §2: the Playwright suite against a real server and a real database.
+  # Its own job because it is the only one allowed to write the e2e fixtures —
+  # accounts that share a password published in this repository. `build` has to
+  # be green first, so a broken typecheck never spends ten minutes on a browser run.
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SITE_URL: http://localhost:3001
+      AUTH_URL: http://localhost:3001
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      # Test-only, and it must stay a fixed value here: `TwoFactor.secret` is
+      # encrypted with this key, so the seed that writes it and the server that
+      # decrypts it during sign-in have to agree. Nothing here signs a real token.
+      AUTH_SECRET: ci-only-insecure-secret-please-never-use-this-one
+      # The gated roles get a TOTP second factor (fix guide §4). The same default
+      # is written in `prisma/seed-test.ts` and read by `e2e/helpers.ts`; set this
+      # variable to rotate it in one place.
+      E2E_TOTP_SECRET: e2e-only-totp-secret-never-use-in-production
+      # The only place this is set. It unlocks `prisma/seed-test.ts`, which
+      # refuses to run without it (prisma/seed-guard.ts), so no other job here can
+      # write those fixtures even if someone adds a step to it.
+      ALLOW_E2E_SEED: "1"
+      CI: "true"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      # The public pages the suite walks (courses, contact, enquiry) read real
+      # rows, so the catalogue goes in first and the fixtures land on top of it.
+      - run: npx prisma db seed
+      - run: npm run db:seed:test
+      - run: npx playwright install --with-deps chromium
+      # `playwright.config.ts` starts `npm run dev` itself — a fresh runner has no
+      # server to reuse. Traces and screenshots go to `test-results/` (gitignored)
+      # and are uploaded when the run fails.
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

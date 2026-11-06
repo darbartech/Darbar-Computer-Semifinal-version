@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import {
+  EMPTY_STEP_UP,
+  isStepUpComplete,
+  StepUpFields,
+  stepUpPayload,
+  type StepUpValue,
+} from "@/components/admin/StepUpFields";
+import {
   issueCertificateAction,
   revokeCertificateAction,
   reissueCertificateAction,
@@ -143,6 +150,8 @@ export function IssueCertificateDialog({
   );
   const [issuedSignatories, setIssuedSignatories] = React.useState<SelectedSignatory[]>([]);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string[]>>({});
+  const [stepUp, setStepUp] = React.useState<StepUpValue>(EMPTY_STEP_UP);
+  const [stepUpError, setStepUpError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [previewing, setPreviewing] = React.useState(false);
 
@@ -165,15 +174,18 @@ export function IssueCertificateDialog({
 
   const onSubmit = async () => {
     setSubmitting(true);
+    setStepUpError(null);
     try {
       const payload = {
         id: certificateId,
         issueDate: issueDate || null,
         issuedSignatories: toIssuedSignatoryPayload(issuedSignatories),
+        ...stepUpPayload(stepUp),
       };
       const result = await issueCertificateAction(payload);
       if (!result.ok) {
         setFieldErrors(result.fieldErrors ?? {});
+        if (!result.fieldErrors) setStepUpError(result.error);
         toast({
           title: "Could not issue certificate",
           description: result.error,
@@ -191,6 +203,7 @@ export function IssueCertificateDialog({
       router.refresh();
     } finally {
       setSubmitting(false);
+      setStepUp(EMPTY_STEP_UP);
     }
   };
 
@@ -243,6 +256,16 @@ export function IssueCertificateDialog({
           />
         </div>
 
+        <div className="mt-4">
+          <StepUpFields
+            value={stepUp}
+            onChange={setStepUp}
+            error={stepUpError}
+            disabled={submitting}
+            idPrefix="issue"
+          />
+        </div>
+
         <DialogFooter>
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
@@ -273,7 +296,7 @@ export function IssueCertificateDialog({
           <Button
             type="button"
             onClick={onSubmit}
-            disabled={submitting || issuedSignatories.length === 0}
+            disabled={submitting || issuedSignatories.length === 0 || !isStepUpComplete(stepUp)}
             title={
               issuedSignatories.length === 0
                 ? "Select at least one signatory to issue"
@@ -322,19 +345,24 @@ export function RevokeCertificateDialog({
   const [revokeReason, setRevokeReason] = React.useState("");
   const [confirmed, setConfirmed] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string[]>>({});
+  const [stepUp, setStepUp] = React.useState<StepUpValue>(EMPTY_STEP_UP);
+  const [stepUpError, setStepUpError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
   const onSubmit = async () => {
     setSubmitting(true);
+    setStepUpError(null);
     try {
       const payload = {
         id: certificateId,
         revokeCategory,
         revokeReason,
+        ...stepUpPayload(stepUp),
       };
       const result = await revokeCertificateAction(payload);
       if (!result.ok) {
         setFieldErrors(result.fieldErrors ?? {});
+        if (!result.fieldErrors) setStepUpError(result.error);
         toast({
           title: "Could not revoke",
           description: result.error,
@@ -351,6 +379,7 @@ export function RevokeCertificateDialog({
       router.refresh();
     } finally {
       setSubmitting(false);
+      setStepUp(EMPTY_STEP_UP);
     }
   };
 
@@ -438,6 +467,14 @@ export function RevokeCertificateDialog({
           </span>
         </label>
 
+        <StepUpFields
+          value={stepUp}
+          onChange={setStepUp}
+          error={stepUpError}
+          disabled={submitting}
+          idPrefix="revoke"
+        />
+
         <DialogFooter>
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
@@ -446,7 +483,7 @@ export function RevokeCertificateDialog({
             type="button"
             variant="destructive"
             onClick={onSubmit}
-            disabled={submitting || !confirmed || !revokeCategory}
+            disabled={submitting || !confirmed || !revokeCategory || !isStepUpComplete(stepUp)}
           >
             {submitting ? (
               <>
@@ -490,6 +527,8 @@ export function ReissueCertificateDialog({
   );
   const [issuedSignatories, setIssuedSignatories] = React.useState<SelectedSignatory[]>([]);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string[]>>({});
+  const [stepUp, setStepUp] = React.useState<StepUpValue>(EMPTY_STEP_UP);
+  const [stepUpError, setStepUpError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [previewing, setPreviewing] = React.useState(false);
 
@@ -512,16 +551,19 @@ export function ReissueCertificateDialog({
 
   const onSubmit = async () => {
     setSubmitting(true);
+    setStepUpError(null);
     try {
       const payload = {
         id: certificateId,
         reissueReason,
         issueDate: issueDate || null,
         issuedSignatories: toIssuedSignatoryPayload(issuedSignatories),
+        ...stepUpPayload(stepUp),
       };
       const result = await reissueCertificateAction(payload);
       if (!result.ok) {
         setFieldErrors(result.fieldErrors ?? {});
+        if (!result.fieldErrors) setStepUpError(result.error);
         toast({
           title: "Could not reissue",
           description: result.error,
@@ -538,6 +580,7 @@ export function ReissueCertificateDialog({
       router.refresh();
     } finally {
       setSubmitting(false);
+      setStepUp(EMPTY_STEP_UP);
     }
   };
 
@@ -603,6 +646,16 @@ export function ReissueCertificateDialog({
           disabled={submitting}
         />
 
+        <div className="mt-4">
+          <StepUpFields
+            value={stepUp}
+            onChange={setStepUp}
+            error={stepUpError}
+            disabled={submitting}
+            idPrefix="reissue"
+          />
+        </div>
+
         <DialogFooter>
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
@@ -636,7 +689,8 @@ export function ReissueCertificateDialog({
             disabled={
               submitting ||
               issuedSignatories.length === 0 ||
-              !reissueReason.trim()
+              !reissueReason.trim() ||
+              !isStepUpComplete(stepUp)
             }
             title={
               issuedSignatories.length === 0

@@ -4,7 +4,8 @@ import { SectionHeading } from "@/components/common/SectionHeading";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { FAQAccordion } from "@/components/sections/FAQAccordion";
 import { buttonVariants } from "@/components/ui/button";
-import { buildMetadata, faqJsonLd, serializeJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/common/JsonLd";
+import { buildMetadata, faqJsonLd } from "@/lib/seo";
 import { MessageSquare } from "lucide-react";
 import { listPublishedFaqs } from "@/server/dal/faq";
 import { getSiteSettings } from "@/server/dal/settings";
@@ -52,13 +53,8 @@ export default async function FAQPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: serializeJsonLd(
-            faqJsonLd(allFaqs.map((f) => ({ question: f.question, answer: f.answer })))
-          ),
-        }}
+      <JsonLd
+        data={faqJsonLd(allFaqs.map((f) => ({ question: f.question, answer: f.answer })))}
       />
       <div className="bg-neutral-50 border-b border-neutral-200">
         <Container size="xl" className="pt-4 pb-10 sm:pb-14">

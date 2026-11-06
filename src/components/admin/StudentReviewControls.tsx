@@ -1,15 +1,19 @@
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, X } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
-import { Badge } from "@/components/common/Badge";
+import { EnrollmentStatusBadge } from "@/components/admin/StatusBadges";
 import {
+  approveEnrollmentAction,
   approveStudentAction,
+  declineEnrollmentAction,
+  moveEnrollmentBatchAction,
   rejectStudentAction,
-  setEnrollmentDecisionAction,
+  waitlistEnrollmentAction,
 } from "@/server/actions/student-admin";
 
 export function StudentReviewControls({
@@ -119,42 +123,119 @@ export function StudentReviewControls({
   );
 }
 
-const ENROLLMENT_VARIANT: Record<string, "warning" | "success" | "secondary" | "outline"> = {
-  PENDING: "warning",
-  ACTIVE: "success",
-  COMPLETED: "secondary",
-  DROPPED: "outline",
+/**
+ * One seat-bearing batch, passed down from the page (docs 02 B1). The client
+ * never imports the DAL type — the server-only module cannot be referenced
+ * from here, so the shape is restated.
+ */
+export type EnrollmentSeatOption = {
+  id: string;
+  courseId: string;
+  name: string;
+  startDate: string;
+  timeSlot: string;
+  seatsLeft: number;
 };
 
+export type EnrollmentDecisionRow = {
+  id: string;
+  status: string;
+  courseId: string;
+  courseTitle: string;
+  requestedAt: string;
+  batchName: string | null;
+  decisionNote: string | null;
+};
+
+function seatLabel(batch: EnrollmentSeatOption): string {
+  const seats =
+    batch.seatsLeft === 0
+      ? "waiting list only"
+      : `${batch.seatsLeft} seat${batch.seatsLeft === 1 ? "" : "s"} left`;
+  return `${batch.name} · ${batch.timeSlot} · ${seats}`;
+}
+
+/**
+ * Approve / waitlist / decline for one request. Approval always names a batch,
+ * because a seat is only ever taken through one; a full batch comes back as an
+ * error and the row stays pending so staff can waitlist instead.
+ */
 export function EnrollmentDecisionList({
   enrollments,
+  batches,
   canManage,
 }: {
-  enrollments: {
-    id: string;
-    status: string;
-    courseTitle: string;
-    requestedAt: string;
-  }[];
+  enrollments: EnrollmentDecisionRow[];
+  batches: EnrollmentSeatOption[];
   canManage: boolean;
 }) {
   const { toast } = useToast();
   const router = useRouter();
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [chosenBatch, setChosenBatch] = React.useState<Record<string, string>>({});
+  const [decliningId, setDecliningId] = React.useState<string | null>(null);
+  const [note, setNote] = React.useState("");
 
-  const decide = async (enrollmentId: string, status: "ACTIVE" | "DROPPED") => {
+  const run = async (
+    enrollmentId: string,
+    call: () => Promise<{ ok: boolean; error?: string }>,
+    successTitle: string
+  ) => {
     setBusyId(enrollmentId);
-    const result = await setEnrollmentDecisionAction({ enrollmentId, status });
+    const result = await call();
     setBusyId(null);
     if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
+      toast({ title: result.error ?? "Something went wrong. Please try again.", variant: "error" });
+      return false;
+    }
+    toast({ title: successTitle, variant: "success" });
+    router.refresh();
+    return true;
+  };
+
+  const decide = async (
+    enrollment: EnrollmentDecisionRow,
+    status: "ACTIVE" | "WAITLISTED" | "REJECTED"
+  ) => {
+    const batchId = chosenBatch[enrollment.id] ?? "";
+    if (status === "ACTIVE") {
+      if (!batchId) {
+        toast({ title: "Choose which batch to place the student in", variant: "error" });
+        return;
+      }
+      const ok = await run(
+        enrollment.id,
+        () => approveEnrollmentAction({ enrollmentId: enrollment.id, batchId }),
+        "Enrollment approved and a seat taken"
+      );
+      if (ok) setDecliningId(null);
       return;
     }
-    toast({
-      title: status === "ACTIVE" ? "Enrollment approved" : "Enrollment declined",
-      variant: "success",
-    });
-    router.refresh();
+    if (status === "WAITLISTED") {
+      await run(
+        enrollment.id,
+        () => waitlistEnrollmentAction({ enrollmentId: enrollment.id, batchId, note }),
+        "Added to the waiting list (no seat taken)"
+      );
+      return;
+    }
+    const ok = await run(
+      enrollment.id,
+      () => declineEnrollmentAction({ enrollmentId: enrollment.id, note }),
+      "Enrollment declined"
+    );
+    if (ok) {
+      setDecliningId(null);
+      setNote("");
+    }
+  };
+
+  const moveTo = async (enrollmentId: string, batchId: string) => {
+    await run(
+      enrollmentId,
+      () => moveEnrollmentBatchAction({ enrollmentId, batchId }),
+      "Moved to the selected batch"
+    );
   };
 
   if (enrollments.length === 0) {
@@ -167,45 +248,150 @@ export function EnrollmentDecisionList({
 
   return (
     <ul className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
-      {enrollments.map((enrollment) => (
-        <li key={enrollment.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-neutral-900">
-              {enrollment.courseTitle}
-            </p>
-            <p className="text-xs text-neutral-500">Requested {enrollment.requestedAt}</p>
-          </div>
-          <Badge variant={ENROLLMENT_VARIANT[enrollment.status] ?? "outline"}>
-            {enrollment.status}
-          </Badge>
-          {canManage && enrollment.status === "PENDING" && (
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => decide(enrollment.id, "ACTIVE")}
-                disabled={busyId === enrollment.id}
-              >
-                {busyId === enrollment.id ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Check className="size-3.5" />
-                )}
-                Approve
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-destructive hover:text-destructive"
-                onClick={() => decide(enrollment.id, "DROPPED")}
-                disabled={busyId === enrollment.id}
-              >
-                <X className="size-3.5" />
-                Decline
-              </Button>
+      {enrollments.map((enrollment) => {
+        const options = batches.filter((batch) => batch.courseId === enrollment.courseId);
+        const awaiting = enrollment.status === "PENDING" || enrollment.status === "WAITLISTED";
+        const isBusy = busyId === enrollment.id;
+        const selected = chosenBatch[enrollment.id] ?? "";
+        return (
+          <li key={enrollment.id} className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-neutral-900">
+                  {enrollment.courseTitle}
+                </p>
+                <p className="text-xs text-neutral-500">
+                  Requested {enrollment.requestedAt}
+                  {enrollment.batchName ? ` · ${enrollment.batchName}` : ""}
+                </p>
+              </div>
+              <EnrollmentStatusBadge status={enrollment.status} />
             </div>
-          )}
-        </li>
-      ))}
+
+            {enrollment.decisionNote && (
+              <p className="mt-2 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                Note: {enrollment.decisionNote}
+              </p>
+            )}
+
+            {canManage && (awaiting || enrollment.status === "ACTIVE") && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {options.length === 0 ? (
+                  <p className="text-xs text-neutral-500">
+                    No open batch for this course yet — create one (or cancel one back to open)
+                    before approving.
+                  </p>
+                ) : (
+                  <>
+                    <div className="w-full sm:w-72">
+                      <Select
+                        aria-label={`Batch for ${enrollment.courseTitle}`}
+                        value={selected}
+                        disabled={isBusy}
+                        onChange={(event) =>
+                          setChosenBatch((current) => ({
+                            ...current,
+                            [enrollment.id]: event.target.value,
+                          }))
+                        }
+                        placeholder="Choose a batch"
+                        options={options.map((batch) => ({
+                          value: batch.id,
+                          label: seatLabel(batch),
+                          disabled: batch.seatsLeft === 0,
+                        }))}
+                      />
+                    </div>
+                    {awaiting && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => decide(enrollment, "ACTIVE")}
+                          disabled={isBusy || !selected}
+                        >
+                          {isBusy ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Check className="size-3.5" />
+                          )}
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => decide(enrollment, "WAITLISTED")}
+                          disabled={isBusy}
+                        >
+                          <Clock className="size-3.5" />
+                          Waitlist
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => {
+                            setDecliningId((current) => (current === enrollment.id ? null : enrollment.id));
+                            setNote("");
+                          }}
+                          disabled={isBusy}
+                        >
+                          <X className="size-3.5" />
+                          Decline
+                        </Button>
+                      </>
+                    )}
+                    {enrollment.status === "ACTIVE" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => moveTo(enrollment.id, selected)}
+                        disabled={isBusy || !selected}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <ArrowRight className="size-3.5" />
+                        )}
+                        Move to batch
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {canManage && decliningId === enrollment.id && (
+              <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                <Textarea
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="Reason shown to the student (required)"
+                  rows={2}
+                  maxLength={300}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setDecliningId(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                    onClick={() => decide(enrollment, "REJECTED")}
+                    disabled={isBusy || note.trim().length < 3}
+                  >
+                    {isBusy ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <X className="size-3.5" />
+                    )}
+                    Confirm decline
+                  </Button>
+                </div>
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

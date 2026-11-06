@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/common/Badge";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/components/ui/toast";
 import { ImagePicker, type LibraryImage, type PickedImage } from "@/components/admin/ImagePicker";
 import { saveTestimonial, deleteTestimonialAction } from "@/server/actions/testimonials";
@@ -44,6 +45,8 @@ type Props = {
   courseOptions: SelectOption[];
   library: LibraryImage[];
   canWrite: boolean;
+  /** Hard delete is a SUPER_ADMIN action (docs/08): the row carries the consent note. */
+  canDelete: boolean;
 };
 
 type Editing = TestimonialWriteInput & { id: string };
@@ -71,10 +74,12 @@ export function TestimonialsManager({
   courseOptions,
   library,
   canWrite,
+  canDelete,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { ask, dialog } = useConfirm();
   const [editing, setEditing] = React.useState<Editing | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [photo, setPhoto] = React.useState<PickedImage>(null);
@@ -150,17 +155,26 @@ export function TestimonialsManager({
     router.refresh();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this testimonial? This cannot be undone.")) return;
-    setDeletingId(id);
-    const result = await deleteTestimonialAction(id);
-    setDeletingId(null);
-    if (!result.ok) {
-      toast({ title: result.error, variant: "error" });
-      return;
-    }
-    toast({ title: "Testimonial deleted", variant: "success" });
-    router.refresh();
+  const handleDelete = async (row: TestimonialRow) => {
+    await ask({
+      title: "Delete testimonial?",
+      description: (
+        <>
+          The quote and the consent note recorded with it are deleted together and nothing is
+          left of either. Unpublishing hides it on the site without erasing the consent
+          evidence — use that unless the record itself has to go.
+        </>
+      ),
+      run: async () => {
+        setDeletingId(row.id);
+        const result = await deleteTestimonialAction(row.id);
+        setDeletingId(null);
+        if (!result.ok) return result.error;
+        toast({ title: "Testimonial deleted", variant: "success" });
+        router.refresh();
+        return null;
+      },
+    });
   };
 
   const ratingOptions: SelectOption[] = [
@@ -432,20 +446,22 @@ export function TestimonialsManager({
                           <Pencil className="size-3.5" />
                           Edit
                         </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="xs"
-                          onClick={() => handleDelete(row.id)}
-                          disabled={deletingId === row.id}
-                        >
-                          {deletingId === row.id ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3.5 text-destructive" />
-                          )}
-                          Delete
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => void handleDelete(row)}
+                            disabled={deletingId === row.id}
+                          >
+                            {deletingId === row.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="size-3.5 text-destructive" />
+                            )}
+                            Delete
+                          </Button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -487,6 +503,8 @@ export function TestimonialsManager({
           </Button>
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }

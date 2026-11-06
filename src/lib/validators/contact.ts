@@ -6,13 +6,13 @@ import {
   nameSchema,
   pageParamSchema,
   phoneSchema,
-  requiredEmailSchema,
+  publicEmailSchema,
   turnstileTokenSchema,
 } from "./shared";
 
 const contactFields = {
   name: nameSchema("Your name"),
-  email: requiredEmailSchema,
+  email: publicEmailSchema,
   phone: z
     .union([phoneSchema, z.literal("")])
     .optional(),

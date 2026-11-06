@@ -17,10 +17,7 @@ export const metadata = {
 
 export default async function StudentCertificatesPage() {
   const { profile } = await requireStudentProfile();
-  const certificates = await listStudentCertificates({
-    id: profile.id,
-    studentCode: profile.studentCode,
-  });
+  const certificates = await listStudentCertificates({ id: profile.id });
 
   const issued = certificates.filter((c) => c.status === "ISSUED");
   const pending = certificates.filter((c) => c.status !== "ISSUED");

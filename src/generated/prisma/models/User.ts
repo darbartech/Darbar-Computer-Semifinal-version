@@ -33,6 +33,7 @@ export type UserMinAggregateOutputType = {
   role: $Enums.Role | null
   isActive: boolean | null
   lastLoginAt: Date | null
+  twoFactorEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -46,6 +47,7 @@ export type UserMaxAggregateOutputType = {
   role: $Enums.Role | null
   isActive: boolean | null
   lastLoginAt: Date | null
+  twoFactorEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -59,6 +61,7 @@ export type UserCountAggregateOutputType = {
   role: number
   isActive: number
   lastLoginAt: number
+  twoFactorEnabled: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -74,6 +77,7 @@ export type UserMinAggregateInputType = {
   role?: true
   isActive?: true
   lastLoginAt?: true
+  twoFactorEnabled?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -87,6 +91,7 @@ export type UserMaxAggregateInputType = {
   role?: true
   isActive?: true
   lastLoginAt?: true
+  twoFactorEnabled?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,6 +105,7 @@ export type UserCountAggregateInputType = {
   role?: true
   isActive?: true
   lastLoginAt?: true
+  twoFactorEnabled?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -186,6 +192,7 @@ export type UserGroupByOutputType = {
   role: $Enums.Role
   isActive: boolean
   lastLoginAt: Date | null
+  twoFactorEnabled: boolean
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
@@ -220,8 +227,10 @@ export type UserWhereInput = {
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   isActive?: Prisma.BoolFilter<"User"> | boolean
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  batchesTaught?: Prisma.BatchListRelationFilter
   assignedLeads?: Prisma.LeadListRelationFilter
   activities?: Prisma.LeadActivityListRelationFilter
   posts?: Prisma.BlogPostListRelationFilter
@@ -233,6 +242,11 @@ export type UserWhereInput = {
   studentProfile?: Prisma.XOR<Prisma.StudentProfileNullableScalarRelationFilter, Prisma.StudentProfileWhereInput> | null
   assignmentsCreated?: Prisma.AssignmentListRelationFilter
   submissionsReviewed?: Prisma.AssignmentSubmissionListRelationFilter
+  invoicesCreated?: Prisma.InvoiceListRelationFilter
+  paymentsReceived?: Prisma.PaymentListRelationFilter
+  paymentsVoided?: Prisma.PaymentListRelationFilter
+  daysClosed?: Prisma.DayCloseListRelationFilter
+  twoFactor?: Prisma.XOR<Prisma.TwoFactorNullableScalarRelationFilter, Prisma.TwoFactorWhereInput> | null
 }
 
 export type UserOrderByWithRelationInput = {
@@ -244,8 +258,10 @@ export type UserOrderByWithRelationInput = {
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  twoFactorEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  batchesTaught?: Prisma.BatchOrderByRelationAggregateInput
   assignedLeads?: Prisma.LeadOrderByRelationAggregateInput
   activities?: Prisma.LeadActivityOrderByRelationAggregateInput
   posts?: Prisma.BlogPostOrderByRelationAggregateInput
@@ -257,6 +273,11 @@ export type UserOrderByWithRelationInput = {
   studentProfile?: Prisma.StudentProfileOrderByWithRelationInput
   assignmentsCreated?: Prisma.AssignmentOrderByRelationAggregateInput
   submissionsReviewed?: Prisma.AssignmentSubmissionOrderByRelationAggregateInput
+  invoicesCreated?: Prisma.InvoiceOrderByRelationAggregateInput
+  paymentsReceived?: Prisma.PaymentOrderByRelationAggregateInput
+  paymentsVoided?: Prisma.PaymentOrderByRelationAggregateInput
+  daysClosed?: Prisma.DayCloseOrderByRelationAggregateInput
+  twoFactor?: Prisma.TwoFactorOrderByWithRelationInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -271,8 +292,10 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   isActive?: Prisma.BoolFilter<"User"> | boolean
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  batchesTaught?: Prisma.BatchListRelationFilter
   assignedLeads?: Prisma.LeadListRelationFilter
   activities?: Prisma.LeadActivityListRelationFilter
   posts?: Prisma.BlogPostListRelationFilter
@@ -284,6 +307,11 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   studentProfile?: Prisma.XOR<Prisma.StudentProfileNullableScalarRelationFilter, Prisma.StudentProfileWhereInput> | null
   assignmentsCreated?: Prisma.AssignmentListRelationFilter
   submissionsReviewed?: Prisma.AssignmentSubmissionListRelationFilter
+  invoicesCreated?: Prisma.InvoiceListRelationFilter
+  paymentsReceived?: Prisma.PaymentListRelationFilter
+  paymentsVoided?: Prisma.PaymentListRelationFilter
+  daysClosed?: Prisma.DayCloseListRelationFilter
+  twoFactor?: Prisma.XOR<Prisma.TwoFactorNullableScalarRelationFilter, Prisma.TwoFactorWhereInput> | null
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -295,6 +323,7 @@ export type UserOrderByWithAggregationInput = {
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  twoFactorEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -314,6 +343,7 @@ export type UserScalarWhereWithAggregatesInput = {
   role?: Prisma.EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
   isActive?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  twoFactorEnabled?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -327,8 +357,10 @@ export type UserCreateInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -340,6 +372,11 @@ export type UserCreateInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -351,8 +388,10 @@ export type UserUncheckedCreateInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -364,6 +403,11 @@ export type UserUncheckedCreateInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -375,8 +419,10 @@ export type UserUpdateInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -388,6 +434,11 @@ export type UserUpdateInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -399,8 +450,10 @@ export type UserUncheckedUpdateInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -412,6 +465,11 @@ export type UserUncheckedUpdateInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -423,6 +481,7 @@ export type UserCreateManyInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -436,6 +495,7 @@ export type UserUpdateManyMutationInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -449,6 +509,7 @@ export type UserUncheckedUpdateManyInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -462,6 +523,7 @@ export type UserCountOrderByAggregateInput = {
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  twoFactorEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -475,6 +537,7 @@ export type UserMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  twoFactorEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -488,6 +551,7 @@ export type UserMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  twoFactorEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -554,6 +618,20 @@ export type UserUpdateOneRequiredWithoutAccountsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAccountsInput, Prisma.UserUpdateWithoutAccountsInput>, Prisma.UserUncheckedUpdateWithoutAccountsInput>
 }
 
+export type UserCreateNestedOneWithoutTwoFactorInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTwoFactorInput, Prisma.UserUncheckedCreateWithoutTwoFactorInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTwoFactorInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutTwoFactorNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTwoFactorInput, Prisma.UserUncheckedCreateWithoutTwoFactorInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTwoFactorInput
+  upsert?: Prisma.UserUpsertWithoutTwoFactorInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTwoFactorInput, Prisma.UserUpdateWithoutTwoFactorInput>, Prisma.UserUncheckedUpdateWithoutTwoFactorInput>
+}
+
 export type UserCreateNestedOneWithoutMediaInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutMediaInput, Prisma.UserUncheckedCreateWithoutMediaInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutMediaInput
@@ -568,6 +646,22 @@ export type UserUpdateOneWithoutMediaNestedInput = {
   delete?: Prisma.UserWhereInput | boolean
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMediaInput, Prisma.UserUpdateWithoutMediaInput>, Prisma.UserUncheckedUpdateWithoutMediaInput>
+}
+
+export type UserCreateNestedOneWithoutBatchesTaughtInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBatchesTaughtInput, Prisma.UserUncheckedCreateWithoutBatchesTaughtInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBatchesTaughtInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutBatchesTaughtNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBatchesTaughtInput, Prisma.UserUncheckedCreateWithoutBatchesTaughtInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBatchesTaughtInput
+  upsert?: Prisma.UserUpsertWithoutBatchesTaughtInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutBatchesTaughtInput, Prisma.UserUpdateWithoutBatchesTaughtInput>, Prisma.UserUncheckedUpdateWithoutBatchesTaughtInput>
 }
 
 export type UserCreateNestedOneWithoutAssignedLeadsInput = {
@@ -696,6 +790,70 @@ export type UserUpdateOneWithoutSubmissionsReviewedNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSubmissionsReviewedInput, Prisma.UserUpdateWithoutSubmissionsReviewedInput>, Prisma.UserUncheckedUpdateWithoutSubmissionsReviewedInput>
 }
 
+export type UserCreateNestedOneWithoutInvoicesCreatedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutInvoicesCreatedInput, Prisma.UserUncheckedCreateWithoutInvoicesCreatedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInvoicesCreatedInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutInvoicesCreatedNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutInvoicesCreatedInput, Prisma.UserUncheckedCreateWithoutInvoicesCreatedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInvoicesCreatedInput
+  upsert?: Prisma.UserUpsertWithoutInvoicesCreatedInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutInvoicesCreatedInput, Prisma.UserUpdateWithoutInvoicesCreatedInput>, Prisma.UserUncheckedUpdateWithoutInvoicesCreatedInput>
+}
+
+export type UserCreateNestedOneWithoutPaymentsReceivedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPaymentsReceivedInput, Prisma.UserUncheckedCreateWithoutPaymentsReceivedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPaymentsReceivedInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedOneWithoutPaymentsVoidedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPaymentsVoidedInput, Prisma.UserUncheckedCreateWithoutPaymentsVoidedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPaymentsVoidedInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutPaymentsReceivedNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPaymentsReceivedInput, Prisma.UserUncheckedCreateWithoutPaymentsReceivedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPaymentsReceivedInput
+  upsert?: Prisma.UserUpsertWithoutPaymentsReceivedInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPaymentsReceivedInput, Prisma.UserUpdateWithoutPaymentsReceivedInput>, Prisma.UserUncheckedUpdateWithoutPaymentsReceivedInput>
+}
+
+export type UserUpdateOneWithoutPaymentsVoidedNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPaymentsVoidedInput, Prisma.UserUncheckedCreateWithoutPaymentsVoidedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPaymentsVoidedInput
+  upsert?: Prisma.UserUpsertWithoutPaymentsVoidedInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPaymentsVoidedInput, Prisma.UserUpdateWithoutPaymentsVoidedInput>, Prisma.UserUncheckedUpdateWithoutPaymentsVoidedInput>
+}
+
+export type UserCreateNestedOneWithoutDaysClosedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDaysClosedInput, Prisma.UserUncheckedCreateWithoutDaysClosedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDaysClosedInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutDaysClosedNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDaysClosedInput, Prisma.UserUncheckedCreateWithoutDaysClosedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDaysClosedInput
+  upsert?: Prisma.UserUpsertWithoutDaysClosedInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDaysClosedInput, Prisma.UserUpdateWithoutDaysClosedInput>, Prisma.UserUncheckedUpdateWithoutDaysClosedInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id?: string
   name: string
@@ -705,8 +863,10 @@ export type UserCreateWithoutSessionsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -717,6 +877,11 @@ export type UserCreateWithoutSessionsInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -728,8 +893,10 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -740,6 +907,11 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -767,8 +939,10 @@ export type UserUpdateWithoutSessionsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -779,6 +953,11 @@ export type UserUpdateWithoutSessionsInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -790,8 +969,10 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -802,6 +983,11 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -813,8 +999,10 @@ export type UserCreateWithoutAccountsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -825,6 +1013,11 @@ export type UserCreateWithoutAccountsInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -836,8 +1029,10 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -848,6 +1043,11 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -875,8 +1075,10 @@ export type UserUpdateWithoutAccountsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -887,6 +1089,11 @@ export type UserUpdateWithoutAccountsInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -898,8 +1105,10 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -910,6 +1119,147 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutTwoFactorInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+}
+
+export type UserUncheckedCreateWithoutTwoFactorInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+}
+
+export type UserCreateOrConnectWithoutTwoFactorInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutTwoFactorInput, Prisma.UserUncheckedCreateWithoutTwoFactorInput>
+}
+
+export type UserUpsertWithoutTwoFactorInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutTwoFactorInput, Prisma.UserUncheckedUpdateWithoutTwoFactorInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutTwoFactorInput, Prisma.UserUncheckedCreateWithoutTwoFactorInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutTwoFactorInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutTwoFactorInput, Prisma.UserUncheckedUpdateWithoutTwoFactorInput>
+}
+
+export type UserUpdateWithoutTwoFactorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutTwoFactorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
 }
 
 export type UserCreateWithoutMediaInput = {
@@ -921,8 +1271,10 @@ export type UserCreateWithoutMediaInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -933,6 +1285,11 @@ export type UserCreateWithoutMediaInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMediaInput = {
@@ -944,8 +1301,10 @@ export type UserUncheckedCreateWithoutMediaInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -956,6 +1315,11 @@ export type UserUncheckedCreateWithoutMediaInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMediaInput = {
@@ -983,8 +1347,10 @@ export type UserUpdateWithoutMediaInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -995,6 +1361,11 @@ export type UserUpdateWithoutMediaInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMediaInput = {
@@ -1006,8 +1377,10 @@ export type UserUncheckedUpdateWithoutMediaInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -1018,6 +1391,147 @@ export type UserUncheckedUpdateWithoutMediaInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutBatchesTaughtInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutBatchesTaughtInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutBatchesTaughtInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutBatchesTaughtInput, Prisma.UserUncheckedCreateWithoutBatchesTaughtInput>
+}
+
+export type UserUpsertWithoutBatchesTaughtInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutBatchesTaughtInput, Prisma.UserUncheckedUpdateWithoutBatchesTaughtInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutBatchesTaughtInput, Prisma.UserUncheckedCreateWithoutBatchesTaughtInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutBatchesTaughtInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutBatchesTaughtInput, Prisma.UserUncheckedUpdateWithoutBatchesTaughtInput>
+}
+
+export type UserUpdateWithoutBatchesTaughtInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutBatchesTaughtInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssignedLeadsInput = {
@@ -1029,8 +1543,10 @@ export type UserCreateWithoutAssignedLeadsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
   media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
@@ -1041,6 +1557,11 @@ export type UserCreateWithoutAssignedLeadsInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssignedLeadsInput = {
@@ -1052,8 +1573,10 @@ export type UserUncheckedCreateWithoutAssignedLeadsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
   media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
@@ -1064,6 +1587,11 @@ export type UserUncheckedCreateWithoutAssignedLeadsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssignedLeadsInput = {
@@ -1091,8 +1619,10 @@ export type UserUpdateWithoutAssignedLeadsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
   media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
@@ -1103,6 +1633,11 @@ export type UserUpdateWithoutAssignedLeadsInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignedLeadsInput = {
@@ -1114,8 +1649,10 @@ export type UserUncheckedUpdateWithoutAssignedLeadsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
   media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
@@ -1126,6 +1663,11 @@ export type UserUncheckedUpdateWithoutAssignedLeadsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutActivitiesInput = {
@@ -1137,8 +1679,10 @@ export type UserCreateWithoutActivitiesInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
   media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
@@ -1149,6 +1693,11 @@ export type UserCreateWithoutActivitiesInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutActivitiesInput = {
@@ -1160,8 +1709,10 @@ export type UserUncheckedCreateWithoutActivitiesInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
   media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
@@ -1172,6 +1723,11 @@ export type UserUncheckedCreateWithoutActivitiesInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutActivitiesInput = {
@@ -1199,8 +1755,10 @@ export type UserUpdateWithoutActivitiesInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
   media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
@@ -1211,6 +1769,11 @@ export type UserUpdateWithoutActivitiesInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutActivitiesInput = {
@@ -1222,8 +1785,10 @@ export type UserUncheckedUpdateWithoutActivitiesInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
   media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
@@ -1234,6 +1799,11 @@ export type UserUncheckedUpdateWithoutActivitiesInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutPostsInput = {
@@ -1245,8 +1815,10 @@ export type UserCreateWithoutPostsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
@@ -1257,6 +1829,11 @@ export type UserCreateWithoutPostsInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutPostsInput = {
@@ -1268,8 +1845,10 @@ export type UserUncheckedCreateWithoutPostsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
@@ -1280,6 +1859,11 @@ export type UserUncheckedCreateWithoutPostsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutPostsInput = {
@@ -1307,8 +1891,10 @@ export type UserUpdateWithoutPostsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
@@ -1319,6 +1905,11 @@ export type UserUpdateWithoutPostsInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPostsInput = {
@@ -1330,8 +1921,10 @@ export type UserUncheckedUpdateWithoutPostsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
@@ -1342,6 +1935,11 @@ export type UserUncheckedUpdateWithoutPostsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -1353,8 +1951,10 @@ export type UserCreateWithoutAuditLogsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -1365,6 +1965,11 @@ export type UserCreateWithoutAuditLogsInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -1376,8 +1981,10 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -1388,6 +1995,11 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -1415,8 +2027,10 @@ export type UserUpdateWithoutAuditLogsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -1427,6 +2041,11 @@ export type UserUpdateWithoutAuditLogsInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -1438,8 +2057,10 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -1450,6 +2071,11 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCertificatesCreatedInput = {
@@ -1461,8 +2087,10 @@ export type UserCreateWithoutCertificatesCreatedInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -1473,6 +2101,11 @@ export type UserCreateWithoutCertificatesCreatedInput = {
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCertificatesCreatedInput = {
@@ -1484,8 +2117,10 @@ export type UserUncheckedCreateWithoutCertificatesCreatedInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -1496,6 +2131,11 @@ export type UserUncheckedCreateWithoutCertificatesCreatedInput = {
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCertificatesCreatedInput = {
@@ -1523,8 +2163,10 @@ export type UserUpdateWithoutCertificatesCreatedInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -1535,6 +2177,11 @@ export type UserUpdateWithoutCertificatesCreatedInput = {
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCertificatesCreatedInput = {
@@ -1546,8 +2193,10 @@ export type UserUncheckedUpdateWithoutCertificatesCreatedInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -1558,6 +2207,11 @@ export type UserUncheckedUpdateWithoutCertificatesCreatedInput = {
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutStudentProfileInput = {
@@ -1569,8 +2223,10 @@ export type UserCreateWithoutStudentProfileInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -1581,6 +2237,11 @@ export type UserCreateWithoutStudentProfileInput = {
   certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutStudentProfileInput = {
@@ -1592,8 +2253,10 @@ export type UserUncheckedCreateWithoutStudentProfileInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -1604,6 +2267,11 @@ export type UserUncheckedCreateWithoutStudentProfileInput = {
   certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutStudentProfileInput = {
@@ -1631,8 +2299,10 @@ export type UserUpdateWithoutStudentProfileInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -1643,6 +2313,11 @@ export type UserUpdateWithoutStudentProfileInput = {
   certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutStudentProfileInput = {
@@ -1654,8 +2329,10 @@ export type UserUncheckedUpdateWithoutStudentProfileInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -1666,6 +2343,11 @@ export type UserUncheckedUpdateWithoutStudentProfileInput = {
   certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssignmentsCreatedInput = {
@@ -1677,8 +2359,10 @@ export type UserCreateWithoutAssignmentsCreatedInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -1689,6 +2373,11 @@ export type UserCreateWithoutAssignmentsCreatedInput = {
   certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssignmentsCreatedInput = {
@@ -1700,8 +2389,10 @@ export type UserUncheckedCreateWithoutAssignmentsCreatedInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -1712,6 +2403,11 @@ export type UserUncheckedCreateWithoutAssignmentsCreatedInput = {
   certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssignmentsCreatedInput = {
@@ -1739,8 +2435,10 @@ export type UserUpdateWithoutAssignmentsCreatedInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -1751,6 +2449,11 @@ export type UserUpdateWithoutAssignmentsCreatedInput = {
   certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignmentsCreatedInput = {
@@ -1762,8 +2465,10 @@ export type UserUncheckedUpdateWithoutAssignmentsCreatedInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -1774,6 +2479,11 @@ export type UserUncheckedUpdateWithoutAssignmentsCreatedInput = {
   certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSubmissionsReviewedInput = {
@@ -1785,8 +2495,10 @@ export type UserCreateWithoutSubmissionsReviewedInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
@@ -1797,6 +2509,11 @@ export type UserCreateWithoutSubmissionsReviewedInput = {
   certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
   studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSubmissionsReviewedInput = {
@@ -1808,8 +2525,10 @@ export type UserUncheckedCreateWithoutSubmissionsReviewedInput = {
   role?: $Enums.Role
   isActive?: boolean
   lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
   assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
   posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
@@ -1820,6 +2539,11 @@ export type UserUncheckedCreateWithoutSubmissionsReviewedInput = {
   certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
   studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
   assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSubmissionsReviewedInput = {
@@ -1847,8 +2571,10 @@ export type UserUpdateWithoutSubmissionsReviewedInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
@@ -1859,6 +2585,11 @@ export type UserUpdateWithoutSubmissionsReviewedInput = {
   certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
   studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSubmissionsReviewedInput = {
@@ -1870,8 +2601,10 @@ export type UserUncheckedUpdateWithoutSubmissionsReviewedInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
   assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
   posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
@@ -1882,6 +2615,555 @@ export type UserUncheckedUpdateWithoutSubmissionsReviewedInput = {
   certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
   studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
   assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutInvoicesCreatedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutInvoicesCreatedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutInvoicesCreatedInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutInvoicesCreatedInput, Prisma.UserUncheckedCreateWithoutInvoicesCreatedInput>
+}
+
+export type UserUpsertWithoutInvoicesCreatedInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutInvoicesCreatedInput, Prisma.UserUncheckedUpdateWithoutInvoicesCreatedInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutInvoicesCreatedInput, Prisma.UserUncheckedCreateWithoutInvoicesCreatedInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutInvoicesCreatedInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutInvoicesCreatedInput, Prisma.UserUncheckedUpdateWithoutInvoicesCreatedInput>
+}
+
+export type UserUpdateWithoutInvoicesCreatedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutInvoicesCreatedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutPaymentsReceivedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutPaymentsReceivedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutPaymentsReceivedInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutPaymentsReceivedInput, Prisma.UserUncheckedCreateWithoutPaymentsReceivedInput>
+}
+
+export type UserCreateWithoutPaymentsVoidedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  daysClosed?: Prisma.DayCloseCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutPaymentsVoidedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  daysClosed?: Prisma.DayCloseUncheckedCreateNestedManyWithoutClosedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutPaymentsVoidedInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutPaymentsVoidedInput, Prisma.UserUncheckedCreateWithoutPaymentsVoidedInput>
+}
+
+export type UserUpsertWithoutPaymentsReceivedInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutPaymentsReceivedInput, Prisma.UserUncheckedUpdateWithoutPaymentsReceivedInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutPaymentsReceivedInput, Prisma.UserUncheckedCreateWithoutPaymentsReceivedInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutPaymentsReceivedInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutPaymentsReceivedInput, Prisma.UserUncheckedUpdateWithoutPaymentsReceivedInput>
+}
+
+export type UserUpdateWithoutPaymentsReceivedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutPaymentsReceivedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserUpsertWithoutPaymentsVoidedInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutPaymentsVoidedInput, Prisma.UserUncheckedUpdateWithoutPaymentsVoidedInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutPaymentsVoidedInput, Prisma.UserUncheckedCreateWithoutPaymentsVoidedInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutPaymentsVoidedInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutPaymentsVoidedInput, Prisma.UserUncheckedUpdateWithoutPaymentsVoidedInput>
+}
+
+export type UserUpdateWithoutPaymentsVoidedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  daysClosed?: Prisma.DayCloseUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutPaymentsVoidedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  daysClosed?: Prisma.DayCloseUncheckedUpdateManyWithoutClosedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDaysClosedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentCreateNestedManyWithoutVoidedByInput
+  twoFactor?: Prisma.TwoFactorCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDaysClosedInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  twoFactorEnabled?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batchesTaught?: Prisma.BatchUncheckedCreateNestedManyWithoutInstructorInput
+  assignedLeads?: Prisma.LeadUncheckedCreateNestedManyWithoutAssignedToInput
+  activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutActorInput
+  posts?: Prisma.BlogPostUncheckedCreateNestedManyWithoutAuthorInput
+  media?: Prisma.MediaUncheckedCreateNestedManyWithoutUploadedByInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  certificatesCreated?: Prisma.CertificateUncheckedCreateNestedManyWithoutCreatedByInput
+  studentProfile?: Prisma.StudentProfileUncheckedCreateNestedOneWithoutUserInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedCreateNestedManyWithoutCreatedByInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
+  invoicesCreated?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatedByInput
+  paymentsReceived?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceivedByInput
+  paymentsVoided?: Prisma.PaymentUncheckedCreateNestedManyWithoutVoidedByInput
+  twoFactor?: Prisma.TwoFactorUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDaysClosedInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDaysClosedInput, Prisma.UserUncheckedCreateWithoutDaysClosedInput>
+}
+
+export type UserUpsertWithoutDaysClosedInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDaysClosedInput, Prisma.UserUncheckedUpdateWithoutDaysClosedInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDaysClosedInput, Prisma.UserUncheckedCreateWithoutDaysClosedInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDaysClosedInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDaysClosedInput, Prisma.UserUncheckedUpdateWithoutDaysClosedInput>
+}
+
+export type UserUpdateWithoutDaysClosedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUpdateManyWithoutVoidedByNestedInput
+  twoFactor?: Prisma.TwoFactorUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDaysClosedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchesTaught?: Prisma.BatchUncheckedUpdateManyWithoutInstructorNestedInput
+  assignedLeads?: Prisma.LeadUncheckedUpdateManyWithoutAssignedToNestedInput
+  activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutActorNestedInput
+  posts?: Prisma.BlogPostUncheckedUpdateManyWithoutAuthorNestedInput
+  media?: Prisma.MediaUncheckedUpdateManyWithoutUploadedByNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  certificatesCreated?: Prisma.CertificateUncheckedUpdateManyWithoutCreatedByNestedInput
+  studentProfile?: Prisma.StudentProfileUncheckedUpdateOneWithoutUserNestedInput
+  assignmentsCreated?: Prisma.AssignmentUncheckedUpdateManyWithoutCreatedByNestedInput
+  submissionsReviewed?: Prisma.AssignmentSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+  invoicesCreated?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatedByNestedInput
+  paymentsReceived?: Prisma.PaymentUncheckedUpdateManyWithoutReceivedByNestedInput
+  paymentsVoided?: Prisma.PaymentUncheckedUpdateManyWithoutVoidedByNestedInput
+  twoFactor?: Prisma.TwoFactorUncheckedUpdateOneWithoutUserNestedInput
 }
 
 
@@ -1890,6 +3172,7 @@ export type UserUncheckedUpdateWithoutSubmissionsReviewedInput = {
  */
 
 export type UserCountOutputType = {
+  batchesTaught: number
   assignedLeads: number
   activities: number
   posts: number
@@ -1900,9 +3183,14 @@ export type UserCountOutputType = {
   certificatesCreated: number
   assignmentsCreated: number
   submissionsReviewed: number
+  invoicesCreated: number
+  paymentsReceived: number
+  paymentsVoided: number
+  daysClosed: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  batchesTaught?: boolean | UserCountOutputTypeCountBatchesTaughtArgs
   assignedLeads?: boolean | UserCountOutputTypeCountAssignedLeadsArgs
   activities?: boolean | UserCountOutputTypeCountActivitiesArgs
   posts?: boolean | UserCountOutputTypeCountPostsArgs
@@ -1913,6 +3201,10 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   certificatesCreated?: boolean | UserCountOutputTypeCountCertificatesCreatedArgs
   assignmentsCreated?: boolean | UserCountOutputTypeCountAssignmentsCreatedArgs
   submissionsReviewed?: boolean | UserCountOutputTypeCountSubmissionsReviewedArgs
+  invoicesCreated?: boolean | UserCountOutputTypeCountInvoicesCreatedArgs
+  paymentsReceived?: boolean | UserCountOutputTypeCountPaymentsReceivedArgs
+  paymentsVoided?: boolean | UserCountOutputTypeCountPaymentsVoidedArgs
+  daysClosed?: boolean | UserCountOutputTypeCountDaysClosedArgs
 }
 
 /**
@@ -1923,6 +3215,13 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
    * Select specific fields to fetch from the UserCountOutputType
    */
   select?: Prisma.UserCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountBatchesTaughtArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BatchWhereInput
 }
 
 /**
@@ -1995,6 +3294,34 @@ export type UserCountOutputTypeCountSubmissionsReviewedArgs<ExtArgs extends runt
   where?: Prisma.AssignmentSubmissionWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountInvoicesCreatedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InvoiceWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountPaymentsReceivedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PaymentWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountPaymentsVoidedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PaymentWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDaysClosedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DayCloseWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2005,8 +3332,10 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   role?: boolean
   isActive?: boolean
   lastLoginAt?: boolean
+  twoFactorEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  batchesTaught?: boolean | Prisma.User$batchesTaughtArgs<ExtArgs>
   assignedLeads?: boolean | Prisma.User$assignedLeadsArgs<ExtArgs>
   activities?: boolean | Prisma.User$activitiesArgs<ExtArgs>
   posts?: boolean | Prisma.User$postsArgs<ExtArgs>
@@ -2018,6 +3347,11 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   studentProfile?: boolean | Prisma.User$studentProfileArgs<ExtArgs>
   assignmentsCreated?: boolean | Prisma.User$assignmentsCreatedArgs<ExtArgs>
   submissionsReviewed?: boolean | Prisma.User$submissionsReviewedArgs<ExtArgs>
+  invoicesCreated?: boolean | Prisma.User$invoicesCreatedArgs<ExtArgs>
+  paymentsReceived?: boolean | Prisma.User$paymentsReceivedArgs<ExtArgs>
+  paymentsVoided?: boolean | Prisma.User$paymentsVoidedArgs<ExtArgs>
+  daysClosed?: boolean | Prisma.User$daysClosedArgs<ExtArgs>
+  twoFactor?: boolean | Prisma.User$twoFactorArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -2030,6 +3364,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   role?: boolean
   isActive?: boolean
   lastLoginAt?: boolean
+  twoFactorEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -2043,6 +3378,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   role?: boolean
   isActive?: boolean
   lastLoginAt?: boolean
+  twoFactorEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -2056,12 +3392,14 @@ export type UserSelectScalar = {
   role?: boolean
   isActive?: boolean
   lastLoginAt?: boolean
+  twoFactorEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "isActive" | "lastLoginAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "isActive" | "lastLoginAt" | "twoFactorEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  batchesTaught?: boolean | Prisma.User$batchesTaughtArgs<ExtArgs>
   assignedLeads?: boolean | Prisma.User$assignedLeadsArgs<ExtArgs>
   activities?: boolean | Prisma.User$activitiesArgs<ExtArgs>
   posts?: boolean | Prisma.User$postsArgs<ExtArgs>
@@ -2073,6 +3411,11 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   studentProfile?: boolean | Prisma.User$studentProfileArgs<ExtArgs>
   assignmentsCreated?: boolean | Prisma.User$assignmentsCreatedArgs<ExtArgs>
   submissionsReviewed?: boolean | Prisma.User$submissionsReviewedArgs<ExtArgs>
+  invoicesCreated?: boolean | Prisma.User$invoicesCreatedArgs<ExtArgs>
+  paymentsReceived?: boolean | Prisma.User$paymentsReceivedArgs<ExtArgs>
+  paymentsVoided?: boolean | Prisma.User$paymentsVoidedArgs<ExtArgs>
+  daysClosed?: boolean | Prisma.User$daysClosedArgs<ExtArgs>
+  twoFactor?: boolean | Prisma.User$twoFactorArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -2081,6 +3424,7 @@ export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
+    batchesTaught: Prisma.$BatchPayload<ExtArgs>[]
     assignedLeads: Prisma.$LeadPayload<ExtArgs>[]
     activities: Prisma.$LeadActivityPayload<ExtArgs>[]
     posts: Prisma.$BlogPostPayload<ExtArgs>[]
@@ -2092,6 +3436,11 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     studentProfile: Prisma.$StudentProfilePayload<ExtArgs> | null
     assignmentsCreated: Prisma.$AssignmentPayload<ExtArgs>[]
     submissionsReviewed: Prisma.$AssignmentSubmissionPayload<ExtArgs>[]
+    invoicesCreated: Prisma.$InvoicePayload<ExtArgs>[]
+    paymentsReceived: Prisma.$PaymentPayload<ExtArgs>[]
+    paymentsVoided: Prisma.$PaymentPayload<ExtArgs>[]
+    daysClosed: Prisma.$DayClosePayload<ExtArgs>[]
+    twoFactor: Prisma.$TwoFactorPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2102,6 +3451,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     role: $Enums.Role
     isActive: boolean
     lastLoginAt: Date | null
+    twoFactorEnabled: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -2498,6 +3848,7 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  batchesTaught<T extends Prisma.User$batchesTaughtArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$batchesTaughtArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assignedLeads<T extends Prisma.User$assignedLeadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignedLeadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activities<T extends Prisma.User$activitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$activitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   posts<T extends Prisma.User$postsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$postsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BlogPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2509,6 +3860,11 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   studentProfile<T extends Prisma.User$studentProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$studentProfileArgs<ExtArgs>>): Prisma.Prisma__StudentProfileClient<runtime.Types.Result.GetResult<Prisma.$StudentProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   assignmentsCreated<T extends Prisma.User$assignmentsCreatedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignmentsCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   submissionsReviewed<T extends Prisma.User$submissionsReviewedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$submissionsReviewedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssignmentSubmissionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  invoicesCreated<T extends Prisma.User$invoicesCreatedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$invoicesCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  paymentsReceived<T extends Prisma.User$paymentsReceivedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$paymentsReceivedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  paymentsVoided<T extends Prisma.User$paymentsVoidedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$paymentsVoidedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  daysClosed<T extends Prisma.User$daysClosedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$daysClosedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DayClosePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  twoFactor<T extends Prisma.User$twoFactorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$twoFactorArgs<ExtArgs>>): Prisma.Prisma__TwoFactorClient<runtime.Types.Result.GetResult<Prisma.$TwoFactorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2546,6 +3902,7 @@ export interface UserFieldRefs {
   readonly role: Prisma.FieldRef<"User", 'Role'>
   readonly isActive: Prisma.FieldRef<"User", 'Boolean'>
   readonly lastLoginAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly twoFactorEnabled: Prisma.FieldRef<"User", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
@@ -2941,6 +4298,30 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
+ * User.batchesTaught
+ */
+export type User$batchesTaughtArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Batch
+   */
+  select?: Prisma.BatchSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Batch
+   */
+  omit?: Prisma.BatchOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BatchInclude<ExtArgs> | null
+  where?: Prisma.BatchWhereInput
+  orderBy?: Prisma.BatchOrderByWithRelationInput | Prisma.BatchOrderByWithRelationInput[]
+  cursor?: Prisma.BatchWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BatchScalarFieldEnum | Prisma.BatchScalarFieldEnum[]
+}
+
+/**
  * User.assignedLeads
  */
 export type User$assignedLeadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3197,6 +4578,121 @@ export type User$submissionsReviewedArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.AssignmentSubmissionScalarFieldEnum | Prisma.AssignmentSubmissionScalarFieldEnum[]
+}
+
+/**
+ * User.invoicesCreated
+ */
+export type User$invoicesCreatedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Invoice
+   */
+  select?: Prisma.InvoiceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Invoice
+   */
+  omit?: Prisma.InvoiceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InvoiceInclude<ExtArgs> | null
+  where?: Prisma.InvoiceWhereInput
+  orderBy?: Prisma.InvoiceOrderByWithRelationInput | Prisma.InvoiceOrderByWithRelationInput[]
+  cursor?: Prisma.InvoiceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InvoiceScalarFieldEnum | Prisma.InvoiceScalarFieldEnum[]
+}
+
+/**
+ * User.paymentsReceived
+ */
+export type User$paymentsReceivedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Payment
+   */
+  select?: Prisma.PaymentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Payment
+   */
+  omit?: Prisma.PaymentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PaymentInclude<ExtArgs> | null
+  where?: Prisma.PaymentWhereInput
+  orderBy?: Prisma.PaymentOrderByWithRelationInput | Prisma.PaymentOrderByWithRelationInput[]
+  cursor?: Prisma.PaymentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PaymentScalarFieldEnum | Prisma.PaymentScalarFieldEnum[]
+}
+
+/**
+ * User.paymentsVoided
+ */
+export type User$paymentsVoidedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Payment
+   */
+  select?: Prisma.PaymentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Payment
+   */
+  omit?: Prisma.PaymentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PaymentInclude<ExtArgs> | null
+  where?: Prisma.PaymentWhereInput
+  orderBy?: Prisma.PaymentOrderByWithRelationInput | Prisma.PaymentOrderByWithRelationInput[]
+  cursor?: Prisma.PaymentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PaymentScalarFieldEnum | Prisma.PaymentScalarFieldEnum[]
+}
+
+/**
+ * User.daysClosed
+ */
+export type User$daysClosedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DayClose
+   */
+  select?: Prisma.DayCloseSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DayClose
+   */
+  omit?: Prisma.DayCloseOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DayCloseInclude<ExtArgs> | null
+  where?: Prisma.DayCloseWhereInput
+  orderBy?: Prisma.DayCloseOrderByWithRelationInput | Prisma.DayCloseOrderByWithRelationInput[]
+  cursor?: Prisma.DayCloseWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DayCloseScalarFieldEnum | Prisma.DayCloseScalarFieldEnum[]
+}
+
+/**
+ * User.twoFactor
+ */
+export type User$twoFactorArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TwoFactor
+   */
+  select?: Prisma.TwoFactorSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TwoFactor
+   */
+  omit?: Prisma.TwoFactorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TwoFactorInclude<ExtArgs> | null
+  where?: Prisma.TwoFactorWhereInput
 }
 
 /**

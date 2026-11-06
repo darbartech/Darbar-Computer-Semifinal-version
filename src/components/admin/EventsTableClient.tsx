@@ -7,6 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/common/Badge";
+import { fmtDate } from "@/lib/dates";
 import { EVENT_STATUSES, EVENT_CATEGORIES } from "@/lib/validators/events";
 import { listEvents } from "@/server/actions/events";
 
@@ -49,11 +50,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 function formatDateTime(iso: string | Date): string {
-  return new Date(iso).toLocaleString("en-NP", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "medium", timeStyle: "short" });
 }
 
 type EventRow = {

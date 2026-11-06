@@ -1,7 +1,7 @@
 /**
  * Course-catalog seed rules (docs/07 §1–2).
  *
- * These transformations are the contract between `src/content/courses.ts` (the
+ * These transformations are the contract between `prisma/seed-data/courses.ts` (the
  * static source of truth until cut-over) and the `Course` table.
  *
  * This module is deliberately dependency-free and does not import from

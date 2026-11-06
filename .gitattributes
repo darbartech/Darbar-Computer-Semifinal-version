@@ -1,0 +1,4 @@
+# Normalise line endings so a checkout is identical on every machine (brief task 10).
+# `text=auto` lets Git keep guessing which files are binary; `eol=lf` pins the
+# working tree to LF even on a Windows clone that would otherwise write CRLF.
+* text=auto eol=lf

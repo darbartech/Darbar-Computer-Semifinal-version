@@ -6,7 +6,7 @@
  *
  * - `src/server/dal/mappers.ts` — `toCourseView()` for the public pages.
  * - `prisma/seed-data/course-rules.ts` — the reverse direction, when the static
- *   `src/content/courses.ts` is loaded into the database.
+ *   `prisma/seed-data/courses.ts` is loaded into the database.
  *
  * It must stay free of imports so both a `tsx` seed run and a Next.js build can
  * use it. The label values are the exact strings the static content used, which

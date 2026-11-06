@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DISPOSABLE_EMAIL_MESSAGE, isDisposableEmail } from "@/lib/disposable-email";
 
 /**
  * Field primitives shared by every public form schema and by the admin lead /
@@ -81,27 +82,40 @@ export const phoneSchema = z
   .max(20, "Phone number is too long")
   .regex(/^[+\d\s()-]+$/, "Please enter a valid phone number");
 
-/** Optional email: blank string and `undefined` both mean "not provided". */
-export const optionalEmailSchema = z
+/**
+ * Optional email: blank string and `undefined` both mean "not provided".
+ *
+ * `…Public` variants exist because a form that creates a record has to refuse a
+ * mailbox that self-destructs, while sign-in and password reset must not — see
+ * `publicEmailSchema` below.
+ */
+const emailShape = z
   .string()
   .trim()
   .toLowerCase()
-  .max(254, "Email is too long")
-  .refine(
-    (value) => value === "" || z.email().safeParse(value).success,
-    "Please enter a valid email address"
-  )
+  .max(254, "Email is too long");
+
+const INVALID_EMAIL = "Please enter a valid email address";
+const isValidEmail = (value: string) => z.email().safeParse(value).success;
+const isNotDisposable = (value: string) => !isDisposableEmail(value);
+
+export const optionalEmailSchema = emailShape
+  .refine((value) => value === "" || isValidEmail(value), INVALID_EMAIL)
   .optional();
 
-export const requiredEmailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .max(254, "Email is too long")
-  .refine(
-    (value) => z.email().safeParse(value).success,
-    "Please enter a valid email address"
-  );
+export const requiredEmailSchema = emailShape.refine(isValidEmail, INVALID_EMAIL);
+
+/** An address the institute can still reach next month. */
+export const publicEmailSchema = requiredEmailSchema.refine(
+  isNotDisposable,
+  DISPOSABLE_EMAIL_MESSAGE
+);
+
+/** Optional sibling of `publicEmailSchema`: blank still means "not provided". */
+export const optionalPublicEmailSchema = emailShape
+  .refine((value) => value === "" || isValidEmail(value), INVALID_EMAIL)
+  .refine(isNotDisposable, DISPOSABLE_EMAIL_MESSAGE)
+  .optional();
 
 /**
  * Honeypot (docs/06 §8). The field is rendered hidden and must stay empty.

@@ -124,17 +124,23 @@ Multi-file upload, per-image title/alt (alt **required**), category, taken date,
 ### 4.10 Testimonials
 Name, course, quote, rating (1–5), photo, **"consent obtained" checkbox + note** — Publish is disabled until consent is ticked.
 
+Delete is SUPER_ADMIN-only (`testimonials.delete`): the row has no archive flag, so the quote
+and the consent note recorded with it disappear together.
+
 ### 4.11 Team
 Name, role, specialty, bio, photo, order, published toggle.
+
+Delete is SUPER_ADMIN-only (`team.delete`) for the same reason; unpublished is the normal way
+to retire a person.
 
 ### 4.12 Media library
 Grid + search, upload (drag & drop, max size/type enforced), edit alt text, "used in" list, delete only when unused.
 
 ### 4.13 Site settings
-One tab per group (see `03` §4): **General · Contact & hours · Social links · About (story/mission/vision) · Stats · Why choose us · Facilities · SEO defaults**. Each tab validates with Zod and revalidates the `settings` tag.
+One tab per group (see `03` §4): **General · Contact & hours · Social links · About (story/mission/vision) · Stats · Why choose us · Facilities · SEO defaults**. Each tab validates with Zod and revalidates the `settings` tag. Cosmetic tabs save with one click. A tab that moves a sensitive field — the fee limits (`maxBackdateDays`, discount approval threshold, late fee, allowed due amount, certificate clearance, currency) or the site URL — also requires a fresh authenticator code (docs/08 §"Step-up"); the code box appears only for those fields, and a tab that has never been saved counts as sensitive.
 
 ### 4.14 Users (SUPER_ADMIN)
-Create user (name, email, role, temporary password or invite link), change role, deactivate/reactivate, reset password. A SUPER_ADMIN cannot demote/deactivate themselves; there must always be ≥ 1 active SUPER_ADMIN.
+Create user (name, email, role, password the person sets themselves later), change role, deactivate/reactivate, reset two-factor, delete. Creating an account in a role that needs 2FA (SUPER_ADMIN / ADMIN / ACCOUNTANT / RECEPTION), moving a role or e-mail, activating or deactivating, deleting, resetting 2FA, and sending a password-reset link each ask for a fresh authenticator code. "Reset password" no longer accepts a password typed by the admin: it emails the account holder a one-time link (`/techdarbar/reset-password`) and signs them out everywhere. A SUPER_ADMIN cannot demote/deactivate themselves; there must always be ≥ 1 active SUPER_ADMIN.
 
 ### 4.15 Audit log
 Read-only table: time, user, action, entity, summary; filters by user/entity/date; click row → JSON diff of `meta`.
@@ -187,6 +193,25 @@ Read-only table: time, user, action, entity, summary; filters by user/entity/dat
 - [ ] Confirm dialog for destructive/irreversible actions
 - [ ] Audit entry written; public cache revalidated
 - [ ] Works at 375 px width
+
+### How the checklist is met today
+
+- **Destructive actions** use `useConfirm()` (`src/components/common/ConfirmDialog.tsx`) — one
+  dialog for the whole area, built on the existing `Dialog`. The title says what is about to
+  happen, the description names the row, the confirm button is destructive, and `run()` keeps
+  the dialog open with the server's message when the action is refused, so the answer is read
+  rather than chased through expiring toasts. Tab stays inside the panel, Escape cancels, and
+  the button cannot be pressed twice. Pass `reasonLabel` for writes whose reason belongs in the
+  audit log; Confirm stays disabled until one is typed.
+- **Loading** — each gated segment ships a `loading.tsx` that renders `SegmentLoading`
+  (skeleton heading, filters and rows) or `CardsLoading`: leads, students, fees, certificates,
+  messages, users, audit-log, batches, assignments, and the student portal.
+- **Error** — each ships an `error.tsx` on `SegmentError`, which shows the digest as
+  "Reference: …" plus a Try again button. `error.message` and `stack` never reach the page: a
+  message can quote a query, and a stack is the whole file tree.
+- **Deleting a row with no archive column** (team members, testimonials) is SUPER_ADMIN-only —
+  `team.delete` and `testimonials.delete`, mirroring `lead.delete`. Those managers take a
+  `canDelete` prop and render no Delete button without it.
 
 ---
 

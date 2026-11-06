@@ -55,6 +55,7 @@ export const ModelName = {
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
+  TwoFactor: 'TwoFactor',
   Media: 'Media',
   CategoryGroup: 'CategoryGroup',
   Category: 'Category',
@@ -73,7 +74,8 @@ export const ModelName = {
   TeamMember: 'TeamMember',
   SiteSetting: 'SiteSetting',
   AuditLog: 'AuditLog',
-  RateLimitHit: 'RateLimitHit',
+  Counter: 'Counter',
+  RateLimitBucket: 'RateLimitBucket',
   CertificateSignatory: 'CertificateSignatory',
   CertificateTemplate: 'CertificateTemplate',
   Certificate: 'Certificate',
@@ -85,7 +87,11 @@ export const ModelName = {
   Assignment: 'Assignment',
   AssignmentSubmission: 'AssignmentSubmission',
   AssignmentRecipient: 'AssignmentRecipient',
-  Notice: 'Notice'
+  Notice: 'Notice',
+  Invoice: 'Invoice',
+  InvoiceInstallment: 'InvoiceInstallment',
+  Payment: 'Payment',
+  DayClose: 'DayClose'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -113,6 +119,7 @@ export const UserScalarFieldEnum = {
   role: 'role',
   isActive: 'isActive',
   lastLoginAt: 'lastLoginAt',
+  twoFactorEnabled: 'twoFactorEnabled',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -163,6 +170,21 @@ export const VerificationScalarFieldEnum = {
 } as const
 
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
+
+
+export const TwoFactorScalarFieldEnum = {
+  id: 'id',
+  secret: 'secret',
+  backupCodes: 'backupCodes',
+  userId: 'userId',
+  verified: 'verified',
+  failedVerificationCount: 'failedVerificationCount',
+  lockedUntil: 'lockedUntil',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TwoFactorScalarFieldEnum = (typeof TwoFactorScalarFieldEnum)[keyof typeof TwoFactorScalarFieldEnum]
 
 
 export const MediaScalarFieldEnum = {
@@ -257,6 +279,7 @@ export const BatchScalarFieldEnum = {
   seatsTotal: 'seatsTotal',
   seatsTaken: 'seatsTaken',
   status: 'status',
+  instructorId: 'instructorId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -286,7 +309,10 @@ export const LeadScalarFieldEnum = {
   consentAt: 'consentAt',
   ipHash: 'ipHash',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt',
+  phoneNormalized: 'phoneNormalized',
+  studentId: 'studentId'
 } as const
 
 export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
@@ -465,13 +491,22 @@ export const AuditLogScalarFieldEnum = {
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
-export const RateLimitHitScalarFieldEnum = {
-  id: 'id',
+export const CounterScalarFieldEnum = {
   key: 'key',
-  createdAt: 'createdAt'
+  value: 'value',
+  updatedAt: 'updatedAt'
 } as const
 
-export type RateLimitHitScalarFieldEnum = (typeof RateLimitHitScalarFieldEnum)[keyof typeof RateLimitHitScalarFieldEnum]
+export type CounterScalarFieldEnum = (typeof CounterScalarFieldEnum)[keyof typeof CounterScalarFieldEnum]
+
+
+export const RateLimitBucketScalarFieldEnum = {
+  key: 'key',
+  windowStart: 'windowStart',
+  count: 'count'
+} as const
+
+export type RateLimitBucketScalarFieldEnum = (typeof RateLimitBucketScalarFieldEnum)[keyof typeof RateLimitBucketScalarFieldEnum]
 
 
 export const CertificateSignatoryScalarFieldEnum = {
@@ -598,6 +633,9 @@ export const EnrollmentScalarFieldEnum = {
   enrolledAt: 'enrolledAt',
   completedAt: 'completedAt',
   note: 'note',
+  decisionNote: 'decisionNote',
+  decidedById: 'decidedById',
+  decidedAt: 'decidedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -679,6 +717,71 @@ export const NoticeScalarFieldEnum = {
 } as const
 
 export type NoticeScalarFieldEnum = (typeof NoticeScalarFieldEnum)[keyof typeof NoticeScalarFieldEnum]
+
+
+export const InvoiceScalarFieldEnum = {
+  id: 'id',
+  number: 'number',
+  studentId: 'studentId',
+  enrollmentId: 'enrollmentId',
+  title: 'title',
+  grossAmount: 'grossAmount',
+  discountAmount: 'discountAmount',
+  discountReason: 'discountReason',
+  netAmount: 'netAmount',
+  status: 'status',
+  dueDate: 'dueDate',
+  note: 'note',
+  voidReason: 'voidReason',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
+
+
+export const InvoiceInstallmentScalarFieldEnum = {
+  id: 'id',
+  invoiceId: 'invoiceId',
+  seq: 'seq',
+  amount: 'amount',
+  dueDate: 'dueDate'
+} as const
+
+export type InvoiceInstallmentScalarFieldEnum = (typeof InvoiceInstallmentScalarFieldEnum)[keyof typeof InvoiceInstallmentScalarFieldEnum]
+
+
+export const PaymentScalarFieldEnum = {
+  id: 'id',
+  receiptNo: 'receiptNo',
+  invoiceId: 'invoiceId',
+  amount: 'amount',
+  method: 'method',
+  reference: 'reference',
+  status: 'status',
+  receivedAt: 'receivedAt',
+  receivedById: 'receivedById',
+  voidedAt: 'voidedAt',
+  voidedById: 'voidedById',
+  voidReason: 'voidReason',
+  idempotencyKey: 'idempotencyKey',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
+
+
+export const DayCloseScalarFieldEnum = {
+  id: 'id',
+  day: 'day',
+  cashCounted: 'cashCounted',
+  note: 'note',
+  closedById: 'closedById',
+  createdAt: 'createdAt'
+} as const
+
+export type DayCloseScalarFieldEnum = (typeof DayCloseScalarFieldEnum)[keyof typeof DayCloseScalarFieldEnum]
 
 
 export const SortOrder = {

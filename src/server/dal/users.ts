@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "../../generated/prisma/client";
 import type { Role } from "../../generated/prisma/enums";
 import { db } from "../db";
+import type { Tx } from "./counters";
 
 export const PAGE_SIZE = 20;
 
@@ -14,6 +15,7 @@ const userSelect = {
   emailVerified: true,
   image: true,
   lastLoginAt: true,
+  twoFactorEnabled: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;
@@ -70,8 +72,116 @@ export const findUserByEmail = async (email: string, excludeId?: string) =>
     select: { id: true },
   });
 
-export const countActiveSuperAdmins = async () =>
-  db.user.count({ where: { role: "SUPER_ADMIN", isActive: true } });
+/**
+ * Guarded staff-account writes (fix guide §11).
+ *
+ * The rule "at least one active SUPER_ADMIN must remain" used to be a count in
+ * one statement and the write in the next. Two superadmins demoted from another
+ * account at the same moment each read the same count, each decided there was
+ * still one left, and both committed — the institute then has no account that
+ * can create accounts, which is only discoverable when somebody needs it.
+ *
+ * `SELECT … FOR UPDATE` locks the active super-admin rows for the length of the
+ * transaction, so the second writer blocks on the first one's commit. Postgres
+ * re-checks the predicate against the newest committed row version, so the count
+ * it then reads is the truth rather than a snapshot of a state that no longer
+ * exists.
+ */
+export type GuardedWrite = { ok: true } | { ok: false; reason: "last-super-admin" };
+
+export const LAST_SUPER_ADMIN_MESSAGE =
+  "At least one active super administrator must remain";
+
+const occupiesSuperAdminSeat = (user: { role: Role; isActive: boolean }) =>
+  user.role === "SUPER_ADMIN" && user.isActive;
+
+const lockActiveSuperAdmins = async (tx: Tx) =>
+  tx.$queryRaw<{ id: string }[]>`
+    SELECT "id" FROM "User"
+    WHERE "role" = 'SUPER_ADMIN' AND "isActive" = true
+    FOR UPDATE`;
+
+/**
+ * Does this write take a seat away from the active super-admin group? `next` is
+ * what the row becomes, or `null` when the row stops existing.
+ */
+const losesActiveSuperAdmin = (
+  target: { role: Role; isActive: boolean },
+  next: { role: Role; isActive: boolean } | null
+) => occupiesSuperAdminSeat(target) && (next === null || !occupiesSuperAdminSeat(next));
+
+export const updateUserGuarded = async (
+  id: string,
+  data: { name: string; email: string; role: Role; isActive: boolean }
+): Promise<GuardedWrite> =>
+  db.$transaction(async (tx): Promise<GuardedWrite> => {
+    const target = await tx.user.findUnique({
+      where: { id },
+      select: { role: true, isActive: true, email: true },
+    });
+    if (!target) return { ok: true };
+    if (
+      losesActiveSuperAdmin(target, { role: data.role, isActive: data.isActive }) &&
+      (await lockActiveSuperAdmins(tx)).length <= 1
+    ) {
+      return { ok: false, reason: "last-super-admin" };
+    }
+    await tx.user.update({ where: { id }, data });
+    // A changed address is a different person at the same cookie: every live
+    // session goes with it, in the same transaction as the rename (fix guide §11).
+    // Deactivating the account drops its sessions on the very next request.
+    if (data.email !== target.email || !data.isActive) {
+      await tx.session.deleteMany({ where: { userId: id } });
+    }
+    return { ok: true };
+  });
+
+/**
+ * Activate or deactivate an account behind the last-super-admin floor.
+ *
+ * The action used to re-read `existing` outside the transaction; here the row is
+ * read under the same lock the decision needs, so a role changed a moment ago
+ * cannot be judged from stale data.
+ */
+export const setUserActiveGuarded = async (
+  id: string,
+  isActive: boolean
+): Promise<GuardedWrite> =>
+  db.$transaction(async (tx): Promise<GuardedWrite> => {
+    const target = await tx.user.findUnique({
+      where: { id },
+      select: { role: true, isActive: true },
+    });
+    if (!target) return { ok: true };
+    if (
+      losesActiveSuperAdmin(target, { role: target.role, isActive }) &&
+      (await lockActiveSuperAdmins(tx)).length <= 1
+    ) {
+      return { ok: false, reason: "last-super-admin" };
+    }
+    await tx.user.update({ where: { id }, data: { isActive } });
+    // Deactivation must take effect on the very next request (docs/08 §1).
+    if (!isActive) await tx.session.deleteMany({ where: { userId: id } });
+    return { ok: true };
+  });
+
+/** Delete an account, refusing to delete the last active super administrator. */
+export const deleteUserGuarded = async (id: string): Promise<GuardedWrite> =>
+  db.$transaction(async (tx): Promise<GuardedWrite> => {
+    const target = await tx.user.findUnique({
+      where: { id },
+      select: { role: true, isActive: true },
+    });
+    if (!target) return { ok: true };
+    if (
+      losesActiveSuperAdmin(target, null) &&
+      (await lockActiveSuperAdmins(tx)).length <= 1
+    ) {
+      return { ok: false, reason: "last-super-admin" };
+    }
+    await tx.user.delete({ where: { id } });
+    return { ok: true };
+  });
 
 /**
  * Creates the User row and its better-auth `credential` Account in one
@@ -107,22 +217,19 @@ export const createUserWithCredential = async (data: {
     return user;
   });
 
-export const updateUser = async (id: string, data: Prisma.UserUpdateInput) => {
-  return db.user.update({ where: { id }, data, select: { id: true } });
-};
-
-export const setUserActive = async (id: string, isActive: boolean) =>
-  db.user.update({ where: { id }, data: { isActive }, select: { id: true } });
-
-export const deleteUser = async (id: string) =>
-  db.user.delete({ where: { id }, select: { id: true } });
-
 /** A deactivated account or rotated password must drop all live sessions. */
 export const revokeUserSessions = async (id: string) => db.session.deleteMany({ where: { userId: id } });
 
-export const upsertCredentialPassword = async (userId: string, passwordHash: string) =>
-  db.account.upsert({
-    where: { providerId_accountId: { providerId: "credential", accountId: userId } },
-    create: { providerId: "credential", accountId: userId, userId, password: passwordHash },
-    update: { password: passwordHash },
+/**
+ * Recovery for a lost authenticator (fix guide §4). The enrolled secret and its
+ * backup codes go with it, the flag comes off, and every live session of that
+ * account is dropped — a reset must not leave a cookie that still passes the
+ * gate a second factor was supposed to hold.
+ */
+export const resetUserTwoFactor = async (id: string) =>
+  db.$transaction(async (tx) => {
+    const cleared = await tx.twoFactor.deleteMany({ where: { userId: id } });
+    await tx.user.update({ where: { id }, data: { twoFactorEnabled: false } });
+    const sessions = await tx.session.deleteMany({ where: { userId: id } });
+    return { secretsCleared: cleared.count, sessionsRevoked: sessions.count };
   });

@@ -39,7 +39,7 @@ export default async function AdminAssignmentDetailPage({
 }) {
   const user = await requirePermission("assignment.read");
   const { id } = await params;
-  const assignment = await adminGetAssignmentDetail(id);
+  const assignment = await adminGetAssignmentDetail(id, { userId: user.id, role: user.role });
   if (!assignment) notFound();
 
   const submitted = assignment.rows.filter((row) => row.submission).length;

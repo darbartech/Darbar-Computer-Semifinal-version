@@ -3,17 +3,16 @@ import createMDX from "@next/mdx";
 /*
  * Security headers (docs/08 §1 "Platform").
  *
- * CSP is deliberately in REPORT-ONLY mode: the app ships inline JSON-LD and
- * Next.js injects inline bootstrap scripts, so enforcing on day one would break
- * the site. Collect reports, then flip `Content-Security-Policy-Report-Only`
- * to `Content-Security-Policy` and drop the `'unsafe-*'` entries that turn out
- * to be unnecessary.
+ * There is no Content-Security-Policy here, even though half the site now ships
+ * a nonce-free one (re-audit #1). The policy has exactly one owner, `src/proxy.ts`,
+ * built in `src/lib/csp.ts`: a browser that receives two `Content-Security-Policy`
+ * headers enforces the intersection of both, so a second copy of the public-page
+ * policy here would silently break the nonce'd surfaces. Header order is also
+ * not how a nonce could travel anyway — only the proxy sees the request.
  *
- * Report-only violations are collected by `POST /api/csp-report` (`report-uri`
- * below). Read those logs before flipping `Content-Security-Policy-Report-Only` to
- * `Content-Security-Policy` — note that `img-src` still only whitelists the four
- * hosts the media library knows about, so the "add media by URL" flow is the part
- * most likely to break on enforcement.
+ * What stays below is request-independent, so it also covers the paths the proxy
+ * matcher skips (`/api/*`, `/uploads`, static assets): sniffing, referrer,
+ * framing, camera/microphone permissions and HSTS in production.
  */
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -38,32 +37,6 @@ const localStorageEnabled =
   process.env.MEDIA_STORAGE_PROVIDER === "local" ||
   (!process.env.MEDIA_STORAGE_PROVIDER && !isProduction);
 
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-  // Nothing on this site is meant to be embedded by another origin. `frame-src`
-  // below is about what WE embed (Google Maps, Cloudflare Turnstile).
-  "frame-ancestors 'none'",
-  "img-src 'self' blob: data: https://res.cloudinary.com https://images.pexels.com https://images.unsplash.com https://cdn.prod.website-files.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  // 'unsafe-eval' is only needed by the React refresh runtime in development.
-  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://challenges.cloudflare.com`,
-  "connect-src 'self' https://challenges.cloudflare.com https://api.cloudinary.com",
-  "frame-src 'self' https://www.google.com https://maps.google.com https://challenges.cloudflare.com",
-  "media-src 'self' https://res.cloudinary.com",
-  "manifest-src 'self'",
-  // Same-origin collector (`src/app/api/csp-report/route.ts`). Without it a
-  // report-only policy reports to nobody and the "collect, then enforce" plan
-  // below has nothing to collect.
-  "report-uri /api/csp-report",
-  // No `upgrade-insecure-requests`: browsers ignore it in a report-only policy,
-  // and HSTS below covers the upgrade in production.
-]
-  .join("; ");
-
 const baseSecurityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -79,7 +52,6 @@ const baseSecurityHeaders = [
     // permission.
     value: "camera=(), microphone=(), payment=(), usb=(), magnetometer=(), geolocation=(self)",
   },
-  { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
 ];
 
 // The admin surface gets two more guards on top of the base set. Both keys are
@@ -140,18 +112,10 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
-      {
-        protocol: "https",
-        hostname: "images.pexels.com",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      {
-        protocol: "https",
-        hostname: "cdn.prod.website-files.com",
-      },
+      // The stock hosts the seed data used to point at (Pexels, Unsplash,
+      // website-files) are gone: those pictures live in `public/images/seed`,
+      // and every pattern left here is a host the optimizer may still be asked
+      // to fetch.
     ],
   },
   experimental: {

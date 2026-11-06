@@ -13,25 +13,23 @@ import {
 import { listStudentAssignments } from "@/server/dal/assignments";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-
-const ENROLLMENT_VARIANT: Record<string, "default" | "success" | "secondary" | "outline"> = {
-  PENDING: "outline",
-  ACTIVE: "secondary",
-  COMPLETED: "success",
-  DROPPED: "outline",
-};
+import { EnrollmentStatusBadge } from "@/components/admin/StatusBadges";
 
 export default async function StudentDashboardPage() {
   const { profile } = await requireStudentProfile();
   const [enrollments, certificates, projects, assignments] = await Promise.all([
     listStudentEnrollments(profile.id),
-    listStudentCertificates({ id: profile.id, studentCode: profile.studentCode }),
+    listStudentCertificates({ id: profile.id }),
     listStudentProjects(profile.id),
     listStudentAssignments(profile.id),
   ]);
 
   const issued = certificates.filter((c) => c.status === "ISSUED");
-  const activeCourses = enrollments.filter((e) => e.status === "ACTIVE" || e.status === "PENDING");
+  // A waitlisted request is still open, so it belongs on the dashboard next to
+  // pending ones; REJECTED/DROPPED are history and live on the courses page.
+  const activeCourses = enrollments.filter(
+    (e) => e.status === "ACTIVE" || e.status === "PENDING" || e.status === "WAITLISTED"
+  );
   // `isNew` is the unread marker: true until the student opens /student/assignments.
   const unreadAssignments = assignments.filter((assignment) => assignment.isNew);
 
@@ -157,10 +155,13 @@ export default async function StudentDashboardPage() {
                             ? `${enrollment.batch.name} · starts ${enrollment.batch.startDate}`
                             : enrollment.course.tagline}
                         </p>
+                        {enrollment.decisionNote && enrollment.status !== "ACTIVE" && (
+                          <p className="text-xs text-neutral-500 mt-0.5 truncate">
+                            Note: {enrollment.decisionNote}
+                          </p>
+                        )}
                       </div>
-                      <Badge variant={ENROLLMENT_VARIANT[enrollment.status] ?? "outline"}>
-                        {enrollment.status}
-                      </Badge>
+                      <EnrollmentStatusBadge status={enrollment.status} />
                     </CardContent>
                   </Card>
                 ))}

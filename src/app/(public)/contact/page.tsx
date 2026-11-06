@@ -59,7 +59,7 @@ export default async function ContactPage() {
         <Container size="xl">
           <div className="relative overflow-hidden rounded-2xl border border-neutral-200 mb-10 aspect-[21/9] bg-neutral-100">
             <Image
-              src="https://images.pexels.com/photos/10638115/pexels-photo-10638115.jpeg?auto=compress&cs=tinysrgb&w=1800"
+              src="/images/seed/pexels-10638115.jpg"
               alt="DarbarTech reception and student counseling area"
               fill
               priority

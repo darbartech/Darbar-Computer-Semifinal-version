@@ -2,7 +2,16 @@ import { describe, it, expect } from "vitest";
 import { PERMISSIONS, can } from "../src/server/permissions";
 import type { Role } from "../src/generated/prisma/client";
 
-const ALL_ROLES: Role[] = ["SUPER_ADMIN", "ADMIN", "EDITOR", "COUNSELOR", "STUDENT"];
+const ALL_ROLES: Role[] = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "EDITOR",
+  "COUNSELOR",
+  "INSTRUCTOR",
+  "ACCOUNTANT",
+  "RECEPTION",
+  "STUDENT",
+];
 
 /**
  * The expected matrix, transcribed from docs/05 §2 (role matrix) and docs/04 §2
@@ -18,10 +27,16 @@ const EXPECTED: Record<Role, string[]> = {
     "lead.update",
     "lead.export",
     "lead.delete",
+    "lead.convert",
     "contact.read",
     "contact.update",
     "student.read",
+    "student.create",
+    "student.edit",
     "student.approve",
+    "student.export",
+    "student.erase",
+    "enrollment.manage",
     "course.read",
     "course.write",
     "course.archive",
@@ -29,6 +44,15 @@ const EXPECTED: Record<Role, string[]> = {
     "batch.write",
     "assignment.read",
     "assignment.write",
+    "fee.read",
+    "fee.write",
+    "invoice.issue",
+    "invoice.void",
+    "payment.record",
+    "payment.void",
+    "fee.closeDay",
+    "fee.reopenDay",
+    "report.view",
     "notice.read",
     "notice.write",
     "category.manage",
@@ -37,7 +61,9 @@ const EXPECTED: Record<Role, string[]> = {
     "faq.write",
     "gallery.write",
     "testimonials.write",
+    "testimonials.delete",
     "team.write",
+    "team.delete",
     "media.read",
     "media.upload",
     "media.update",
@@ -64,10 +90,14 @@ const EXPECTED: Record<Role, string[]> = {
     "lead.read",
     "lead.update",
     "lead.export",
+    "lead.convert",
     "contact.read",
     "contact.update",
     "student.read",
+    "student.create",
+    "student.edit",
     "student.approve",
+    "enrollment.manage",
     "course.read",
     "course.write",
     "course.archive",
@@ -75,6 +105,15 @@ const EXPECTED: Record<Role, string[]> = {
     "batch.write",
     "assignment.read",
     "assignment.write",
+    "fee.read",
+    "fee.write",
+    "invoice.issue",
+    "invoice.void",
+    "payment.record",
+    "payment.void",
+    "fee.closeDay",
+    "fee.reopenDay",
+    "report.view",
     "notice.read",
     "notice.write",
     "category.manage",
@@ -133,10 +172,49 @@ const EXPECTED: Record<Role, string[]> = {
     "dashboard.view",
     "lead.read",
     "lead.update",
+    "lead.convert",
     "contact.read",
     "contact.update",
     "student.read",
+    "student.create",
+    "enrollment.manage",
     "course.read",
+  ],
+  // Instructor (docs 04 §1): teaching only, and only their own batches — the
+  // row-level scope lives in requireBatchAccess, not in this matrix.
+  INSTRUCTOR: [
+    "dashboard.view",
+    "student.read",
+    "course.read",
+    "batch.read",
+    "assignment.read",
+    "assignment.write",
+  ],
+  // Accountant: money and reports. No leads, no students list, no content.
+  ACCOUNTANT: [
+    "dashboard.view",
+    "fee.read",
+    "fee.write",
+    "invoice.issue",
+    "payment.record",
+    "fee.closeDay",
+    "report.view",
+  ],
+  // Reception: front desk. Sees leads and admits walk-ins, records a receipt,
+  // but never edits fees or approves registrations.
+  RECEPTION: [
+    "dashboard.view",
+    "lead.read",
+    "lead.update",
+    "lead.convert",
+    "student.read",
+    "student.create",
+    "student.edit",
+    "enrollment.manage",
+    "course.read",
+    "batch.read",
+    "fee.read",
+    "payment.record",
   ],
   // Student portal accounts have no admin-panel permission at all. Their access
   // is enforced by requireStudent() against their own StudentProfile, not by the
@@ -152,6 +230,11 @@ const ADMIN_ONLY = [
   "settings.write",
   "audit.view",
   "media.delete",
+  "invoice.void",
+  "payment.void",
+  // Reopening a counted day is the one move that lets money land in cash already
+  // handed over, so it stays with the admins (fix guide §2).
+  "fee.reopenDay",
   "certificate.issue",
   "certificate.delete",
   "certificate.regenerate_pdf",
@@ -165,6 +248,14 @@ const SUPER_ADMIN_ONLY = [
   "lead.delete",
   "certificate.revoke",
   "certificate.reissue",
+  // Team members and testimonials have no archive column, so deleting them is
+  // irreversible. Both deletes stay here (Task 6).
+  "team.delete",
+  "testimonials.delete",
+  // Brief task 9: handing over a person's whole file, and destroying the identity
+  // in it. Neither is a job function any other role has a reason to need.
+  "student.export",
+  "student.erase",
 ] as const;
 
 function allowedFor(role: Role): string[] {
@@ -233,12 +324,78 @@ describe("PERMISSIONS matrix", () => {
       expect(can("ADMIN", action)).toBe(true);
       expect(can("EDITOR", action)).toBe(false);
       expect(can("COUNSELOR", action)).toBe(false);
+      expect(can("INSTRUCTOR", action)).toBe(false);
+      expect(can("ACCOUNTANT", action)).toBe(false);
+      expect(can("RECEPTION", action)).toBe(false);
     }
     for (const action of SUPER_ADMIN_ONLY) {
       expect(can("SUPER_ADMIN", action)).toBe(true);
       expect(can("ADMIN", action)).toBe(false);
       expect(can("EDITOR", action)).toBe(false);
       expect(can("COUNSELOR", action)).toBe(false);
+      expect(can("INSTRUCTOR", action)).toBe(false);
+      expect(can("ACCOUNTANT", action)).toBe(false);
+      expect(can("RECEPTION", action)).toBe(false);
+    }
+  });
+
+  it("never lets a specialist role cross into another department", () => {
+    // docs 09 §2: "INSTRUCTOR has no fee.*, lead.*, settings.*".
+    for (const action of [
+      "lead.read",
+      "lead.update",
+      "lead.convert",
+      "lead.export",
+      "fee.read",
+      "fee.write",
+      "invoice.issue",
+      "invoice.void",
+      "payment.record",
+      "payment.void",
+      "fee.closeDay",
+      "fee.reopenDay",
+      "report.view",
+      "settings.read",
+      "settings.write",
+      "contact.read",
+      "audit.view",
+    ] as const) {
+      expect(can("INSTRUCTOR", action), `INSTRUCTOR denied ${action}`).toBe(false);
+    }
+    // Money roles do not touch the CRM or the website.
+    for (const action of [
+      "lead.read",
+      "lead.update",
+      "lead.convert",
+      "contact.read",
+      "course.write",
+      "blog.write",
+      "settings.write",
+      "student.approve",
+      "certificate.issue",
+    ] as const) {
+      expect(can("ACCOUNTANT", action), `ACCOUNTANT denied ${action}`).toBe(false);
+    }
+    // The accountant may issue a normal bill but never undo money or a bill.
+    for (const action of ["invoice.void", "payment.void"] as const) {
+      expect(can("ACCOUNTANT", action), `ACCOUNTANT denied ${action}`).toBe(false);
+    }
+    // Front desk records receipts but cannot edit fees, void them or certify.
+    for (const action of [
+      "fee.write",
+      "invoice.issue",
+      "invoice.void",
+      "payment.void",
+      "fee.closeDay",
+      "fee.reopenDay",
+      "student.approve",
+      "settings.write",
+      "users.read",
+      "certificate.issue",
+      "certificate.revoke",
+      "report.view",
+    ] as const) {
+      expect(can("RECEPTION", action), `RECEPTION denied ${action}`).toBe(false);
     }
   });
 
@@ -248,6 +405,9 @@ describe("PERMISSIONS matrix", () => {
     for (const [lower, higher] of [
       ["COUNSELOR", "ADMIN"],
       ["EDITOR", "ADMIN"],
+      ["INSTRUCTOR", "ADMIN"],
+      ["ACCOUNTANT", "ADMIN"],
+      ["RECEPTION", "ADMIN"],
       ["ADMIN", "SUPER_ADMIN"],
     ] as const) {
       for (const action of Object.keys(PERMISSIONS) as (keyof typeof PERMISSIONS)[]) {

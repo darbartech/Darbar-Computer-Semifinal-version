@@ -20,6 +20,7 @@ import {
   type EventWriteInput,
   type EventWriteValues,
 } from "@/lib/validators/events";
+import { fmtDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -185,7 +186,7 @@ export function EventFormClient({
               <span className="truncate">{event.title}</span>
               {event.updatedAt && (
                 <span className="text-xs text-neutral-500">
-                  · updated {new Date(event.updatedAt).toLocaleDateString("en-NP")}
+                  · updated {fmtDate(event.updatedAt)}
                 </span>
               )}
             </>

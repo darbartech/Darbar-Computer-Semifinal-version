@@ -19,7 +19,7 @@ export { LEARNING_MODE_LABELS, LEVEL_LABELS, TIME_SLOT_LABELS };
 
 /** Kept until editors replace the stock covers with real institute photos. */
 export const PLACEHOLDER_COURSE_IMAGE =
-  "https://images.pexels.com/photos/10638075/pexels-photo-10638075.jpeg?auto=compress&cs=tinysrgb&w=1400";
+  "/images/seed/pexels-10638075.jpg";
 
 /** `12` → `"12 Weeks"`. Every duration in the static content was "N Weeks". */
 export function formatDuration(weeks: number): string {
@@ -36,7 +36,7 @@ export function formatFee(amount: number): string {
  *
  * The components (`CourseCard`, `CourseGrid`, JSON-LD, the course detail page)
  * keep working unchanged because the mapper reproduces the labels the static
- * `src/content/courses.ts` used to hard-code. `scripts/verify-seed.ts` compares
+ * `prisma/seed-data/courses.ts` used to hard-code. `scripts/verify-seed.ts` compares
  * this output field by field against the static content.
  */
 export function toCourseView(row: CourseRow): CourseView {

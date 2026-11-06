@@ -9,8 +9,10 @@ export type TurnstileResult = {
 };
 
 /**
- * Cloudflare Turnstile verification (docs/02 §5). Runs before the rate limit
- * and the insert so a bot never reaches the database.
+ * Cloudflare Turnstile verification (docs/02 §5). The caller runs it after the
+ * honeypot and its own rate limit, so a flood of junk requests costs no outbound
+ * call (docs 01 §S9). `remoteip` is the raw client address, used in memory only
+ * by Cloudflare's risk scoring and never stored.
  *
  * When no secret is configured the check is only skipped outside production
  * and only for the explicit bypass token, so a misconfigured production
@@ -18,7 +20,7 @@ export type TurnstileResult = {
  */
 export async function verifyTurnstile(
   token: string,
-  remoteip?: string
+  remoteip?: string | null
 ): Promise<TurnstileResult> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
 

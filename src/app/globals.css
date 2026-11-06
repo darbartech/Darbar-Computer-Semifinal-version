@@ -197,6 +197,27 @@
       font-size: inherit;
     }
   }
+
+  /*
+   * The OS "reduce motion" setting has to beat every transition in the theme —
+   * the section reveals, the carousel autoplay and the smooth scroll are
+   * decoration, and decoration is what makes people ill. 0.01ms rather than
+   * `none`, so anything waiting on a transitionend event still gets one.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {

@@ -68,6 +68,7 @@ export default async function AdminTestimonialsPage({
         courseOptions={courseOptions}
         library={library}
         canWrite={can(user.role, "testimonials.write")}
+        canDelete={can(user.role, "testimonials.delete")}
       />
     </div>
   );

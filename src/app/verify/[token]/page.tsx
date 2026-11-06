@@ -5,7 +5,7 @@ import { ArrowLeft, Award } from "lucide-react";
 import { Container } from "@/components/common/Container";
 import { VerificationCard } from "@/components/verify/VerificationCard";
 import { getPublicCertificateByToken } from "@/server/dal/certificates";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, NOINDEX_METADATA } from "@/lib/seo";
 import { getSiteSettings } from "@/server/dal/settings";
 import { verifyTokenSchema } from "@/lib/validators/certificates";
 
@@ -28,7 +28,7 @@ export async function generateMetadata({
         title: "Certificate",
         description: "Certificate verification",
         path: `/verify/${rawToken}`,
-        robots: { index: false, follow: false },
+        robots: NOINDEX_METADATA,
       },
       settings
     );
@@ -41,7 +41,7 @@ export async function generateMetadata({
         title: "Certificate",
         description: "Certificate verification",
         path: `/verify/${rawToken}`,
-        robots: { index: false, follow: false },
+        robots: NOINDEX_METADATA,
       },
       settings
     );
@@ -52,7 +52,7 @@ export async function generateMetadata({
       title: `${cert.recipientName} — ${cert.courseName}`,
       description: `Certificate ${cert.certificateNumber} verification record for ${cert.courseName}.`,
       path: `/verify/${rawToken}`,
-      robots: { index: false, follow: false },
+      robots: NOINDEX_METADATA,
     },
     settings
   );

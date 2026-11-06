@@ -71,13 +71,9 @@ export function buildMetadata(
   const twitterCreator = general.twitterHandle || SITE_CONFIG.twitter.handle;
 
   return {
-    keywords: [
-      "computer training",
-      "computer institute Nepal",
-      "programming courses",
-      "DarbarTech",
-      "IT training Kathmandu",
-    ],
+    // No `keywords` here: a boilerplate list copied onto every page is the one
+    // signal the tags have stopped meaning anything. `overrides.keywords` still
+    // works for a page that has real ones (a course, a post).
     authors: [{ name: general.name, url: general.siteUrl }],
     creator: general.name,
     publisher: general.name,

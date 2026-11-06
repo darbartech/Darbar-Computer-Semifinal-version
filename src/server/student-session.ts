@@ -2,7 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "./auth";
-import { STUDENT_LOGIN_PATH } from "./constants";
+import { STUDENT_LOGIN_PATH, STUDENT_VERIFY_EMAIL_PATH } from "./constants";
 import { getStudentProfileByUserId, type StudentProfileView } from "./dal/students";
 
 /**
@@ -22,6 +22,7 @@ export type StudentUser = {
   name: string;
   role: string;
   isActive: boolean;
+  emailVerified: boolean;
 };
 
 export async function getStudentSession() {
@@ -34,6 +35,13 @@ export async function requireStudent(): Promise<StudentUser> {
   const user = session?.user as StudentUser | undefined;
   if (!user || user.role !== "STUDENT" || !user.isActive) {
     redirect(STUDENT_LOGIN_PATH);
+  }
+  // docs 01 §S3: an unconfirmed address gets the interstitial, not the portal.
+  // Better Auth itself never blocks sign-in (`requireEmailVerification: false`),
+  // so this is the gate — and it also covers every write, which all run through
+  // this guard.
+  if (!user.emailVerified) {
+    redirect(STUDENT_VERIFY_EMAIL_PATH);
   }
   return user;
 }

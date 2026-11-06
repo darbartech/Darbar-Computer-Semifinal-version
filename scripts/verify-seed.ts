@@ -1,7 +1,7 @@
 ﻿/**
  * Parity verification for the course catalog and the site settings (docs/07 §4).
  *
- * Run it after `prisma/seed.ts` and before deleting `src/content/*`:
+ * Run it after `prisma/seed.ts`, against a database seeded from `prisma/seed-data`:
  *
  *   npm run verify:seed
  *
@@ -31,7 +31,7 @@
  */
 import "dotenv/config";
 import { db } from "../src/server/db";
-import { courses as staticCourses } from "../src/content/courses";
+import { courses as staticCourses } from "../prisma/seed-data/courses";
 import { COURSE_CATEGORY_GROUPS } from "../src/lib/constants";
 import {
   ALLOWED_LEARNING_MODES,
@@ -176,7 +176,7 @@ async function verifyDeepParity(): Promise<void> {
   const staticSlugs = new Set(staticCourses.map((course) => course.slug));
   for (const row of rows) {
     if (!staticSlugs.has(row.slug)) {
-      note(`Database has an extra course not in src/content: ${row.slug} (${row.status})`);
+      note(`Database has an extra course not in the seed catalog: ${row.slug} (${row.status})`);
     }
   }
 

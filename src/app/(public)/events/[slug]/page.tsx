@@ -17,12 +17,14 @@ import { Badge } from "@/components/common/Badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { listPublishedEvents, getPublishedEventBySlug } from "@/server/dal/events";
+import { listPublishedEvents, listPublishedEventSlugs, getPublishedEventBySlug } from "@/server/dal/events";
+import { safeStaticParams } from "@/lib/static-params";
+import { fmtDate, fmtTime } from "@/lib/dates";
 import { buildMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 const PLACEHOLDER_IMAGE =
-  "https://images.pexels.com/photos/5539293/pexels-photo-5539293.jpeg?auto=compress&cs=tinysrgb&w=1400";
+  "/images/seed/pexels-5539293.jpg";
 
 const categoryColors: Record<string, "default" | "secondary" | "accent" | "success" | "warning"> = {
   WORKSHOP: "accent",
@@ -40,15 +42,16 @@ function formatCategoryDisplay(category: string): string {
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return fmtTime(date);
 }
 
-export async function generateStaticParams() {
-  const events = await listPublishedEvents();
-  return events.map((e) => ({ slug: e.slug }));
+/**
+ * Prerendered per published event, like the course and blog detail pages
+ * (re-audit #1). The slug read is the same tagged set the `/events` listing
+ * caches under, so the build asks the database for keys only.
+ */
+export function generateStaticParams() {
+  return safeStaticParams("/events/[slug]", listPublishedEventSlugs);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -189,7 +192,7 @@ export default async function EventDetailPage({
                             <div className="mt-2 text-xs text-neutral-500 flex flex-wrap gap-x-3 gap-y-1 mt-auto pt-2">
                               <span className="inline-flex items-center gap-1">
                                 <CalendarDays className="size-3" />
-                                {rStartsAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                {fmtDate(rStartsAt, { month: "short", day: "numeric", year: "numeric" })}
                               </span>
                               <span className="inline-flex items-center gap-1">
                                 <Clock className="size-3" />
@@ -223,7 +226,7 @@ export default async function EventDetailPage({
                             Date
                           </div>
                           <time dateTime={startsAt.toISOString()} className="font-semibold text-neutral-900">
-                            {startsAt.toLocaleDateString("en-US", {
+                            {fmtDate(startsAt, {
                               weekday: "long",
                               year: "numeric",
                               month: "long",

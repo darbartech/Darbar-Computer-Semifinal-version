@@ -1,9 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-vars, prefer-const */
-// Verbatim port of the reference project's pdf-lib certificate renderer. The reference
-// lints with `next/core-web-vitals` only, so it carries `any` types and lazy `require()`
-// calls that Darbar's stricter config rejects. Output parity with the reference is proven
-// by a byte-for-byte comparison of the generated content stream, so this file must stay
-// unedited apart from import paths and the fonts directory.
+// Verbatim port of the reference project's pdf-lib certificate renderer. Output
+// parity with the reference is proven by a byte-for-byte comparison of the
+// generated content stream (tests/certificate-design-parity.test.ts), so the
+// drawing logic below must stay as it is. The one deviation allowed — and the one
+// made here — is typing: the reference lints with `next/core-web-vitals` only and
+// carried `any` everywhere plus lazy `require()` calls, which Darbar's stricter
+// config rejects. Type annotations and `let` → `const` are erased before they
+// reach the runtime, so the bytes this file writes are unchanged.
+import "server-only";
+import fs from "node:fs";
+import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import {
   PDFDocument,
@@ -12,10 +17,11 @@ import {
   grayscale,
   degrees,
 } from "pdf-lib";
-import type { PDFImage } from "pdf-lib";
+import type { PDFImage, PDFPage, PDFFont, Color } from "pdf-lib";
 import type {
   CertificateRenderInput,
   RenderResult,
+  ShapeConfig,
   TemplateConfig,
   TemplateField,
   CertificateModule,
@@ -24,13 +30,33 @@ import {
   mmToPt,
   fitTextToField,
   getXOffsetForAlignment,
-  estimateTextWidth,
   wrapTextToWidth,
   validateModuleLayout,
 } from "./textFitting";
 import { generateQrCodeDataUrl } from "./qrGenerator";
 import { formatCertificateDate } from "./dateFormatter";
 import { DARBARTECH_CERTIFICATE_TEMPLATE } from "./templates/darbartech-certificate-v1";
+
+/** Every `doc.embedFont()` result, keyed by the font names the templates use. */
+type FontMap = Record<string, PDFFont>;
+
+/** The five values `drawTrackedText` needs; a subset of pdf-lib's own options. */
+type TrackedTextOptions = {
+  x: number;
+  y: number;
+  size: number;
+  font: PDFFont;
+  color: Color;
+};
+
+/** One run laid out inside a multi-run field, or `null` when the run was empty. */
+type RunMetric = { text: string; width: number; fontSize: number; font: PDFFont };
+
+// pdf-lib declares these option bags inline on the page methods, so the parameter
+// position is the single place that stays true when the library changes.
+type SvgPathOptions = NonNullable<Parameters<PDFPage["drawSvgPath"]>[1]>;
+type RectangleOptions = Parameters<PDFPage["drawRectangle"]>[0];
+type LineOptions = Parameters<PDFPage["drawLine"]>[0];
 
 const hexToRgb = (hex: string) => {
   const clean = hex.replace("#", "");
@@ -42,9 +68,9 @@ const hexToRgb = (hex: string) => {
 };
 
 const drawTrackedText = (
-  page: any,
+  page: PDFPage,
   text: string,
-  opts: { x: number; y: number; size: number; font: any; color: any },
+  opts: TrackedTextOptions,
   letterSpacingPt: number
 ) => {
   if (letterSpacingPt === 0) return page.drawText(text, opts);
@@ -55,7 +81,7 @@ const drawTrackedText = (
   }
 };
 
-const measureTracked = (t: string, font: any, size: number, lsPt: number) =>
+const measureTracked = (t: string, font: PDFFont, size: number, lsPt: number) =>
   font.widthOfTextAtSize(t, size) + lsPt * Math.max(t.length - 1, 0);
 
 const ISSUER_NAME_FALLBACK = "DarbarTech Group of Technology";
@@ -77,9 +103,7 @@ const getFontForTemplate = (doc: PDFDocument, fontName: string) => {
 
 const loadCustomFonts = async (
   doc: PDFDocument
-): Promise<{ fonts: Record<string, any>; missing: string[] }> => {
-  const fs = require("fs");
-  const path = require("path");
+): Promise<{ fonts: FontMap; missing: string[] }> => {
   // Port deviation (path only, output-neutral): the reference project resolves fonts
   // from `<root>/assets/fonts`. Darbar keeps the same six byte-identical TTFs under
   // `src/server/certificates/pdf/fonts/files`, so only the directory differs.
@@ -106,7 +130,7 @@ const loadCustomFonts = async (
     "CormorantGaramond-Bold": StandardFonts.HelveticaBold,
   };
 
-  const fonts: Record<string, any> = {};
+  const fonts: FontMap = {};
   const missing: string[] = [];
   for (const [key, filename] of Object.entries(fontFiles)) {
     try {
@@ -142,17 +166,18 @@ const loadPngWithAlphaBounds = async (
 ): Promise<PngAlphaBounds | null> => {
   if (!imagePath) return null;
   try {
-    const fs = require("fs");
-    const path = require("path");
-    const sharp = require("sharp");
+    // Loaded here rather than at the top of the module, and inside the `try`, so a
+    // platform whose native `sharp` binary is missing degrades to "no alpha bounds"
+    // instead of breaking every certificate the moment this file is imported.
+    const { default: sharp } = await import("sharp");
     const resolvedPath = path.resolve(process.cwd(), "public", imagePath.replace(/^\//, ""));
     if (!fs.existsSync(resolvedPath)) return null;
     const bytes = fs.readFileSync(resolvedPath);
     if (!imagePath.endsWith(".png")) return null;
 
-    const metadata: any = await sharp(bytes).metadata();
-    const w = metadata.width as number;
-    const h = metadata.height as number;
+    const metadata = await sharp(bytes).metadata();
+    const w = metadata.width ?? 0;
+    const h = metadata.height ?? 0;
 
     const alphaBuf: Buffer = await sharp(bytes)
       .ensureAlpha()
@@ -194,8 +219,6 @@ const loadPngWithAlphaBounds = async (
 const loadImageIfExists = async (doc: PDFDocument, imagePath?: string): Promise<PDFImage | null> => {
   if (!imagePath) return null;
   try {
-    const fs = require("fs");
-    const path = require("path");
     const resolvedPath = path.resolve(process.cwd(), "public", imagePath.replace(/^\//, ""));
     if (fs.existsSync(resolvedPath)) {
       const bytes = fs.readFileSync(resolvedPath);
@@ -210,10 +233,10 @@ const loadImageIfExists = async (doc: PDFDocument, imagePath?: string): Promise<
 };
 
 const renderTextInField = (
-  page: any,
+  page: PDFPage,
   field: TemplateField,
   text: string,
-  fonts: Record<string, any>,
+  fonts: FontMap,
   errors: string[],
   warnings?: string[]
 ): void => {
@@ -223,7 +246,7 @@ const renderTextInField = (
 
   if (field.runs && field.runs.length > 0) {
     const runs = field.runs;
-    const largestFontSize = runs.reduce((max: number, r: any) => Math.max(max, r.fontSize || 0), 0);
+    const largestFontSize = runs.reduce((max: number, r) => Math.max(max, r.fontSize || 0), 0);
     const pageWidthPt = mmToPt(field.width);
 
     const lsForSize = (sf: number): number => {
@@ -232,9 +255,11 @@ const renderTextInField = (
     };
 
     let scaleFactor = 1.0;
-    const evaluateFit = (sf: number): { fits: boolean; totalWidth: number; metrics: any[] } => {
+    const evaluateFit = (
+      sf: number
+    ): { fits: boolean; totalWidth: number; metrics: Array<RunMetric | null> } => {
       let totalW = 0;
-      const mets: any[] = [];
+      const mets: Array<RunMetric | null> = [];
       const effectiveLs = lsForSize(sf);
       for (const run of runs) {
         const runFont = fonts[run.font] || fonts["Helvetica"];
@@ -254,14 +279,14 @@ const renderTextInField = (
       return { fits: totalW <= pageWidthPt, totalWidth: totalW, metrics: mets };
     };
 
-    const combinedText = runs.map((r: any) => r.text || "").join("");
+    const combinedText = runs.map((r) => r.text || "").join("");
     if (!combinedText && field.required) {
       errors.push(`Required field "${field.field}" has no content.`);
       return;
     }
     if (!combinedText && !field.required) return;
 
-    let eval1 = evaluateFit(1.0);
+    const eval1 = evaluateFit(1.0);
     if (!eval1.fits) {
       let lo = 0.1;
       let hi = 1.0;
@@ -277,20 +302,19 @@ const renderTextInField = (
       scaleFactor = lo;
     }
 
-    const smallestScaledSize = runs.reduce((m: number, r: any) => Math.min(m, (r.fontSize || largestFontSize) * scaleFactor), Infinity);
+    const smallestScaledSize = runs.reduce((m: number, r) => Math.min(m, (r.fontSize || largestFontSize) * scaleFactor), Infinity);
     const minSizeThreshold = (field.minFontSize || (largestFontSize * 0.6));
     if (smallestScaledSize < minSizeThreshold) {
       warnings?.push(`Text "${combinedText.slice(0, 40)}${combinedText.length > 40 ? "..." : ""}" does not fit in field "${field.field}". Maximum allowed: ${field.maxLines} lines at minimum ${minSizeThreshold}pt.`);
     }
 
-    let finalEval = scaleFactor === 1.0 ? eval1 : evaluateFit(scaleFactor);
-    const scaledFontSize = largestFontSize * scaleFactor;
+    const finalEval = scaleFactor === 1.0 ? eval1 : evaluateFit(scaleFactor);
     const finalLs = lsForSize(scaleFactor);
 
     const runColorDefault = field.color ? hexToRgb(field.color) : grayscale(0);
     let totalBlockWidth = 0;
-    const runMetrics: { width: number; text: string; font: any; fontSize: number; color: any }[] = [];
-    runs.forEach((run: any, idx: number) => {
+    const runMetrics: Array<RunMetric & { color: Color }> = [];
+    runs.forEach((run, idx) => {
       const metric = finalEval.metrics[idx];
       if (!metric) return;
       const runColor = run.color ? hexToRgb(run.color) : runColorDefault;
@@ -395,7 +419,7 @@ const renderTextInField = (
 
   const effectiveLetterSpacingFinal = letterSpacing === 0 ? 0 : (letterSpacing / 1000) * fontSize;
   const fontSizeRatio = field.fontSize > 0 ? fontSize / field.fontSize : 1;
-  const capHeightMm = (field as any).capHeightMm ?? field.height / Math.max(field.maxLines, 1);
+  const capHeightMm = field.capHeightMm ?? field.height / Math.max(field.maxLines, 1);
   const baselineOffset = mmToPt(capHeightMm) * fontSizeRatio;
   finalLines.forEach((line, lineIdx) => {
     const lineWidth = measureTracked(line, font, fontSize, effectiveLetterSpacingFinal);
@@ -411,7 +435,11 @@ const renderTextInField = (
   });
 };
 
-const drawPageBorder = (page: any, template: TemplateConfig, colors: TemplateConfig["colors"]): void => {
+const drawPageBorder = (
+  page: PDFPage,
+  template: TemplateConfig,
+  colors: TemplateConfig["colors"]
+): void => {
   const width = page.getWidth();
   const height = page.getHeight();
   const borderInset = mmToPt(4);
@@ -468,10 +496,10 @@ const drawPageBorder = (page: any, template: TemplateConfig, colors: TemplateCon
 };
 
 const renderModules = (
-  page: any,
+  page: PDFPage,
   modules: CertificateModule[],
   template: TemplateConfig,
-  fonts: Record<string, any>,
+  fonts: FontMap,
   errors: string[],
   warnings?: string[]
 ): void => {
@@ -494,7 +522,6 @@ const renderModules = (
   const subtitleLineHeight = item.subtitleSize * 1.3;
   const perModuleHeight = titleLineHeight + subtitleLineHeight + mmToPt(area.gap);
   const totalHeight = perModuleHeight * count;
-  const startY = area.y + (count > 0 ? (area.height * count) / count : 0) * 0;
 
   const availableAreaY = area.y;
   const availableAreaHeight = area.height;
@@ -551,13 +578,16 @@ const renderModules = (
   });
 };
 
-const drawShapes = (page: any, shapes: any[] | undefined): void => {
+const drawShapes = (page: PDFPage, shapes: ShapeConfig[] | undefined): void => {
   if (!shapes || shapes.length === 0) return;
   const pageHeight = page.getHeight();
 
   for (const shape of shapes) {
     const strokeColor = shape.stroke ? hexToRgb(shape.stroke) : undefined;
-    const fillColor = shape.fill ? hexToRgb(shape.fill) : undefined;
+    // `in` rather than a property read: the `line` variant has no `fill`, and a
+    // runtime presence check keeps exactly the reference renderer's behaviour for
+    // a shape that does carry one.
+    const fillColor = "fill" in shape && shape.fill ? hexToRgb(shape.fill) : undefined;
     const borderWidth = shape.strokeWidthMm ? mmToPt(shape.strokeWidthMm) : 0;
     const hasRotation = typeof shape.rotationDeg === "number" && shape.rotationDeg !== 0;
 
@@ -570,13 +600,13 @@ const drawShapes = (page: any, shapes: any[] | undefined): void => {
       );
       parts.push("Z");
 
-      const svgOpts: any = { x: 0, y: pageHeight };
+      const svgOpts: SvgPathOptions = { x: 0, y: pageHeight };
       if (fillColor) svgOpts.color = fillColor;
       if (strokeColor) {
         svgOpts.borderColor = strokeColor;
         svgOpts.borderWidth = Math.max(borderWidth, 0.5);
       }
-      if (hasRotation) svgOpts.rotate = degrees(shape.rotationDeg);
+      if (hasRotation) svgOpts.rotate = degrees(shape.rotationDeg ?? 0);
       page.drawSvgPath(parts.join(" "), svgOpts);
       continue;
     }
@@ -587,8 +617,8 @@ const drawShapes = (page: any, shapes: any[] | undefined): void => {
     const hPt = mmToPt(shape.height);
 
     if (shape.kind === "rect") {
-      const opts: any = { x: xPt, y: yPtBottom, width: wPt, height: hPt, borderWidth };
-      if (hasRotation) opts.rotate = degrees(shape.rotationDeg);
+      const opts: RectangleOptions = { x: xPt, y: yPtBottom, width: wPt, height: hPt, borderWidth };
+      if (hasRotation) opts.rotate = degrees(shape.rotationDeg ?? 0);
       if (strokeColor) opts.borderColor = strokeColor;
       if (fillColor) opts.color = fillColor;
       if (shape.cornerRadiusMm && shape.cornerRadiusMm > 0) {
@@ -611,13 +641,13 @@ const drawShapes = (page: any, shapes: any[] | undefined): void => {
           `A ${rPt} ${rPt} 0 0 1 ${x0 + rPt} ${y0}`,
           "Z",
         ].join(" ");
-        const svgOpts: any = { x: 0, y: pageHeight };
+        const svgOpts: SvgPathOptions = { x: 0, y: pageHeight };
         if (fillColor) svgOpts.color = fillColor;
         if (strokeColor) {
           svgOpts.borderColor = strokeColor;
           svgOpts.borderWidth = borderWidth;
         }
-        if (hasRotation) svgOpts.rotate = degrees(shape.rotationDeg);
+        if (hasRotation) svgOpts.rotate = degrees(shape.rotationDeg ?? 0);
         page.drawSvgPath(parts, svgOpts);
       } else {
         page.drawRectangle(opts);
@@ -625,13 +655,13 @@ const drawShapes = (page: any, shapes: any[] | undefined): void => {
 
     } else if (shape.kind === "triangle") {
       const svgPath = `M 0 0 L ${wPt} 0 L 0 ${hPt} Z`;
-      const svgOpts: any = { x: xPt, y: pageHeight - mmToPt(shape.y) };
+      const svgOpts: SvgPathOptions = { x: xPt, y: pageHeight - mmToPt(shape.y) };
       if (strokeColor) {
         svgOpts.borderColor = strokeColor;
         svgOpts.borderWidth = Math.max(borderWidth, 0.5);
       }
       if (fillColor) svgOpts.color = fillColor;
-      if (hasRotation) svgOpts.rotate = degrees(shape.rotationDeg);
+      if (hasRotation) svgOpts.rotate = degrees(shape.rotationDeg ?? 0);
       page.drawSvgPath(svgPath, svgOpts);
 
     } else if (shape.kind === "line") {
@@ -644,13 +674,16 @@ const drawShapes = (page: any, shapes: any[] | undefined): void => {
         ? { x: xPt + wPt, y: start.y }
         : { x: xPt, y: pageHeight - mmToPt(shape.y + shape.height) };
 
-      const lineOpts: any = {
+      // `color` is optional at the type level but required by pdf-lib at runtime,
+      // so a stroke-less line still has to omit the key rather than pass
+      // undefined — the reference renderer's behaviour, kept exactly.
+      const lineOpts: Partial<LineOptions> = {
         start,
         end,
         thickness: borderWidth > 0 ? borderWidth : 0.5,
       };
       if (strokeColor) lineOpts.color = strokeColor;
-      page.drawLine(lineOpts);
+      page.drawLine(lineOpts as LineOptions);
     }
   }
 };
@@ -702,7 +735,6 @@ export const renderCertificatePdf = async (
       const wmW = mmToPt(70.7);
       const wmH = mmToPt(55.2);
       const wmVisibleAspect = watermarkAlpha.visibleW / watermarkAlpha.visibleH;
-      const bitmapAspect = watermarkAlpha.bitmapW / watermarkAlpha.bitmapH;
 
       let wmDrawVisibleW = wmW;
       let wmDrawVisibleH = wmW / wmVisibleAspect;
@@ -727,7 +759,7 @@ export const renderCertificatePdf = async (
         width: wmDrawBitmapW,
         height: wmDrawBitmapH,
         opacity: 0.08,
-      } as any);
+      });
     }
 
     const helvetica = await getFontForTemplate(doc, "Helvetica");
@@ -744,7 +776,7 @@ export const renderCertificatePdf = async (
       }
     }
 
-    const fonts: Record<string, any> = {
+    const fonts: FontMap = {
       "Helvetica": helvetica,
       "Helvetica-Bold": helveticaBold,
       "Helvetica-Oblique": helveticaOblique,
@@ -853,18 +885,18 @@ export const renderCertificatePdf = async (
       });
     }
     if (isV2) {
-      renderTextInField(page, template.fields.salutation as any, "This is to certify that", fonts, errors, warnings);
+      renderTextInField(page, template.fields.salutation, "This is to certify that", fonts, errors, warnings);
 
       const heroFieldWithText = {
         ...template.fields.heroHeadline,
         runs: [
-          { ...(template.fields.heroHeadline as any).runs![0], text: "Certificate of" },
-          { ...(template.fields.heroHeadline as any).runs![1], text: " completion" },
+          { ...(template.fields.heroHeadline).runs![0], text: "Certificate of" },
+          { ...(template.fields.heroHeadline).runs![1], text: " completion" },
         ]
       };
       renderTextInField(page, heroFieldWithText, "", fonts, errors, warnings);
 
-      renderTextInField(page, template.fields.recipientName as any, input.recipient.name, fonts, errors, warnings);
+      renderTextInField(page, template.fields.recipientName, input.recipient.name, fonts, errors, warnings);
 
       // §11 — Dynamic name underlines (rules flanking the diamond)
       // BUG-13 (Round 5): the reference's rule is SHORTER than the name ink (span ÷ name
@@ -874,7 +906,7 @@ export const renderCertificatePdf = async (
       // Formula per Round 5: ruleSpan = clamp(nameInkWidth * 0.88, minRuleSpanMm, maxRuleSpanMm)
       // Rules stop 3.4 mm from the text centre on each side, leaving a gap for the diamond.
       {
-        const nameField = template.fields.recipientName as any;
+        const nameField = template.fields.recipientName;
         const nameText = nameField.transformUppercase
           ? input.recipient.name.toUpperCase()
           : input.recipient.name;
@@ -957,22 +989,22 @@ export const renderCertificatePdf = async (
         }
       }
 
-      renderTextInField(page, template.fields.postRecipientText as any, "has successfully completed the", fonts, errors, warnings);
+      renderTextInField(page, template.fields.postRecipientText, "has successfully completed the", fonts, errors, warnings);
 
-      renderTextInField(page, template.fields.programTitle as any, input.program.title, fonts, errors, warnings);
+      renderTextInField(page, template.fields.programTitle, input.program.title, fonts, errors, warnings);
 
       const durFieldWithText = {
         ...template.fields.durationSentence,
         runs: [
-          { ...(template.fields.durationSentence as any).runs![0], text: input.program.duration },
-          { ...(template.fields.durationSentence as any).runs![1], text: " practical training program conducted by " },
-          { ...(template.fields.durationSentence as any).runs![2], text: (input.trainingProvider || ISSUER_NAME_FALLBACK) },
-          { ...(template.fields.durationSentence as any).runs![3], text: ", covering the following course modules:" },
+          { ...(template.fields.durationSentence).runs![0], text: input.program.duration },
+          { ...(template.fields.durationSentence).runs![1], text: " practical training program conducted by " },
+          { ...(template.fields.durationSentence).runs![2], text: (input.trainingProvider || ISSUER_NAME_FALLBACK) },
+          { ...(template.fields.durationSentence).runs![3], text: ", covering the following course modules:" },
         ]
       };
       renderTextInField(page, durFieldWithText, "", fonts, errors, warnings);
 
-      renderTextInField(page, template.fields.courseModulesHeading as any, "COURSE MODULES", fonts, errors, warnings);
+      renderTextInField(page, template.fields.courseModulesHeading, "COURSE MODULES", fonts, errors, warnings);
 
       const sorted = [...input.modules].sort((a, b) => a.order - b.order);
       const moduleCount = sorted.length;
@@ -981,9 +1013,9 @@ export const renderCertificatePdf = async (
       if (moduleCount === 4) {
         // Exact match for the hand-tuned 4-column layout the design was built for.
         for (let idx = 0; idx < 4; idx++) {
-          const numeralField = (template.fields as any)[`module${idx + 1}Numeral`];
-          const titleField = (template.fields as any)[`module${idx + 1}Title`];
-          const subtitleField = (template.fields as any)[`module${idx + 1}Subtitle`];
+          const numeralField = template.fields[`module${idx + 1}Numeral`];
+          const titleField = template.fields[`module${idx + 1}Title`];
+          const subtitleField = template.fields[`module${idx + 1}Subtitle`];
           const mod = sorted[idx];
           const numeralText = mod ? String(mod.order).padStart(2, "0") : "";
           const titleText = mod?.title ?? "";
@@ -995,9 +1027,9 @@ export const renderCertificatePdf = async (
       } else if (moduleCount > 0) {
         // Defensive fallback: spread N modules evenly across the full row instead of
         // bunching them into the first N of 4 fixed slots (which leaves a large empty gap).
-        const baseNumeral = (template.fields as any).module1Numeral;
-        const baseTitle = (template.fields as any).module1Title;
-        const baseSubtitle = (template.fields as any).module1Subtitle;
+        const baseNumeral = template.fields.module1Numeral;
+        const baseTitle = template.fields.module1Title;
+        const baseSubtitle = template.fields.module1Subtitle;
         const columnWidth = area.width / moduleCount;
 
         sorted.forEach((mod, idx) => {
@@ -1011,27 +1043,27 @@ export const renderCertificatePdf = async (
         });
       }
 
-      renderTextInField(page, template.fields.completionStatement as any, "Successfully completed all required course modules and demonstrated practical competency in the skills covered by the program", fonts, errors, warnings);
+      renderTextInField(page, template.fields.completionStatement, "Successfully completed all required course modules and demonstrated practical competency in the skills covered by the program", fonts, errors, warnings);
 
       if (input.grade) {
         const gradeFieldWithText = {
           ...template.fields.gradeBadgeText,
           runs: [
-            { ...(template.fields.gradeBadgeText as any).runs![0], text: "Final Grade | " },
-            { ...(template.fields.gradeBadgeText as any).runs![1], text: input.grade.toUpperCase() },
+            { ...(template.fields.gradeBadgeText).runs![0], text: "Final Grade | " },
+            { ...(template.fields.gradeBadgeText).runs![1], text: input.grade.toUpperCase() },
           ]
         };
         renderTextInField(page, gradeFieldWithText, "", fonts, errors, warnings);
       }
 
-      renderTextInField(page, template.fields.certNumberLabel as any, "Certificate No.  |", fonts, errors, warnings);
-      renderTextInField(page, template.fields.issueDateMetaLabel as any, "Issue Date  |", fonts, errors, warnings);
+      renderTextInField(page, template.fields.certNumberLabel, "Certificate No.  |", fonts, errors, warnings);
+      renderTextInField(page, template.fields.issueDateMetaLabel, "Issue Date  |", fonts, errors, warnings);
 
       const shortDate = new Date(input.issueDate).toISOString().slice(0, 10);
-      renderTextInField(page, template.fields.certNumberValue as any, input.certificateNumber, fonts, errors, warnings);
-      renderTextInField(page, template.fields.issueDateMetaValue as any, shortDate, fonts, errors, warnings);
+      renderTextInField(page, template.fields.certNumberValue, input.certificateNumber, fonts, errors, warnings);
+      renderTextInField(page, template.fields.issueDateMetaValue, shortDate, fonts, errors, warnings);
 
-      renderTextInField(page, template.fields.qrCaption1 as any, "DIGITAL VERIFICATION", fonts, errors, warnings);
+      renderTextInField(page, template.fields.qrCaption1, "DIGITAL VERIFICATION", fonts, errors, warnings);
       let verifyHostname = "darbarcomputer.edu.np";
       try {
         const u = new URL(input.verificationUrl);
@@ -1043,14 +1075,21 @@ export const renderCertificatePdf = async (
         const candidate = `${host}/verify`;
         verifyHostname = candidate.length <= 24 ? candidate : host;
       } catch {}
-      renderTextInField(page, template.fields.qrCaption2a as any, "Scan QR code to verify", fonts, errors, warnings);
-      renderTextInField(page, template.fields.qrCaption2b as any, "authenticity online at", fonts, errors, warnings);
-      renderTextInField(page, template.fields.qrCaption2c as any, verifyHostname, fonts, errors, warnings);
+      renderTextInField(page, template.fields.qrCaption2a, "Scan QR code to verify", fonts, errors, warnings);
+      renderTextInField(page, template.fields.qrCaption2b, "authenticity online at", fonts, errors, warnings);
+      renderTextInField(page, template.fields.qrCaption2c, verifyHostname, fonts, errors, warnings);
 
       const sig1Image = input.signatory.signatureAsset
         ? await loadPngWithAlphaBounds(doc, input.signatory.signatureAsset)
         : null;
-      const secondarySig = input.secondarySignatory ?? (input.signatory as any).signatory2;
+      // The reference payload could nest the second signatory inside `signatory`
+      // as `signatory2`; `secondarySignatory` is the shape this project sends. The
+      // cast only reads the legacy key, so an old caller still renders.
+      type LegacySignatory = CertificateRenderInput["signatory"] & {
+        signatory2?: CertificateRenderInput["secondarySignatory"];
+      };
+      const legacySignatory = input.signatory as LegacySignatory;
+      const secondarySig = input.secondarySignatory ?? legacySignatory.signatory2;
       const sig2Image = secondarySig?.signatureAsset
         ? await loadPngWithAlphaBounds(doc, secondarySig.signatureAsset)
         : null;
@@ -1086,21 +1125,21 @@ export const renderCertificatePdf = async (
         });
       };
 
-      drawSignatureImage(template.fields.signatory1Signature as any, sig1Image);
-      drawSignatureImage(template.fields.signatory2Signature as any, sig2Image);
+      drawSignatureImage(template.fields.signatory1Signature, sig1Image);
+      drawSignatureImage(template.fields.signatory2Signature, sig2Image);
 
-      renderTextInField(page, template.fields.issueDateLabel as any, "Date of issue", fonts, errors, warnings);
-      renderTextInField(page, template.fields.issueDateValue as any, formatCertificateDate(input.issueDate), fonts, errors, warnings);
-      renderTextInField(page, template.fields.signatory1Label as any, "Authorized Signatory", fonts, errors, warnings);
-      renderTextInField(page, template.fields.signatory1Name as any, input.signatory.name, fonts, errors, warnings);
+      renderTextInField(page, template.fields.issueDateLabel, "Date of issue", fonts, errors, warnings);
+      renderTextInField(page, template.fields.issueDateValue, formatCertificateDate(input.issueDate), fonts, errors, warnings);
+      renderTextInField(page, template.fields.signatory1Label, "Authorized Signatory", fonts, errors, warnings);
+      renderTextInField(page, template.fields.signatory1Name, input.signatory.name, fonts, errors, warnings);
       const sig2Name = secondarySig?.name || "Mohan Shahi";
       const sig2Title = secondarySig?.position || "Managing Director";
-      renderTextInField(page, template.fields.signatory2Label as any, sig2Title, fonts, errors, warnings);
-      renderTextInField(page, template.fields.signatory2Name as any, sig2Name, fonts, errors, warnings);
+      renderTextInField(page, template.fields.signatory2Label, sig2Title, fonts, errors, warnings);
+      renderTextInField(page, template.fields.signatory2Name, sig2Name, fonts, errors, warnings);
 
-      renderTextInField(page, template.fields.footerVerified as any, "Verified & Authentic", fonts, errors, warnings);
-      renderTextInField(page, template.fields.footerCertNumber as any, `CERTIFICATE NO. ${input.certificateNumber}`, fonts, errors, warnings);
-      renderTextInField(page, template.fields.footerContact as any, "www.darbartech.com | info@darbartech.com | +977-9865365409", fonts, errors, warnings);
+      renderTextInField(page, template.fields.footerVerified, "Verified & Authentic", fonts, errors, warnings);
+      renderTextInField(page, template.fields.footerCertNumber, `CERTIFICATE NO. ${input.certificateNumber}`, fonts, errors, warnings);
+      renderTextInField(page, template.fields.footerContact, "www.darbartech.com | info@darbartech.com | +977-9865365409", fonts, errors, warnings);
     } else {
       renderTextInField(page, template.fields.mainTitle, "CERTIFICATE OF COMPLETION", fonts, errors, warnings);
       renderTextInField(page, template.fields.mainSubtitle, "DARBARTECH GROUP OF TECHNOLOGY", fonts, errors, warnings);
@@ -1194,8 +1233,8 @@ export const renderCertificatePdf = async (
       const qrXpt = mmToPt(template.qrConfig.x);
       const qrYpt = pageHeight - mmToPt(template.qrConfig.y + qrSizeMm);
 
-      const qrBorderMm = (template.qrConfig as any).borderMm ?? 0;
-      const qrBorderColor = (template.qrConfig as any).borderColor;
+      const qrBorderMm = template.qrConfig.borderMm ?? 0;
+      const qrBorderColor = template.qrConfig.borderColor;
       if (qrBorderMm > 0 && qrBorderColor) {
         const bPt = mmToPt(qrBorderMm);
         page.drawRectangle({

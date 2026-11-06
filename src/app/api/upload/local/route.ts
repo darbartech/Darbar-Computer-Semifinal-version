@@ -6,7 +6,7 @@ import {
   UploadValidationError,
   writeLocalUpload,
 } from "@/server/services/storage";
-import { allow, getClientIpHash } from "@/server/services/rate-limit";
+import { allowByIp, getClientIpHash } from "@/server/services/rate-limit";
 import { MEDIA_MAX_BYTES } from "@/server/constants";
 
 export const runtime = "nodejs";
@@ -39,8 +39,11 @@ export async function POST(request: Request) {
     // Guard and throttle before the body is touched: `formData()` buffers the whole
     // upload, so an unauthenticated caller must never reach it.
     await requirePermission("media.upload");
+    // Only a signed-in staff member gets here, so the counter is about the
+    // connection, not the person: an admin working from the campus network
+    // publishes a gallery without spending the building's budget (reaudit N2).
     if (
-      !(await allow(`upload:${await getClientIpHash()}`, UPLOAD_RATE_LIMIT))
+      !(await allowByIp(`upload:${await getClientIpHash()}`, UPLOAD_RATE_LIMIT))
     ) {
       return NextResponse.json(
         { error: "Too many uploads. Please try again later." },

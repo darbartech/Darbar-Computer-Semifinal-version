@@ -4,6 +4,10 @@ import { Pool } from "pg";
 import { PrismaClient, Role, type LeadSource, type LeadStatus } from "../src/generated/prisma/client";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
+import { symmetricEncrypt } from "better-auth/crypto";
+import { TWO_FACTOR_REQUIRED_ROLES } from "../src/lib/validators/users";
+import { E2E_TOTP_SECRET } from "../e2e/totp";
+import { assertE2eSeedAllowed } from "./seed-guard";
 
 /**
  * End-to-end fixtures (docs/08 §2, "Test data").
@@ -13,12 +17,22 @@ import { prismaAdapter } from "@better-auth/prisma-adapter";
  * deterministic to assert against.
  *
  * NEVER run this against production. It writes rows that look like real staff and
- * real enquiries, and every account shares one published password.
+ * real enquiries, and every account shares one published password. `./seed-guard.ts`
+ * therefore requires BOTH `NODE_ENV !== "production"` and an explicit opt-in:
  *
- *   npm run db:seed:test
+ *   npm run db:seed:test                                  # passes --allow-e2e-seed
+ *   ALLOW_E2E_SEED=1 npx tsx prisma/seed-test.ts          # same opt-in as an env var
  *
  * Passwords default to the values in `e2e/helpers.ts`; override with
  * E2E_*_PASSWORD environment variables, or with SEED_TEST_PASSWORD for all four.
+ *
+ * The gated roles (fix guide §4) also get an authenticator, because a fixture
+ * without one cannot reach any data screen: `requireUser()` parks it on
+ * `/techdarbar/account`. That enrollment is written directly, not through the
+ * account screen, so `AUTH_SECRET` must be set — it encrypts the stored secret
+ * exactly as Better Auth would, and the server decrypts it with the same key at
+ * sign-in. The secret itself is shared by every fixture and read from
+ * `E2E_TOTP_SECRET`; `e2e/totp.ts` turns it into the six-digit code.
  */
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -122,6 +136,51 @@ async function seedStaff(): Promise<Map<string, string>> {
   }
 
   return idByKey;
+}
+
+async function seedTwoFactor(idByKey: Map<string, string>) {
+  const gated = STAFF.filter((staff) => TWO_FACTOR_REQUIRED_ROLES.includes(staff.role));
+  if (gated.length === 0) return;
+
+  const authSecret = process.env.AUTH_SECRET;
+  if (!authSecret) {
+    throw new Error(
+      "AUTH_SECRET is not set, but the fixtures above need an authenticator. Better Auth " +
+        "stores TwoFactor.secret encrypted with this key, so a row written without it can " +
+        "never be decrypted at sign-in."
+    );
+  }
+
+  // The same shape the two-factor plugin writes when a person scans the QR in the
+  // account screen: the secret as a bare string, the backup codes as a JSON array,
+  // both encrypted, `verified` true so sign-in accepts a code instead of treating
+  // the enrollment as half-finished.
+  const secret = await symmetricEncrypt({ key: authSecret, data: E2E_TOTP_SECRET });
+  const backupCodes = await symmetricEncrypt({
+    key: authSecret,
+    data: JSON.stringify(["e2ebk-11111", "e2ebk-22222"]),
+  });
+
+  for (const staff of gated) {
+    const userId = idByKey.get(staff.key);
+    if (!userId) continue;
+
+    await prisma.twoFactor.upsert({
+      where: { userId },
+      create: { userId, secret, backupCodes, verified: true },
+      update: {
+        secret,
+        backupCodes,
+        verified: true,
+        // A previous run may have mistyped enough codes to trip the account lock
+        // (five failures, fifteen minutes); fixtures start every run clean.
+        failedVerificationCount: 0,
+        lockedUntil: null,
+      },
+    });
+    await prisma.user.update({ where: { id: userId }, data: { twoFactorEnabled: true } });
+    console.log(`  ${staff.role.padEnd(12)} ${staff.email} — two-factor enrolled`);
+  }
 }
 
 async function seedLeads(idByKey: Map<string, string>) {
@@ -238,15 +297,15 @@ async function seedLeads(idByKey: Map<string, string>) {
 }
 
 async function main() {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Refusing to seed e2e fixtures in production.");
-  }
+  // Both keys: not production, and an explicit "this database is disposable".
+  assertE2eSeedAllowed();
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not set");
   }
 
   console.log("Seeding e2e fixtures…");
   const idByKey = await seedStaff();
+  await seedTwoFactor(idByKey);
   await seedLeads(idByKey);
   console.log("Done. Sign in with any of the addresses printed above.");
 }

@@ -19,6 +19,7 @@ import {
   type BlogWriteInput,
   type BlogWriteValues,
 } from "@/lib/validators/blog";
+import { fmtDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -169,7 +170,7 @@ export function BlogFormClient({
               <span className="truncate">{post.title}</span>
               {post.updatedAt && (
                 <span className="text-xs text-neutral-500">
-                  · updated {new Date(post.updatedAt).toLocaleDateString("en-NP")}
+                  · updated {fmtDate(post.updatedAt)}
                 </span>
               )}
             </>

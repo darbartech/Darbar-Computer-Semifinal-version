@@ -81,6 +81,7 @@ export default async function AdminUsersPage({
           role: row.role,
           isActive: row.isActive,
           emailVerified: row.emailVerified,
+          twoFactorEnabled: row.twoFactorEnabled,
           lastLoginAt: row.lastLoginAt,
           createdAt: row.createdAt,
         }))}

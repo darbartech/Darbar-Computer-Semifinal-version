@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/toast";
 import { duplicateCourse, setCourseArchived } from "@/server/actions/courses";
 import type { AdminCourseListRow } from "@/server/dal/courses";
 import { COURSE_STATUS_OPTIONS, COURSE_STATUSES } from "@/lib/validators/course";
+import { fmtDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 /**
@@ -56,11 +57,7 @@ function formatFee(feeNPR: number): string {
 }
 
 function formatUpdated(iso: string): string {
-  return new Date(iso).toLocaleString("en-NP", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "medium", timeStyle: "short" });
 }
 
 export function CoursesTable({

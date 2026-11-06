@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { isRedirectError, requirePermission } from "@/server/session";
 import { audit, type AuditActor } from "@/server/services/audit";
 import {
+  confirmAssetOnProvider,
   destroyAsset,
   getStorageConfig,
   verifyUploadedAsset,
@@ -75,8 +76,10 @@ function firstValue(value: string | null): string | null {
  * The browser uploads the file straight to Cloudinary using the signature from
  * `/api/upload/sign`; it then relays Cloudinary's response here. That response
  * is untrusted, so `verifyUploadedAsset` re-checks the folder, delivery host,
- * MIME type and byte size on the server before any row is written. On failure
- * the asset is destroyed so an untracked file cannot linger in the bucket.
+ * MIME type and byte size on the server, and `confirmAssetOnProvider` then
+ * re-reads the asset from Cloudinary's Admin API so the stored size and type are
+ * the provider's own numbers rather than reported ones. On failure the asset is
+ * destroyed so an untracked file cannot linger in the bucket.
  *
  * Alt text is mandatory (docs/08 §1).
  */
@@ -106,7 +109,7 @@ export async function registerMediaUpload(
 
     let verified;
     try {
-      verified = verifyUploadedAsset(
+      const claimed = verifyUploadedAsset(
         {
           public_id: data.publicId,
           secure_url: data.secureUrl,
@@ -119,6 +122,9 @@ export async function registerMediaUpload(
         config,
         { requestOrigin: await requestOrigin() }
       );
+      // Those were the numbers the browser relayed. Ask the provider what it
+      // actually holds and write the row from that answer.
+      verified = await confirmAssetOnProvider(claimed, config);
     } catch (error) {
       // Do not leave an unvalidated asset in storage.
       await destroyAsset(data.publicId);

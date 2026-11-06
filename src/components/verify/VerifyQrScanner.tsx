@@ -4,15 +4,17 @@ import { useRouter } from "next/navigation";
 import jsQR from "jsqr";
 import { Camera, CameraOff, Loader2, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { tokenFromReference } from "@/lib/certificate-reference";
 
 type ScanStatus = "idle" | "requesting" | "scanning" | "processing" | "error" | "unsupported";
 
-/** Pulls the verification token out of whatever the QR encoded (verify URL, bare token, etc.). */
+/**
+ * Pulls the verification token out of whatever the QR encoded (verify URL or bare
+ * token). Anything else — a certificate number, an unrelated link — is not a token and
+ * is not sent to the token page.
+ */
 export function extractVerifyToken(decoded: string): string | null {
-  const trimmed = decoded.trim().replace(/\s+/g, "");
-  if (!trimmed) return null;
-  const urlMatch = trimmed.match(/verify\/([A-Za-z0-9_-]{16,128})(?:[/?#]|$)/);
-  return urlMatch ? urlMatch[1] : trimmed;
+  return tokenFromReference(decoded);
 }
 
 export function VerifyQrScanner() {
@@ -67,7 +69,10 @@ export function VerifyQrScanner() {
             if (value) {
               setStatus("processing");
               stopCamera();
-              router.push(`/verify?code=${encodeURIComponent(value)}`);
+              // The token page is the canonical destination for a scanned
+              // certificate (docs 01 §S7): it verifies from the unguessable token
+              // alone and needs neither the name nor the anti-spam check.
+              router.push(`/verify/${encodeURIComponent(value)}`);
               return;
             }
           }

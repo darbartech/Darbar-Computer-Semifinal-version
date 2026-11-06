@@ -18,6 +18,18 @@ export const viewport: Viewport = {
 };
 
 /**
+ * No `dynamic` export here. The nonce-based Content-Security-Policy does need
+ * per-request rendering, but only where it is actually served: `src/proxy.ts`
+ * gives a nonce to `/techdarbar` and `/student` and a nonce-free policy to the
+ * public site, and those two subtrees declare their own `force-dynamic` (their
+ * layouts) because a prerendered document has no request to take a nonce from.
+ * Claiming `force-dynamic` on the root segment used to apply it to every route,
+ * which is how the whole site ended up rendered per request (re-audit #1) — no
+ * prerendered pages, nothing a CDN can cache, and a database round trip for
+ * every crawler hit.
+ */
+
+/**
  * Site-wide SEO defaults come from the `general` SiteSetting (docs/04 §4.1).
  * Reading them in `generateMetadata` is what makes the title template follow an
  * admin rename; `invalidate("settings")` makes the change appear on the next hit.
@@ -32,17 +44,9 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${general.name}`,
     },
     description: general.description,
-    keywords: [
-      "computer training",
-      "computer institute Nepal",
-      "programming courses",
-      "DarbarTech",
-      "Darbar Tech",
-      "Group of Technology",
-      "IT training Kathmandu",
-      "MS Office training",
-      "web development course Nepal",
-    ],
+    // No `keywords`: Google says it ignores them, and a site-wide list of
+    // search phrases in every page's head is what a spam detector looks for.
+    // A page that has real topic keywords (a course, a post) still sets its own.
     authors: [{ name: general.name, url: general.siteUrl }],
     creator: general.name,
     publisher: general.name,

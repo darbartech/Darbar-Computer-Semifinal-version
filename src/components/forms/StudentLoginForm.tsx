@@ -72,11 +72,20 @@ export function StudentLoginForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password" className="flex items-center gap-1.5">
-          <KeyRound className="size-3.5 text-neutral-500" />
-          Password
-          <span className="text-destructive">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password" className="flex items-center gap-1.5">
+            <KeyRound className="size-3.5 text-neutral-500" />
+            Password
+            <span className="text-destructive">*</span>
+          </Label>
+          {/* docs 01 §S4 */}
+          <Link
+            href="/student/forgot-password"
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           id="password"
           type="password"

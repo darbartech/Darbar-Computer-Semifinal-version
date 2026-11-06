@@ -1,24 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { BadgeCheck, QrCode, ShieldQuestion, ShieldX } from "lucide-react";
+import { redirect } from "next/navigation";
+import { QrCode, ShieldQuestion } from "lucide-react";
 import { Container } from "@/components/common/Container";
-import { VerificationCard } from "@/components/verify/VerificationCard";
 import { VerifySearchForm } from "@/components/verify/VerifySearchForm";
 import { VerifyQrScanner } from "@/components/verify/VerifyQrScanner";
-import { getPublicCertificateByQuery } from "@/server/dal/certificates";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, NOINDEX_METADATA } from "@/lib/seo";
 import { getSiteSettings } from "@/server/dal/settings";
-import { certificateLookupSchema } from "@/lib/validators/certificates";
-import { allow, getClientIpHash } from "@/server/services/rate-limit";
-import type { PublicVerifyView } from "@/server/types/certificates";
+import { tokenFromReference } from "@/lib/certificate-reference";
 
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 export const dynamic = "force-dynamic";
-
-/** Throttle for public lookups: certificate numbers are sequential, so this is what
- *  stops the search box being used as a bulk scraper of every graduate. */
-const VERIFY_RATE_LIMIT = { max: 20, windowMinutes: 10 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -26,18 +18,12 @@ export async function generateMetadata(): Promise<Metadata> {
     {
       title: "Verify a certificate",
       description:
-        "Check the authenticity of our certificate by scanning its QR code or searching the certificate number, student ID, or verification code.",
+        "Check the authenticity of our certificate by scanning its QR code, or search with the certificate number together with the recipient's name.",
       path: "/verify",
-      robots: { index: false, follow: false },
+      robots: NOINDEX_METADATA,
     },
     settings
   );
-}
-
-/** Extracts the verification token from a pasted QR URL (e.g. https://…/verify/<token>). */
-function tokenFromUrl(value: string): string {
-  const match = value.replace(/\s+/g, "").match(/verify\/([A-Za-z0-9_-]{16,128})(?:[/?#]|$)/);
-  return match ? match[1] : value;
 }
 
 export default async function VerifySearchPage({
@@ -49,26 +35,11 @@ export default async function VerifySearchPage({
   const settings = await getSiteSettings();
   const rawCode = typeof sp.code === "string" ? sp.code.trim() : "";
 
-  let certificate: PublicVerifyView | null = null;
-  let lookedUp = false;
-  let invalid = false;
-  let throttled = false;
-
-  if (rawCode) {
-    const parsed = certificateLookupSchema.safeParse({ code: rawCode });
-    if (!parsed.success) {
-      invalid = true;
-    } else if (
-      !(await allow(`verify:${await getClientIpHash()}`, VERIFY_RATE_LIMIT))
-    ) {
-      throttled = true;
-    } else {
-      lookedUp = true;
-      certificate = await getPublicCertificateByQuery(
-        tokenFromUrl(parsed.data.code)
-      );
-    }
-  }
+  // Old deep links and scanned QR codes arrive as `?code=<token>`. The token is the
+  // whole proof, so hand it to the page built for it — which shows the recipient name
+  // in full — instead of looking it up here (docs 01 §S7 step 1).
+  const token = rawCode ? tokenFromReference(rawCode) : null;
+  if (token) redirect(`/verify/${encodeURIComponent(token)}`);
 
   return (
     <Container className="py-12 sm:py-16">
@@ -81,34 +52,13 @@ export default async function VerifySearchPage({
             Verify a certificate
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-neutral-600">
-            Scan the QR code printed on the certificate, or search by its
-            certificate number, student ID, or verification code. We&rsquo;ll
-            match it against our official records.
+            Scan the QR code printed on the certificate — it is the quickest check
+            and shows the recipient&rsquo;s name in full. Otherwise search with the
+            certificate number and the name exactly as it is printed.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
-          <VerifySearchForm initialValue={rawCode} />
-          {invalid && (
-            <p
-              role="alert"
-              className="mt-3 text-sm font-medium text-destructive"
-            >
-              That doesn&rsquo;t look like a certificate number, student ID, or
-              verification code. Check the entry and try again.
-            </p>
-          )}
-          {throttled && (
-            <p
-              role="alert"
-              className="mt-3 text-sm font-medium text-destructive"
-            >
-              Too many checks from this device. Please wait a few minutes and try
-              again.
-            </p>
-          )}
-        </div>
-
+        {/* First, because it needs no typing and cannot mistype a name (reaudit N11). */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4 flex items-center gap-2">
             <QrCode className="size-5 text-primary" aria-hidden="true" />
@@ -120,44 +70,22 @@ export default async function VerifySearchPage({
           <div className="mt-4 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4">
             <p className="text-xs leading-relaxed text-neutral-600">
               No camera? Paste the full verification link from the certificate
-              of the QR code into the search box above — it&rsquo;s extracted
-              and verified automatically.
+              QR code into the search box below — it&rsquo;s recognised and
+              verified automatically, with the name shown in full. Searching by
+              certificate number alone is answered with a masked name, because a
+              number by itself is not enough to prove ownership.
             </p>
           </div>
         </div>
 
-        <div aria-live="polite" className="flex flex-col gap-6">
-          {lookedUp && !invalid && !certificate && (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8 text-center">
-              <ShieldX className="mx-auto size-8 text-destructive" aria-hidden="true" />
-              <h2 className="mt-3 text-lg font-semibold text-neutral-900">
-                No matching certificate found
-              </h2>
-              <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-neutral-600">
-                We could not find a public certificate record for{" "}
-                <span className="font-mono text-neutral-800">{rawCode}</span>.
-                Double-check the certificate number, student ID, or verification
-                code for typos. If this looks wrong to you, please contact our
-                office and quote the exact reference.
-              </p>
-              <Link
-                href="/contact"
-                className="mt-5 inline-flex items-center justify-center rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10"
-              >
-                Contact us for help
-              </Link>
-            </div>
-          )}
-
-          {certificate && (
-            <div className="flex flex-col gap-4">
-              <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-success">
-                <BadgeCheck className="size-4" aria-hidden="true" />
-                This certificate is listed in our official records.
-              </p>
-              <VerificationCard certificate={certificate} siteName={settings.general.name} />
-            </div>
-          )}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="mb-4 text-base font-semibold text-neutral-900">
+            Or search by certificate number
+          </h2>
+          <VerifySearchForm
+            initialCertificateNumber={rawCode}
+            siteName={settings.general.name}
+          />
         </div>
       </div>
     </Container>

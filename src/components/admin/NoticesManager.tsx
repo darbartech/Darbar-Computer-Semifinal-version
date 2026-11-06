@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/common/Badge";
 import { kathmanduDayKey } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { ImagePicker, type LibraryImage, type PickedImage } from "@/components/admin/ImagePicker";
 import { deleteNoticeAction, saveNoticeAction } from "@/server/actions/notices";
 import {
@@ -80,6 +81,7 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { ask, dialog } = useConfirm();
   const [editing, setEditing] = React.useState<Editing | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [image, setImage] = React.useState<PickedImage>(null);
@@ -172,26 +174,31 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
     router.refresh();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this notice? Visitors will stop seeing it immediately.")) return;
-    setDeletingId(id);
-    try {
-      const result = await deleteNoticeAction(id);
-      if (!result.ok) {
-        toast({ title: result.error, variant: "error" });
-        return;
-      }
-      toast({ title: "Notice deleted", variant: "success" });
-      router.refresh();
-    } catch {
-      toast({
-        title: "Could not delete the notice",
-        description: "Please sign in again and retry.",
-        variant: "error",
-      });
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDelete = async (row: NoticeRow) => {
+    await ask({
+      title: "Delete notice?",
+      description: (
+        <>
+          <span className="font-medium text-neutral-900">{row.title}</span> leaves the banner
+          and the notices page immediately. Unpublishing it keeps the text for later; deleting
+          leaves only the audit log.
+        </>
+      ),
+      run: async () => {
+        setDeletingId(row.id);
+        try {
+          const result = await deleteNoticeAction(row.id);
+          if (!result.ok) return result.error;
+          toast({ title: "Notice deleted", variant: "success" });
+          router.refresh();
+          return null;
+        } catch {
+          return "Could not delete the notice. Please sign in again and retry.";
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   const typeOptions: SelectOption[] = NOTICE_TYPES.map((value) => ({
@@ -435,7 +442,7 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
                           type="button"
                           variant="ghost"
                           size="xs"
-                          onClick={() => handleDelete(row.id)}
+                          onClick={() => void handleDelete(row)}
                           disabled={deletingId === row.id}
                         >
                           {deletingId === row.id ? (
@@ -486,6 +493,8 @@ export function NoticesManager({ rows, total, page, pageCount, filters, library,
           </Button>
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }

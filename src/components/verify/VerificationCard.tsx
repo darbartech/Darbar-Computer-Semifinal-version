@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/common/Badge";
 import { useToast } from "@/components/ui/toast";
 import { copyText } from "@/lib/clipboard";
+import { fmtDate } from "@/lib/dates";
 import type { PublicVerifyView } from "@/server/types/certificates";
 
 type Props = {
@@ -32,18 +33,12 @@ const STATUS_VARIANT: Record<
 
 function formatNepaliDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-NP", {
-    dateStyle: "long",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "long" });
 }
 
 function formatShortDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-NP", {
-    dateStyle: "medium",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "medium" });
 }
 
 function InfoRow({

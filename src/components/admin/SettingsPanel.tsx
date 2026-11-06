@@ -11,10 +11,19 @@ import { Badge } from "@/components/common/Badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { fmtDateTime } from "@/lib/dates";
 import { ImagePicker, type LibraryImage, type PickedImage } from "@/components/admin/ImagePicker";
+import {
+  EMPTY_STEP_UP,
+  isStepUpComplete,
+  StepUpFields,
+  stepUpPayload,
+  type StepUpValue,
+} from "@/components/admin/StepUpFields";
 import { saveSetting } from "@/server/actions/settings";
 import type { SiteSettingsView } from "@/lib/settings-view";
 import {
+  SETTINGS_SENSITIVE_FIELDS,
   SETTINGS_TABS,
   SOCIAL_ICON_OPTIONS,
   WHY_ICON_OPTIONS,
@@ -39,6 +48,11 @@ import {
  *
  * Arrays are edited as rows (hours, socials, stats, why choose us); the two plain
  * string lists are edited as one-item-per-line textareas that the schema splits.
+ *
+ * A tab whose saved values move a money or sign-in rule asks for an authenticator
+ * code before it will submit (task 2). That is decided from `SETTINGS_SENSITIVE_FIELDS`
+ * against the values the page was loaded with, so editing a hero caption stays one
+ * click and re-saving an unchanged fee stays one click.
  */
 
 /** Image id plus the picked image, so the tab can re-hydrate `ImagePicker`. */
@@ -59,6 +73,28 @@ type HeroDraft = Omit<HeroSettings, "imageMediaId" | "popupMediaId"> & {
   popup: PickedImage | null;
 };
 
+/**
+ * The fees tab keeps its numbers as strings, because an `<input type="number">`
+ * that the admin has cleared must post `""` (which `feesSchema` rejects with a
+ * field error) rather than the `0` a number state would have silently written.
+ */
+type FeesDraft = {
+  currency: string;
+  discountApprovalThresholdPct: string;
+  lateFeePerWeek: string;
+  certificateRequiresClearance: boolean;
+  allowedDueAmount: string;
+  maxBackdateDays: string;
+  bankDetails: string;
+  receiptFooter: string;
+};
+
+/** The same string-on-the-input rule as the fees numbers, for the two windows. */
+type RetentionDraft = {
+  leadMonths: string;
+  messageMonths: string;
+};
+
 type Draft = {
   general: GeneralDraft;
   hero: HeroDraft;
@@ -71,6 +107,9 @@ type Draft = {
   /** Textarea form; `facilitiesSchema` / `everyCourseIncludesSchema` split it. */
   facilities: string;
   everyCourseIncludes: string;
+  /** Numbers arrive from `<input>` as strings; `feesSchema` coerces them back. */
+  fees: FeesDraft;
+  retention: RetentionDraft;
 };
 
 type Props = {
@@ -131,6 +170,20 @@ function buildDraft(settings: SiteSettingsView): Draft {
     whyChooseUs: settings.whyChooseUs.map((row) => ({ ...row })),
     facilities: settings.facilities.join("\n"),
     everyCourseIncludes: settings.everyCourseIncludes.join("\n"),
+    fees: {
+      currency: settings.fees.currency,
+      discountApprovalThresholdPct: String(settings.fees.discountApprovalThresholdPct),
+      lateFeePerWeek: String(settings.fees.lateFeePerWeek),
+      certificateRequiresClearance: settings.fees.certificateRequiresClearance,
+      allowedDueAmount: String(settings.fees.allowedDueAmount),
+      maxBackdateDays: String(settings.fees.maxBackdateDays),
+      bankDetails: settings.fees.bankDetails,
+      receiptFooter: settings.fees.receiptFooter,
+    },
+    retention: {
+      leadMonths: String(settings.retention.leadMonths),
+      messageMonths: String(settings.retention.messageMonths),
+    },
   };
 }
 
@@ -202,6 +255,15 @@ export function SettingsPanel({ settings, updatedAtByKey, library, canWrite }: P
   const [syncedSettings, setSyncedSettings] = React.useState(settings);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = React.useState<SettingsKey | null>(null);
+  const [stepUp, setStepUp] = React.useState<StepUpValue>(EMPTY_STEP_UP);
+  const [stepUpError, setStepUpError] = React.useState<string | null>(null);
+  /**
+   * A tab the server asked to prove but this page had not flagged: a stored row
+   * the schema cannot read is a rule being written for the first time, and the
+   * panel only sees the fallback values. The refusal switches the box on rather
+   * than leaving the admin with a message and nowhere to type the code.
+   */
+  const [forcedCodeKey, setForcedCodeKey] = React.useState<SettingsKey | null>(null);
 
   /**
    * Reset the draft when `router.refresh()` hands down new server values. Done
@@ -215,20 +277,52 @@ export function SettingsPanel({ settings, updatedAtByKey, library, canWrite }: P
 
   const errorFor = (key: string) => fieldErrors[key];
 
+  /** The values this page was loaded with, in the same shape the inputs hold. */
+  const loaded = React.useMemo(() => buildDraft(syncedSettings), [syncedSettings]);
+
+  /**
+   * Will the Server Action demand a code for saving this tab? It does when the
+   * tab has sensitive fields and either no row is stored yet (`before === null`
+   * there, `updatedAtByKey` here) or one of those fields moved since it was
+   * loaded. Cosmetic fields on the same tab never trigger it.
+   */
+  function needsCodeFor(key: SettingsKey): boolean {
+    const fields = SETTINGS_SENSITIVE_FIELDS[key];
+    if (!fields) return false;
+    if (!updatedAtByKey[key]) return true;
+    const now = draft[key] as unknown as Record<string, unknown>;
+    const was = loaded[key] as unknown as Record<string, unknown>;
+    return fields.some((field) => !Object.is(now[field], was[field]));
+  }
+
+  const showStepUpFor = (key: SettingsKey) =>
+    !!SETTINGS_SENSITIVE_FIELDS[key] && (needsCodeFor(key) || forcedCodeKey === key);
+
   async function save(key: SettingsKey) {
     setSavingKey(key);
     setFieldErrors({});
     try {
-      const result = await saveSetting({ key, value: draft[key] });
+      const needsCode = needsCodeFor(key);
+      const result = await saveSetting({
+        key,
+        value: draft[key],
+        ...(needsCode || forcedCodeKey === key ? stepUpPayload(stepUp) : {}),
+      });
+      // Spent or refused, the code belongs to a window that has now passed.
+      setStepUp(EMPTY_STEP_UP);
       if (!result.ok) {
         const next: Record<string, string> = {};
         for (const [field, messages] of Object.entries(result.fieldErrors ?? {})) {
           if (messages?.[0]) next[field] = messages[0];
         }
         setFieldErrors(next);
+        setStepUpError(result.requiresStepUp ? result.error : null);
+        if (result.requiresStepUp) setForcedCodeKey(key);
         toast({ title: result.error, variant: "error" });
         return;
       }
+      setStepUpError(null);
+      setForcedCodeKey(null);
       toast({
         title: "Settings saved",
         description: "The public site updates on the next visit.",
@@ -244,21 +338,46 @@ export function SettingsPanel({ settings, updatedAtByKey, library, canWrite }: P
 
   const saveButton = (key: SettingsKey) => {
     const savedAt = updatedAtByKey[key];
+    const needsCode = showStepUpFor(key);
     return (
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-neutral-500">
-          {savedAt
-            ? `Last saved ${new Date(savedAt).toLocaleString("en-GB")}`
-            : "Using the built-in fallback — save to store this group in the database."}
-        </p>
-        <Button type="button" onClick={() => save(key)} disabled={!canWrite || busy(key)}>
-          {busy(key) ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Save className="size-4" aria-hidden="true" />
-          )}
-          Save
-        </Button>
+      <div className="flex flex-col gap-3">
+        {needsCode && canWrite && (
+          <div className="max-w-md rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <p className="mb-2.5 text-sm font-medium text-neutral-900">
+              This changes how money is approved or where a sign-in is confirmed.
+              Enter your authenticator code to save.
+            </p>
+            <StepUpFields
+              value={stepUp}
+              onChange={(next) => {
+                setStepUp(next);
+                setStepUpError(null);
+              }}
+              error={stepUpError}
+              disabled={busy(key)}
+              idPrefix={`${key}-step-up`}
+            />
+          </div>
+        )}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-neutral-500">
+            {savedAt
+              ? `Last saved ${fmtDateTime(savedAt)}`
+              : "Using the built-in fallback — save to store this group in the database."}
+          </p>
+          <Button
+            type="button"
+            onClick={() => save(key)}
+            disabled={!canWrite || busy(key) || (needsCode && !isStepUpComplete(stepUp))}
+          >
+            {busy(key) ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="size-4" aria-hidden="true" />
+            )}
+            Save
+          </Button>
+        </div>
       </div>
     );
   };
@@ -1083,6 +1202,237 @@ export function SettingsPanel({ settings, updatedAtByKey, library, canWrite }: P
               />
             </Field>
             {saveButton("everyCourseIncludes")}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* ── Fees (docs 05 §7) ── */}
+      <TabsContent value="fees">
+        <Card>
+          <CardContent className="flex flex-col gap-5 p-6">
+            <p className="text-sm text-neutral-600">
+              Money is stored as whole rupees, so the late fee and the clearance
+              tolerance are plain NPR amounts. The discount limit is the one rule
+              that blocks a write: above it, only Admin and Super Admin can issue an
+              invoice.
+            </p>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Currency code"
+                htmlFor="fees-currency"
+                hint="Amounts are whole NPR integers in the database; changing this does not convert them."
+                error={errorFor("currency")}
+              >
+                <Input
+                  id="fees-currency"
+                  value={draft.fees.currency}
+                  disabled={!canWrite}
+                  maxLength={3}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, fees: { ...d.fees, currency: e.target.value.toUpperCase() } }))
+                  }
+                />
+              </Field>
+              <Field
+                label="Discount needs approval above (%)"
+                htmlFor="fees-discount-threshold"
+                hint="A discount larger than this share of the fee must be issued by an admin."
+                error={errorFor("discountApprovalThresholdPct")}
+              >
+                <Input
+                  id="fees-discount-threshold"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={draft.fees.discountApprovalThresholdPct}
+                  disabled={!canWrite}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      fees: { ...d.fees, discountApprovalThresholdPct: e.target.value },
+                    }))
+                  }
+                />
+              </Field>
+              <Field
+                label="Late fee per week (NPR)"
+                htmlFor="fees-late-fee"
+                hint="0 keeps the late fee off. It is charged per full week past the due date."
+                error={errorFor("lateFeePerWeek")}
+              >
+                <Input
+                  id="fees-late-fee"
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={draft.fees.lateFeePerWeek}
+                  disabled={!canWrite}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, fees: { ...d.fees, lateFeePerWeek: e.target.value } }))
+                  }
+                />
+              </Field>
+              <Field
+                label="Allowed due amount for clearance (NPR)"
+                htmlFor="fees-allowed-due"
+                hint="With clearance on, a student still under this amount is treated as clear."
+                error={errorFor("allowedDueAmount")}
+              >
+                <Input
+                  id="fees-allowed-due"
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={draft.fees.allowedDueAmount}
+                  disabled={!canWrite}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, fees: { ...d.fees, allowedDueAmount: e.target.value } }))
+                  }
+                />
+              </Field>
+              <Field
+                label="Backdating window (days)"
+                htmlFor="fees-max-backdate"
+                hint="How far back a clerk may date a receipt. Admins are outside the window."
+                error={errorFor("maxBackdateDays")}
+              >
+                <Input
+                  id="fees-max-backdate"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={draft.fees.maxBackdateDays}
+                  disabled={!canWrite}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, fees: { ...d.fees, maxBackdateDays: e.target.value } }))
+                  }
+                />
+              </Field>
+            </div>
+
+            <label className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-neutral-50/60 p-4">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4"
+                checked={draft.fees.certificateRequiresClearance}
+                disabled={!canWrite}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    fees: { ...d.fees, certificateRequiresClearance: e.target.checked },
+                  }))
+                }
+              />
+              <span>
+                <span className="block text-sm font-medium text-neutral-900">
+                  Block certificates until the fees are clear
+                </span>
+                <span className="block text-xs text-neutral-500">
+                  Certificate issuance then refuses a student whose unpaid dues exceed
+                  the allowed amount above.
+                </span>
+              </span>
+            </label>
+
+            <Field
+              label="Bank details on invoices"
+              htmlFor="fees-bank-details"
+              hint="One line each: bank, account name, account number, branch."
+              error={errorFor("bankDetails")}
+            >
+              <Textarea
+                id="fees-bank-details"
+                rows={4}
+                value={draft.fees.bankDetails}
+                disabled={!canWrite}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, fees: { ...d.fees, bankDetails: e.target.value } }))
+                }
+              />
+            </Field>
+
+            <Field
+              label="Receipt footer"
+              htmlFor="fees-receipt-footer"
+              hint="Printed at the bottom of every payment receipt."
+              error={errorFor("receiptFooter")}
+            >
+              <Textarea
+                id="fees-receipt-footer"
+                rows={2}
+                value={draft.fees.receiptFooter}
+                disabled={!canWrite}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, fees: { ...d.fees, receiptFooter: e.target.value } }))
+                }
+              />
+            </Field>
+
+            {saveButton("fees")}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* ── Retention (docs/08 §1, task 9) ── */}
+      <TabsContent value="retention">
+        <Card>
+          <CardContent className="flex flex-col gap-5 p-6">
+            <p className="text-sm text-neutral-600">
+              The <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs">retention</code>{" "}
+              scheduled job reads these two windows. An enquiry older than its window
+              loses its name, phone, e-mail, message and address hash — the row stays,
+              with its course, status and date, so the marketing counts keep adding up.
+              A contact message older than its window is removed. Neither job runs
+              unless the scheduler is configured (docs/08 §5).
+            </p>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Keep enquiries for (months)"
+                htmlFor="retention-lead-months"
+                hint="Measured from the last time anyone touched the lead, so a live conversation is never cut short. Enquiries that became students are left alone."
+                error={errorFor("leadMonths")}
+              >
+                <Input
+                  id="retention-lead-months"
+                  type="number"
+                  min={1}
+                  max={360}
+                  step={1}
+                  value={draft.retention.leadMonths}
+                  disabled={!canWrite}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      retention: { ...d.retention, leadMonths: e.target.value },
+                    }))
+                  }
+                />
+              </Field>
+              <Field
+                label="Keep contact messages for (months)"
+                htmlFor="retention-message-months"
+                hint="Measured from when the message arrived."
+                error={errorFor("messageMonths")}
+              >
+                <Input
+                  id="retention-message-months"
+                  type="number"
+                  min={1}
+                  max={360}
+                  step={1}
+                  value={draft.retention.messageMonths}
+                  disabled={!canWrite}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      retention: { ...d.retention, messageMonths: e.target.value },
+                    }))
+                  }
+                />
+              </Field>
+            </div>
+            {saveButton("retention")}
           </CardContent>
         </Card>
       </TabsContent>

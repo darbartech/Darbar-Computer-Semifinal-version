@@ -1,4 +1,9 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
+import {
+  studentRegisterFormSchema,
+  studentRegisterSchema,
+} from "../src/lib/validators/student";
 import {
   inquirySchema,
   leadFilterSchema,
@@ -677,5 +682,46 @@ describe("notices", () => {
     expect(noticeWriteSchema.parse(base).imageId).toBeNull();
     expect(noticeWriteSchema.parse({ ...base, imageId: "" }).imageId).toBeNull();
     expect(noticeWriteSchema.parse({ ...base, imageId: "clxmedia01" }).imageId).toBe("clxmedia01");
+  });
+});
+
+describe("student registration (docs 01 §S3)", () => {
+  const valid = {
+    name: "Ram Sharma",
+    email: "ram@example.com",
+    phone: "9812345678",
+    password: "alphabet-soup",
+    confirmPassword: "alphabet-soup",
+    website: "",
+    turnstileToken: "token-123",
+  };
+
+  it("splits the browser fields from the server token", () => {
+    expect(studentRegisterFormSchema.safeParse({ ...valid, turnstileToken: "" }).success).toBe(
+      true
+    );
+    expect(studentRegisterSchema.safeParse({ ...valid, turnstileToken: "" }).success).toBe(false);
+    expect(studentRegisterSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("accepts a filled honeypot so the action can drop it silently", () => {
+    expect(studentRegisterSchema.safeParse({ ...valid, website: "seo.example" }).success).toBe(
+      true
+    );
+  });
+
+  it("rejects a mismatched confirmation and a short password", () => {
+    const mismatch = studentRegisterSchema.safeParse({
+      ...valid,
+      confirmPassword: "alphabet-sop",
+    });
+    expect(mismatch.success).toBe(false);
+    if (!mismatch.success) {
+      expect(z.flattenError(mismatch.error).fieldErrors.confirmPassword).toBeDefined();
+    }
+    expect(
+      studentRegisterSchema.safeParse({ ...valid, password: "short", confirmPassword: "short" })
+        .success
+    ).toBe(false);
   });
 });

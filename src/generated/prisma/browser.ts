@@ -38,6 +38,14 @@ export type Account = Prisma.AccountModel
  */
 export type Verification = Prisma.VerificationModel
 /**
+ * Model TwoFactor
+ * Better Auth's two-factor plugin (fix guide §4): one row per staff account.
+ * `secret` and `backupCodes` are stored encrypted with `AUTH_SECRET`, never as
+ * plain text; `verified` is false while an authenticator is being enrolled, and
+ * the two failure columns are how a guessed code is throttled.
+ */
+export type TwoFactor = Prisma.TwoFactorModel
+/**
  * Model Media
  * 
  */
@@ -128,10 +136,18 @@ export type SiteSetting = Prisma.SiteSettingModel
  */
 export type AuditLog = Prisma.AuditLogModel
 /**
- * Model RateLimitHit
- * 
+ * Model Counter
+ * Monotonic sequence for human-readable numbers (certificate, student,
+ * invoice, receipt). `UPDATE ... ON CONFLICT ... RETURNING` makes the value
+ * race-free, which `max() + 1` over the row set is not.
  */
-export type RateLimitHit = Prisma.RateLimitHitModel
+export type Counter = Prisma.CounterModel
+/**
+ * Model RateLimitBucket
+ * One row per (limiter key, fixed window). `allow()` increments it with a
+ * single upsert, so a parallel burst cannot all read the same count.
+ */
+export type RateLimitBucket = Prisma.RateLimitBucketModel
 /**
  * Model CertificateSignatory
  * 
@@ -202,3 +218,30 @@ export type AssignmentRecipient = Prisma.AssignmentRecipientModel
  * picture above the message (a closure poster, a holiday greeting).
  */
 export type Notice = Prisma.NoticeModel
+/**
+ * Model Invoice
+ * A student's bill for one course/batch. `netAmount` is stored (not derived)
+ * because it must stay exactly what was invoiced even if the course fee, or the
+ * discount policy, changes later.
+ */
+export type Invoice = Prisma.InvoiceModel
+/**
+ * Model InvoiceInstallment
+ * An instalment is a *schedule*, not a debt: payments settle the invoice, and
+ * "next due" is derived from the earliest instalment whose cumulative amount
+ * exceeds what has been paid (docs 05 §2).
+ */
+export type InvoiceInstallment = Prisma.InvoiceInstallmentModel
+/**
+ * Model Payment
+ * 
+ */
+export type Payment = Prisma.PaymentModel
+/**
+ * Model DayClose
+ * A campus day that has been counted and shut (fix guide §2). `day` is the
+ * Kathmandu calendar date, stored as UTC midnight so it matches the date the
+ * day book prints rather than the server's zone. While a row exists, no receipt
+ * can be added to or voided on that day — only `fee.reopenDay` can undo it.
+ */
+export type DayClose = Prisma.DayCloseModel

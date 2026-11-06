@@ -21,6 +21,8 @@ export const SETTINGS_KEYS = [
   "whyChooseUs",
   "facilities",
   "everyCourseIncludes",
+  "fees",
+  "retention",
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -61,6 +63,16 @@ export const SETTINGS_TABS = [
     key: "everyCourseIncludes",
     label: "Every course includes",
     hint: "Shared benefits list shown on the course pages.",
+  },
+  {
+    key: "fees",
+    label: "Fees",
+    hint: "Currency, discount approval limit, late fee, clearance rule, backdating window and the receipt footer.",
+  },
+  {
+    key: "retention",
+    label: "Retention",
+    hint: "How long an enquiry and a contact message keep their personal details before the scheduled job strips them.",
   },
 ] as const satisfies readonly { key: SettingsKey; label: string; hint: string }[];
 
@@ -348,6 +360,70 @@ export const facilitiesSchema = textList("facility", 200, 30);
 
 export const everyCourseIncludesSchema = textList("benefit", 120, 30);
 
+/** A checkbox or a number field, tolerant of the strings a form sends. */
+const boolFromForm = z
+  .union([z.boolean(), z.enum(["true", "false", "1", "0", "on"])])
+  .transform((value) => value === true || value === "true" || value === "1" || value === "on");
+
+const wholeNumber = (label: string, max: number) =>
+  z.coerce
+    .number()
+    .int(`${label} must be a whole number`)
+    .min(0, `${label} cannot be negative`)
+    .max(max, `${label} is too large`);
+
+/**
+ * Fees settings (docs 05 §7). One row, so the fees module has a single place to
+ * read its rules from instead of scattering magic numbers through the DAL.
+ *
+ * The currency is stored rather than hard-coded because money is whole NPR in an
+ * `Int` throughout the schema — changing it here is a migration decision, not a
+ * label change, so the field is read-only in practice and the default is enforced.
+ */
+export const feesSchema = z.object({
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .length(3, "Use the three-letter code, e.g. NPR")
+    .default("NPR"),
+  discountApprovalThresholdPct: wholeNumber("Discount approval threshold", 100).default(10),
+  /** 0 switches the late fee off; it is charged per full week overdue. */
+  lateFeePerWeek: wholeNumber("Late fee", 100_000).default(0),
+  certificateRequiresClearance: boolFromForm.default(false),
+  /** Clearance tolerance: a student under this due amount still gets a certificate. */
+  allowedDueAmount: wholeNumber("Allowed due amount", 10_000_000).default(0),
+  /**
+   * How far back a clerk may date a receipt (fix guide §2). A receipt dated months
+   * ago silently rewrites a day book that was already counted, so the window is a
+   * setting rather than a constant; ADMIN and SUPER_ADMIN are outside it.
+   */
+  maxBackdateDays: wholeNumber("Backdating window", 365).default(3),
+  bankDetails: optionalText(400, "Bank details"),
+  receiptFooter: optionalText(300, "Receipt footer"),
+});
+
+/**
+ * Retention windows (docs/08 §1 "Privacy", task 9).
+ *
+ * These are the only settings that erase somebody else's data: the `retention`
+ * cron job reads them and anonymises every enquiry older than its window. So the
+ * floor is 1 month rather than 0 — `0` would mean "purge the whole pipeline the
+ * next time the scheduler runs", which nobody can type into a settings field by
+ * accident and nobody should have to argue about after the fact.
+ */
+const retentionMonths = (label: string) =>
+  z.coerce
+    .number()
+    .int(`${label} must be a whole number of months`)
+    .min(1, `${label} must be at least 1 month`)
+    .max(360, `${label} is more than 30 years — that is not a retention window`);
+
+export const retentionSchema = z.object({
+  leadMonths: retentionMonths("Lead retention window").default(24),
+  messageMonths: retentionMonths("Contact message retention window").default(12),
+});
+
 export const SETTINGS_SCHEMAS = {
   general: generalSchema,
   hero: heroSchema,
@@ -359,6 +435,8 @@ export const SETTINGS_SCHEMAS = {
   whyChooseUs: whyChooseUsSchema,
   facilities: facilitiesSchema,
   everyCourseIncludes: everyCourseIncludesSchema,
+  fees: feesSchema,
+  retention: retentionSchema,
 } as const satisfies Record<SettingsKey, z.ZodType>;
 
 /** The action validates `{ key, value }`; `value` is checked by the key's schema. */
@@ -385,6 +463,34 @@ export type StatsSettings = z.output<typeof statsSchema>;
 export type WhyChooseUsSettings = z.output<typeof whyChooseUsSchema>;
 export type FacilitiesSettings = z.output<typeof facilitiesSchema>;
 export type EveryCourseIncludesSettings = z.output<typeof everyCourseIncludesSchema>;
+export type FeesSettings = z.output<typeof feesSchema>;
+export type RetentionSettings = z.output<typeof retentionSchema>;
+
+/**
+ * The settings that decide money, sign-in or how long personal data survives,
+ * rather than what the site looks like (task 2, task 9). A write that moves one
+ * of these is confirmed with a fresh second factor; everything else stays a
+ * one-click save.
+ *
+ * Lives here because both sides read it: the Server Action decides whether to ask
+ * for a code, and the admin panel decides — from the same fields — whether to show
+ * the box before the Save button is clickable. `general.siteUrl` is one of them
+ * because it is where Better Auth sends a password-reset link and what it compares
+ * a sign-in Origin against, and the retention windows because shortening one
+ * deletes the enquiries of real people on the next scheduled run.
+ */
+export const SETTINGS_SENSITIVE_FIELDS: Partial<Record<SettingsKey, readonly string[]>> = {
+  fees: [
+    "currency",
+    "discountApprovalThresholdPct",
+    "lateFeePerWeek",
+    "certificateRequiresClearance",
+    "allowedDueAmount",
+    "maxBackdateDays",
+  ],
+  general: ["siteUrl"],
+  retention: ["leadMonths", "messageMonths"],
+};
 
 /** Select options for the two icon dropdowns. */
 export const SOCIAL_ICON_OPTIONS = SOCIAL_ICON_KEYS.map((value) => ({

@@ -95,5 +95,41 @@ export function validateServerEnv(env: NodeJS.ProcessEnv = process.env): EnvChec
     );
   }
 
+  // Every rate limit is keyed by the client address, so how that address is read
+  // has to be stated explicitly (docs 01 §S1). `CF-Connecting-IP` is only
+  // trustworthy when the origin firewall admits Cloudflare's ranges and nothing
+  // else; otherwise any visitor can send it and get a fresh bucket.
+  const proxyMode = nonEmpty(env.TRUSTED_PROXY)?.toLowerCase();
+  if (proxyMode && proxyMode !== "cloudflare" && proxyMode !== "hops") {
+    errors.push(
+      `TRUSTED_PROXY must be "cloudflare" or "hops" (got "${env.TRUSTED_PROXY}"). An unrecognised value falls back to "hops".`
+    );
+  }
+  if (isProduction && !proxyMode) {
+    warnings.push(
+      'TRUSTED_PROXY is not set, so the client address is taken from the right-most X-Forwarded-For hop. Set TRUSTED_PROXY="cloudflare" only if the origin firewall accepts traffic from Cloudflare ranges alone.'
+    );
+  }
+  if (proxyMode === "cloudflare") {
+    warnings.push(
+      'TRUSTED_PROXY="cloudflare": confirm the origin firewall blocks every IP except Cloudflare\'s, and that the proxy strips any inbound CF-Connecting-IP.'
+    );
+  }
+
+  const proxyHops = nonEmpty(env.TRUSTED_PROXY_HOPS);
+  if (proxyHops && !/^\d+$/.test(proxyHops)) {
+    errors.push(`TRUSTED_PROXY_HOPS must be a whole number of trusted proxies (got "${env.TRUSTED_PROXY_HOPS}").`);
+  }
+
+  // Uploads on the container's own disk disappear at the next deploy while the
+  // database keeps serving their URLs (fix guide §11). Development is allowed to
+  // do it — that is what `public/uploads` is for — production is not.
+  const storageProvider = nonEmpty(env.MEDIA_STORAGE_PROVIDER)?.toLowerCase();
+  if (isProduction && storageProvider === "local") {
+    errors.push(
+      'MEDIA_STORAGE_PROVIDER=local is not allowed in production: uploaded files are written to this container\'s disk and vanish on the next deploy. Leave it unset to use Cloudinary credentials, or set it to "cloudinary".'
+    );
+  }
+
   return { errors, warnings };
 }

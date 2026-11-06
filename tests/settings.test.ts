@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   SETTINGS_KEYS,
   SETTINGS_SCHEMAS,
+  SETTINGS_SENSITIVE_FIELDS,
   SETTINGS_TABS,
   SOCIAL_ICON_KEYS,
   WHY_ICON_KEYS,
@@ -14,6 +15,7 @@ import {
   hoursSchema,
   isPlaceholderText,
   parseSettingsValue,
+  retentionSchema,
   socialsSchema,
   statsSchema,
   whyChooseUsSchema,
@@ -71,6 +73,11 @@ describe("settings key registry", () => {
       "whyChooseUs",
       "facilities",
       "everyCourseIncludes",
+      // docs 05 §2: the discount-approval threshold and the receipt footer are
+      // configured, not hard-coded.
+      "fees",
+      // task 9: the windows the `retention` cron job sweeps by.
+      "retention",
     ]);
   });
 
@@ -87,6 +94,48 @@ describe("settings key registry", () => {
       const parsed = parseSettingsValue(key, SETTING_DEFAULTS[key]);
       expect(parsed.success, `${key} seed baseline must satisfy its schema`).toBe(true);
     }
+  });
+});
+
+/**
+ * Task 9b. These two numbers are the only settings that decide when other
+ * people's data disappears, so they are pinned twice over: the windows the
+ * brief sets, and the floor that stops a `0` meaning "purge everything".
+ */
+describe("retentionSchema", () => {
+  it("defaults to 24 months of enquiries and 12 of messages", () => {
+    expect(SETTING_DEFAULTS.retention).toEqual({ leadMonths: 24, messageMonths: 12 });
+    expect(resolveSiteSettings([]).retention).toEqual({ leadMonths: 24, messageMonths: 12 });
+  });
+
+  it("coerces the strings an `<input type=\"number\">` posts", () => {
+    const parsed = retentionSchema.safeParse({ leadMonths: "18", messageMonths: "6" });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data).toEqual({ leadMonths: 18, messageMonths: 6 });
+  });
+
+  it("refuses a window that would sweep the whole table", () => {
+    for (const value of [0, -1, 2.5, "0", "", "abc"]) {
+      expect(
+        retentionSchema.safeParse({ leadMonths: value, messageMonths: 12 }).success,
+        `${value} is not a retention window`
+      ).toBe(false);
+    }
+    expect(retentionSchema.safeParse({ leadMonths: 361, messageMonths: 12 }).success).toBe(false);
+  });
+
+  it("leaves a missing window to its default instead of failing", () => {
+    // An admin who saves the tab with one box cleared posts `""`, which the
+    // schema rejects; a row written before this key existed has no field at all.
+    expect(retentionSchema.safeParse({ leadMonths: 18 }).data).toEqual({
+      leadMonths: 18,
+      messageMonths: 12,
+    });
+  });
+
+  it("asks for a second factor, because shortening one of these deletes data", () => {
+    expect(SETTINGS_SENSITIVE_FIELDS.retention).toEqual(["leadMonths", "messageMonths"]);
   });
 });
 

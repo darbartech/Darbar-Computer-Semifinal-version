@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UserRound, BookOpen, Award, FolderGit2, Star, ClipboardList } from "lucide-react";
+import { LayoutDashboard, UserRound, BookOpen, Award, FolderGit2, Star, ClipboardList, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/student/profile", label: "Profile", icon: UserRound, exact: false },
   { href: "/student/courses", label: "My Courses", icon: BookOpen, exact: false },
   { href: "/student/assignments", label: "Assignments", icon: ClipboardList, exact: false },
+  { href: "/student/fees", label: "Fees", icon: Wallet, exact: false },
   { href: "/student/certificates", label: "Certificates", icon: Award, exact: false },
   { href: "/student/portfolio", label: "Portfolio", icon: FolderGit2, exact: false },
   { href: "/student/reviews", label: "Reviews", icon: Star, exact: false },

@@ -9,7 +9,7 @@ import {
   submissionReviewSchema,
 } from "@/lib/validators/assignments";
 import {
-  adminGetAssignment,
+  adminGetWritableAssignment,
   createAssignment,
   deleteAssignment,
   filterCourseStudentIds,
@@ -50,6 +50,7 @@ export async function saveAssignmentAction(
   try {
     const user = await requirePermission("assignment.write");
     actor = { id: user.id, email: user.email };
+    const scope = { userId: user.id, role: user.role };
 
     const parsed = assignmentWriteSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -61,9 +62,11 @@ export async function saveAssignmentAction(
     }
 
     const studentIds = [...new Set(data.studentIds)];
-    const enrolled = await filterCourseStudentIds(data.courseId, studentIds);
+    const enrolled = await filterCourseStudentIds(data.courseId, studentIds, scope);
     if (enrolled.size !== studentIds.length) {
-      return fail("Some of the chosen students are not enrolled in that course");
+      return fail(
+        "Some of the chosen students are not enrolled in that course, or are not in a batch you teach."
+      );
     }
 
     const fields = {
@@ -77,7 +80,7 @@ export async function saveAssignmentAction(
 
     const id = data.id && data.id !== "" ? data.id : null;
     if (id) {
-      if (!(await adminGetAssignment(id))) return fail("Assignment not found");
+      if (!(await adminGetWritableAssignment(id, scope))) return fail("Assignment not found");
       await updateAssignment(id, fields);
       await audit({
         actor,
@@ -118,10 +121,15 @@ export async function listCourseStudentsAction(
   }>
 > {
   try {
-    await requirePermission("assignment.read");
+    const user = await requirePermission("assignment.read");
     const parsed = z.string().trim().min(1).max(64).safeParse(courseId);
     if (!parsed.success) return fail("Invalid course");
-    return { ok: true, data: { students: await listCourseStudents(parsed.data) } };
+    return {
+      ok: true,
+      data: {
+        students: await listCourseStudents(parsed.data, { userId: user.id, role: user.role }),
+      },
+    };
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error("[listCourseStudentsAction]", error instanceof Error ? error.message : "unknown");
@@ -134,9 +142,11 @@ export async function deleteAssignmentAction(id: string): Promise<ActionResult> 
   try {
     const user = await requirePermission("assignment.write");
     actor = { id: user.id, email: user.email };
+    const scope = { userId: user.id, role: user.role };
 
-    if (!(await adminGetAssignment(id))) return fail("Assignment not found");
-    await deleteAssignment(id);
+    if (!(await adminGetWritableAssignment(id, scope))) return fail("Assignment not found");
+    const deleted = await deleteAssignment(id, scope);
+    if (deleted === 0) return fail("Assignment not found");
     await audit({
       actor,
       action: "assignment.delete",
@@ -166,11 +176,16 @@ export async function reviewSubmissionAction(
     if (!parsed.success) return invalid(parsed.error);
     const data = parsed.data;
 
-    const result = await reviewSubmission(data.assignmentId, data.submissionId, {
-      reviewStatus: data.reviewStatus,
-      reviewNote: data.reviewNote || null,
-      reviewedById: user.id,
-    });
+    const result = await reviewSubmission(
+      data.assignmentId,
+      data.submissionId,
+      {
+        reviewStatus: data.reviewStatus,
+        reviewNote: data.reviewNote || null,
+        reviewedById: user.id,
+      },
+      { userId: user.id, role: user.role }
+    );
     if (result.count === 0) return fail("Submission not found");
 
     await audit({

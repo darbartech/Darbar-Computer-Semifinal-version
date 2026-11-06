@@ -26,9 +26,16 @@ type StudentChip = { name: string; photoUrl: string | null };
  * Header account area. Resolves the signed-in student client-side via
  * `/api/student/me` so public pages stay statically renderable; visitors and
  * staff keep the plain Log In / Sign Up menu.
+ *
+ * "asking" is a real state. Returning `null` until the fetch finished made the
+ * header say *Sign In* for a second to people who were signed in — the flash read
+ * as "your session ended" on every navigation. Until the answer arrives the header
+ * renders a placeholder of the same size, and an unhandled failure counts as
+ * signed out rather than as an endless skeleton.
  */
-export function useStudentChip(): StudentChip | null {
+export function useStudentChip(): { chip: StudentChip | null; resolved: boolean } {
   const [chip, setChip] = React.useState<StudentChip | null>(null);
+  const [resolved, setResolved] = React.useState(false);
   const pathname = usePathname();
 
   React.useEffect(() => {
@@ -36,15 +43,19 @@ export function useStudentChip(): StudentChip | null {
     fetch("/api/student/me")
       .then((response) => (response.ok ? response.json() : { student: null }))
       .then((data: { student: StudentChip | null }) => {
-        if (!cancelled) setChip(data.student);
+        if (cancelled) return;
+        setChip(data.student);
+        setResolved(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setResolved(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [pathname]);
 
-  return chip;
+  return { chip, resolved };
 }
 
 function Avatar({ chip, className }: { chip: StudentChip; className?: string }) {
@@ -73,7 +84,7 @@ function Avatar({ chip, className }: { chip: StudentChip; className?: string }) 
 }
 
 export function HeaderAccountMenu() {
-  const chip = useStudentChip();
+  const { chip, resolved } = useStudentChip();
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
 
@@ -87,6 +98,15 @@ export function HeaderAccountMenu() {
       setSigningOut(false);
     }
   };
+
+  if (!resolved) {
+    return (
+      <span
+        aria-hidden="true"
+        className="hidden size-11 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100 sm:inline-flex"
+      />
+    );
+  }
 
   if (chip) {
     return (
@@ -141,7 +161,7 @@ export function HeaderAccountMenu() {
 }
 
 export function HeaderAccountSheetBlock({ onClose }: { onClose: () => void }) {
-  const chip = useStudentChip();
+  const { chip, resolved } = useStudentChip();
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
 
@@ -156,6 +176,18 @@ export function HeaderAccountSheetBlock({ onClose }: { onClose: () => void }) {
       setSigningOut(false);
     }
   };
+
+  if (!resolved) {
+    return (
+      <div
+        aria-hidden="true"
+        className="rounded-xl border border-neutral-200 bg-neutral-50 p-3"
+      >
+        <div className="mb-3 h-11 animate-pulse rounded-xl bg-neutral-200" />
+        <div className="mb-2 h-11 animate-pulse rounded-xl bg-neutral-200/70" />
+      </div>
+    );
+  }
 
   if (chip) {
     return (

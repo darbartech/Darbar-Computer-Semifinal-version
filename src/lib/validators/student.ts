@@ -1,10 +1,18 @@
 import { z } from "zod";
 import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  passwordProblem,
+} from "../password-policy";
+import {
   cuidLike,
+  honeypotField,
   nameSchema,
   optionalDateString,
   phoneSchema,
+  publicEmailSchema,
   requiredEmailSchema,
+  turnstileTokenSchema,
 } from "./shared";
 
 /**
@@ -15,31 +23,79 @@ import {
  */
 
 /**
- * Student password policy. Deliberately lower than the staff minimum (10 in
- * `src/server/auth.ts`) because students are self-service and hold no staff
- * capability; 8 is still above the 6 the old stub form allowed.
+ * Student password policy — the same 10 characters Better Auth enforces
+ * (`emailAndPassword.minPasswordLength`, `src/server/auth.ts`) and the same
+ * common-password refusal the staff forms get. Registration used to allow 8, so a
+ * student could sign up and then find every later reset rejected by the library
+ * with an opaque error (reaudit N12, docs 01 §S11).
  */
-export const STUDENT_PASSWORD_MIN = 8;
-export const STUDENT_PASSWORD_MAX = 128;
+export const STUDENT_PASSWORD_MIN = PASSWORD_MIN_LENGTH;
+export const STUDENT_PASSWORD_MAX = PASSWORD_MAX_LENGTH;
 
+/**
+ * Length, common-list and self-evident checks all come from `passwordProblem`, so
+ * the field itself only bounds the size of the string. Splitting the rules across
+ * two places is how the 8-vs-10 mismatch was born.
+ */
 const passwordSchema = z
   .string()
-  .min(STUDENT_PASSWORD_MIN, `Password must be at least ${STUDENT_PASSWORD_MIN} characters`)
-  .max(STUDENT_PASSWORD_MAX, `Password is too long (max ${STUDENT_PASSWORD_MAX} characters)`);
+  .max(PASSWORD_MAX_LENGTH, `Password is too long (max ${PASSWORD_MAX_LENGTH} characters)`);
 
-/** Registration: better-auth's sign-in is email/password, so no phone login. */
+/**
+ * The length check above is the easy half. What the account already publishes —
+ * the name, the email, the phone typed into the same form — is what a neighbour
+ * guesses first, so those are refused with the rest.
+ */
+function rejectWeakStudentPassword(
+  value: { password: string; email?: string; name?: string; phone?: string },
+  ctx: z.RefinementCtx
+): void {
+  const problem = passwordProblem(value.password, {
+    email: value.email,
+    name: value.name,
+    phone: value.phone,
+  });
+  if (problem) ctx.addIssue({ code: "custom", path: ["password"], message: problem });
+}
+
+/**
+ * Registration: better-auth's sign-in is email/password, so no phone login.
+ * The two shapes follow the `contact.ts` split — the browser validates the
+ * visible fields, the server action additionally requires the Turnstile token
+ * the widget only fills in at submit time (docs 01 §S3).
+ */
+const studentRegisterFields = {
+  name: nameSchema("Full name"),
+  email: publicEmailSchema,
+  phone: phoneSchema.optional().or(z.literal("")),
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+  website: honeypotField,
+};
+
+const passwordConfirmation = {
+  path: ["confirmPassword"],
+  message: "Passwords do not match",
+};
+
+export const studentRegisterFormSchema = z
+  .object(studentRegisterFields)
+  .refine(
+    (value) => value.password === value.confirmPassword,
+    passwordConfirmation
+  )
+  .superRefine(rejectWeakStudentPassword);
+
 export const studentRegisterSchema = z
   .object({
-    name: nameSchema("Full name"),
-    email: requiredEmailSchema,
-    phone: phoneSchema.optional().or(z.literal("")),
-    password: passwordSchema,
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    ...studentRegisterFields,
+    turnstileToken: turnstileTokenSchema,
   })
-  .refine((value) => value.password === value.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
+  .refine(
+    (value) => value.password === value.confirmPassword,
+    passwordConfirmation
+  )
+  .superRefine(rejectWeakStudentPassword);
 
 export const studentLoginSchema = z.object({
   email: requiredEmailSchema,
@@ -126,9 +182,53 @@ export const rejectStudentSchema = z.object({
     .max(300, "Reason is too long"),
 });
 
-export const enrollmentDecisionSchema = z.object({
+/**
+ * Staff decision on a course request (docs 02 B1/B6). Approving always names a
+ * batch — a seat is only ever taken through one — and declining always carries
+ * the note the student reads back in the portal.
+ */
+export const approveEnrollmentSchema = z.object({
   enrollmentId: cuidLike,
-  status: z.enum(["ACTIVE", "DROPPED"]),
+  batchId: cuidLike,
+});
+
+/** Optional note on a waitlist; required on a decline — see below. */
+const optionalNoteSchema = z
+  .string()
+  .trim()
+  .max(300, "Note is too long (max 300 characters)")
+  .optional()
+  .or(z.literal(""));
+
+const requiredNoteSchema = z
+  .string()
+  .trim()
+  .min(3, "Say why, so the student knows what to fix")
+  .max(300, "Note is too long (max 300 characters)");
+
+export const waitlistEnrollmentSchema = z.object({
+  enrollmentId: cuidLike,
+  batchId: cuidLike.optional().or(z.literal("")),
+  note: optionalNoteSchema,
+});
+
+export const declineEnrollmentSchema = z.object({
+  enrollmentId: cuidLike,
+  note: requiredNoteSchema,
+});
+
+export const moveEnrollmentSchema = z.object({
+  enrollmentId: cuidLike,
+  batchId: cuidLike,
+});
+
+export const completeEnrollmentSchema = z.object({
+  enrollmentId: cuidLike,
+});
+
+export const dropEnrollmentSchema = z.object({
+  enrollmentId: cuidLike,
+  reason: optionalNoteSchema,
 });
 
 export type StudentRegisterValues = z.output<typeof studentRegisterSchema>;

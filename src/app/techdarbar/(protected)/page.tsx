@@ -8,10 +8,12 @@ import {
   Settings as SettingsIcon,
   ShieldUser,
   ArrowRight,
+  Wallet,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { can } from "@/server/permissions";
+import { AccountantHome } from "@/components/admin/fees/AccountantHome";
 import type { Role } from "@/generated/prisma/client";
 
 export const metadata: Metadata = {
@@ -33,6 +35,11 @@ export default async function AdminDashboardPage() {
   const canViewCourses = can(role, "course.read");
   const canViewSettings = can(role, "settings.read");
   const canViewUsers = can(role, "user.manage");
+  const canViewFees = can(role, "fee.read");
+
+  // Docs 08 §2: one URL, a different home screen per role. The accountant opens on
+  // the money that needs chasing, not on a grid of shortcuts.
+  if (role === "ACCOUNTANT") return <AccountantHome name={user.name} />;
 
   return (
     <div className="flex flex-col gap-8">
@@ -87,6 +94,30 @@ export default async function AdminDashboardPage() {
               <Link href="/techdarbar/courses" className="w-full">
                 <Button variant="outline" className="w-full group">
                   Open Courses
+                  <ArrowRight className="size-4 ml-2 transition-transform group-hover:translate-x-0.5" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+        )}
+
+        {canViewFees && (
+          <Card className="hover:-translate-y-1 hover:shadow-lg transition-all">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Fees</CardTitle>
+                <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                  <Wallet className="size-5" />
+                </div>
+              </div>
+              <CardDescription>
+                Invoices, dues and the receipts taken at the counter.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="pt-0">
+              <Link href="/techdarbar/fees" className="w-full">
+                <Button variant="outline" className="w-full group">
+                  Open Fees
                   <ArrowRight className="size-4 ml-2 transition-transform group-hover:translate-x-0.5" />
                 </Button>
               </Link>
@@ -158,6 +189,11 @@ export default async function AdminDashboardPage() {
             {canViewCourses && (
               <Link href="/techdarbar/courses">
                 <Button variant="secondary" size="sm">Courses</Button>
+              </Link>
+            )}
+            {canViewFees && (
+              <Link href="/techdarbar/fees">
+                <Button variant="secondary" size="sm">Fees</Button>
               </Link>
             )}
             {canViewSettings && (

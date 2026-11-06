@@ -3,7 +3,12 @@ import { db } from "@/server/db";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type AuditActor = {
-  id: string;
+  /**
+   * `User.id` of the staff member, or `null` for events with no authenticated
+   * actor (a failed sign-in). The column is a foreign key, so a synthetic id
+   * such as "system" would be rejected and the entry silently lost.
+   */
+  id: string | null;
   email: string;
 };
 
@@ -32,7 +37,7 @@ export async function audit(input: AuditInput): Promise<void> {
   try {
     await db.auditLog.create({
       data: {
-        actorId: input.actor.id,
+        actorId: input.actor.id ?? null,
         actorEmail: input.actor.email,
         action: input.action,
         entity: input.entity,

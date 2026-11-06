@@ -58,12 +58,13 @@ const CLOSED_STATUSES: LeadStatus[] = ["ENROLLED", "LOST", "SPAM"];
 export type DashboardVariant = "full" | "counselor" | "content";
 
 /**
- * docs/05 §5 "Role variants": COUNSELOR sees lead numbers scoped to their own
- * leads, EDITOR sees content health only, everyone else sees everything.
+ * docs/05 §5 "Role variants" + docs 04 §1. Decided from the permission matrix
+ * rather than a role list, so a role that cannot read leads can never be handed
+ * lead numbers by a later role addition.
  */
 export function dashboardVariant(role: Role): DashboardVariant {
+  if (!can(role, "lead.read")) return "content";
   if (role === "COUNSELOR") return "counselor";
-  if (role === "EDITOR") return "content";
   return "full";
 }
 

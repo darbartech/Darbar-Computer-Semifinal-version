@@ -62,6 +62,7 @@ export default async function AdminTeamPage({
         }}
         library={library}
         canWrite={can(user.role, "team.write")}
+        canDelete={can(user.role, "team.delete")}
       />
     </div>
   );

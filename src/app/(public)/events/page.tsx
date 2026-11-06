@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { listPublishedEvents } from "@/server/dal/events";
 import { getSiteSettings } from "@/server/dal/settings";
+import { fmtDate, fmtTime } from "@/lib/dates";
 import { buildMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,7 @@ export async function generateMetadata() {
 }
 
 const PLACEHOLDER_IMAGE =
-  "https://images.pexels.com/photos/5539293/pexels-photo-5539293.jpeg?auto=compress&cs=tinysrgb&w=1400";
+  "/images/seed/pexels-5539293.jpg";
 
 const categoryBadgeVariant: Record<string, "default" | "secondary" | "accent" | "success" | "warning" | "outline"> = {
   WORKSHOP: "accent",
@@ -52,10 +53,7 @@ function formatCategoryDisplay(category: string): string {
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return fmtTime(date);
 }
 
 type PublishedEvent = Awaited<ReturnType<typeof listPublishedEvents>>[number];
@@ -109,7 +107,7 @@ function EventCard({ event }: { event: PublishedEvent }) {
             <span className="inline-flex items-center gap-2">
               <Calendar className="size-3.5 text-primary shrink-0" aria-hidden="true" />
               <span className="font-medium text-neutral-700">
-                {startsAt.toLocaleDateString("en-US", {
+                {fmtDate(startsAt, {
                   weekday: "short",
                   year: "numeric",
                   month: "long",

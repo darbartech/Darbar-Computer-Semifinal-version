@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/server/db";
+import { ADMIN_PICKER_LIMIT } from "@/server/constants";
 import type {
   Lead,
   LeadActivityType,
@@ -7,6 +8,7 @@ import type {
   Role,
 } from "@/generated/prisma/client";
 import {
+  LEAD_EXPORT_MAX_ROWS,
   LEAD_PAGE_SIZE,
   type LeadFilters,
 } from "@/lib/validators/lead";
@@ -117,14 +119,21 @@ export type LeadScope = {
  * docs/05 §4.1: "Counselors cannot see leads assigned to others (enforced in
  * the DAL query, not only in the UI)". A counselor sees their own leads plus
  * the unassigned queue.
+ *
+ * This is also where an anonymised lead disappears from the whole application.
+ * The retention job (task 9) strips a stranger's enquiry and stamps `deletedAt`
+ * instead of deleting the row, so a purge that was wrong can be undone by
+ * clearing the stamp — and every list, badge, chart, export and detail read that
+ * shares this predicate stops showing it the moment that happens.
  */
 export function leadScopeWhere(scope: LeadScope): Prisma.LeadWhereInput {
+  const notPurged = { deletedAt: null };
   if (scope.role === "COUNSELOR") {
     return {
-      OR: [{ assignedToId: scope.userId }, { assignedToId: null }],
+      AND: [notPurged, { OR: [{ assignedToId: scope.userId }, { assignedToId: null }] }],
     };
   }
-  return {};
+  return notPurged;
 }
 
 function endOfToday(): Date {
@@ -458,6 +467,7 @@ export async function listLeadAssignees(): Promise<
   return db.user.findMany({
     where: { isActive: true, role: { in: ["SUPER_ADMIN", "ADMIN", "COUNSELOR"] } },
     orderBy: { name: "asc" },
+    take: ADMIN_PICKER_LIMIT,
     select: { id: true, name: true },
   });
 }
@@ -468,22 +478,32 @@ export async function listLeadCourseOptions(): Promise<
 > {
   return db.course.findMany({
     orderBy: { title: "asc" },
+    take: ADMIN_PICKER_LIMIT,
     select: { slug: true, title: true },
   });
 }
 
-/** Every row matching the current filters, for the CSV export. */
+/**
+ * Every row matching the filters, for the CSV export. Reads one row past the
+ * cap so the caller can tell a full page from the whole answer instead of
+ * guessing, and never sorts or pages — the export is the filtered set, in
+ * creation order.
+ */
 export async function listLeadsForExport(
   filters: LeadFilters,
   scope: LeadScope
-): Promise<LeadListRow[]> {
-  const rows = await db.lead.findMany({
+): Promise<{ rows: LeadListRow[]; truncated: boolean }> {
+  const found = await db.lead.findMany({
     where: leadWhere(filters, scope),
     orderBy: { createdAt: "desc" },
-    take: 5000,
+    take: LEAD_EXPORT_MAX_ROWS + 1,
     select: listSelect,
   });
-  return rows.map(toListRow);
+  const truncated = found.length > LEAD_EXPORT_MAX_ROWS;
+  return {
+    rows: found.slice(0, LEAD_EXPORT_MAX_ROWS).map(toListRow),
+    truncated,
+  };
 }
 
 /** Dashboard and admin badges. One grouped query instead of N counts. */

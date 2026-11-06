@@ -250,8 +250,8 @@ export default async function CoursesPage() {
 
 ```tsx
 // src/app/(public)/courses/[slug]/page.tsx  (Next 16: params is a Promise)
-export async function generateStaticParams() {
-  return (await listPublishedCourses()).map((c) => ({ slug: c.slug }));
+export function generateStaticParams() {
+  return safeStaticParams("/courses/[slug]", listPublishedCourseSlugs);
 }
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -262,6 +262,60 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 ```
 
 Same prop-passing pattern for: `Header`/`WhatsAppButton` (settings from `(public)/layout.tsx`), `TestimonialCarousel`, `GalleryClient`, `CategoryDirectory`, `AdmissionInquiryForm` (course options).
+
+### 6.1 Prerender lists — how they actually work
+
+Three things differ from the sketch above, and each has a test in `tests/static-generation.test.ts`
+that fails if it drifts back:
+
+- **The list is slug-only.** `listPublishedCourseSlugs`, `listPublishedBlogSlugs` and
+  `listPublishedEventSlugs` use `select: { slug: true }` with no `take`. The whole-record reads
+  behind the listing pages are capped at `PUBLIC_LIST_LIMIT`, so reusing them for prerendering
+  quietly limited the archive to one page and fetched columns the keys never needed.
+- **The list cannot fail the build.** Every `generateStaticParams` goes through
+  `safeStaticParams(route, read)` (`src/lib/static-params.ts`): a database that is not reachable at
+  build time logs one warning and returns `[]`, so `next build` still succeeds and the pages
+  generate on request. An unguarded `await` there fails the whole build.
+- **`/courses` is static.** The page reads nothing from the request; `CoursesClient` seeds its
+  search/category/level controls from `useSearchParams()` in an effect after hydration and writes
+  the URL back with `router.replace`. Awaiting the query string on the server made every visit —
+  filtered or not — render dynamically, which is what the `5m` window in the build report now buys
+  back.
+
+One public detail route stays dynamic on purpose: `/courses/[slug]` renders `CourseEnrollArea`,
+which reads the session through `headers()` to choose between "Enroll" and "Sign in", so it cannot
+be prerendered even though it exports a prerender list.
+
+### 6.2 Ceilings on reads
+
+Nothing in the admin or public trees may say "give me every row", because the row count is the
+future:
+
+- **Un-paginated pickers are capped at `ADMIN_PICKER_LIMIT`** (`src/server/constants.ts`) — course
+  dropdowns, batch instructors, assignment rosters, lead assignees. Tables page at 20–25 and are
+  covered by their own `PAGE_SIZE`.
+- **A capped list is never the denominator.** `assignmentListSelect` asks for
+  `_count: { select: { recipients: true } }` so "3/24 submitted" still says 24 when the id list
+  behind it stopped at the ceiling.
+- **A truncated human-facing list says so.** `listStudentsForAdmin` reads `LIMIT + 1`, drops the
+  extra row and returns `{ rows, truncated }`; the students page turns `truncated` into a notice
+  telling the user to narrow the filter. Silent truncation is how a bulk action ends up aimed at
+  the wrong cohort.
+- **Aggregate numbers come from SQL.** `getDuesSummary()` is one grouped `SELECT`
+  (`duesAgingQuery`) rather than a load of every open invoice, and the bucket boundaries are the
+  same `dayUtc()` values `agingWhere()` uses, so the aging chips and the filtered list cannot
+  disagree. The boundaries cross the wire as `YYYY-MM-DD` text (`dayKeyUtc`) compared with
+  `::date`, never as a `Date` — a zone-less timestamp is the one thing this driver mangles.
+  `tests/fees.test.ts` compares the aggregate against the old per-row `agingOf()` loop on the same
+  fixture, and a `::bigint` column arrives as a JS `BigInt` that the DAL narrows to integer NPR.
+- **Parallel where independent.** The home page awaits settings, featured courses, testimonials and
+  FAQs in one `Promise.all`.
+- **Bulk ids are capped in Zod** — lead status/stage (100), lead delete (50), assignment recipients
+  (500, a course roster), invoice installments (60). 500 stays above the 200 the brief suggested
+  because it is the size of a whole course, not a page of the UI.
+- **Receipt PDFs are metered, not cached** (docs/05 §4). Caching would let a voided payment keep
+  printing as a real receipt, so the file stays per-request and `RECEIPT_DOWNLOAD_LIMIT` charges
+  each account 40 renders per five minutes instead; both routes answer 429 after their auth checks.
 
 ---
 
@@ -305,6 +359,27 @@ export async function updateCourse(id: string, input: unknown): Promise<ActionRe
 }
 ```
 Handle unique-slug errors (Prisma error code `P2002`) and return a friendly field error.
+
+**Sixth step for irreversible writes** (docs/08 §"Step-up"): a void, a certificate issue or
+revoke, a role/email change, a privileged account create, an activate/deactivate, a staff
+password-reset link, a 2FA reset, a user delete, a day reopen, or a settings save that moves a
+sensitive field adds
+`await requireStepUp(user, purpose, input)` between validation and the write, and returns
+`{ ok: false, error: stepUp.error }` when it refuses. The two `stepUp*` fields stay out of the
+business schema — `requireStepUp` reads them off the raw payload, so a caller who forgets them
+gets a refusal rather than a silent pass. It goes after the permission check, the Zod parse and
+the existence check, and before the write, so a request that could never have succeeded never
+spends one of the code's 30 seconds or one of the account's throttle credits.
+
+**Lock order in the money path** (`src/server/dal/fees.ts`): every writer takes the campus
+day's Postgres advisory lock first — `SELECT pg_advisory_xact_lock(hashtext('dayclose:<yyyy-mm-dd>'))`
+— and only then the invoice row lock (`SELECT … FOR UPDATE`). The day lock is what makes the
+close atomic: `closeDay` counts the day's receipts and writes the `DayClose` row inside it, and
+`recordPayment`, `voidPayment` and `reopenDay` do their closed-day check and write inside the same
+key, so a receipt can never land between the count and the row and a day can never be reopened
+under a receipt still in flight. It has to be advisory because a day is not a row — the first
+close of a day has no `DayClose` to lock. One order everywhere, so two clerks working the same
+day and the same bill cannot deadlock.
 
 **Revalidation map** (use the same names everywhere):
 
@@ -375,7 +450,7 @@ and delete the `mailto:` branch.
 
 | Route | Method | Auth | Purpose |
 |-------|--------|------|---------|
-| `/api/upload/sign` | POST | any staff role | Returns signed Cloudinary upload params; enforces folder, max size, allowed MIME types |
+| `/api/upload/sign` | POST | `media.upload` | Returns signed Cloudinary upload params; enforces folder, max size, allowed MIME types. Permission and rate limit are checked **before the body is read**, so a caller who will be refused cannot make the server parse their payload (same order as `/api/upload/local`). Rate-limited per user (60 signatures / 10 min) and **not audited** — issuing a signature changes nothing, and `media.upload` records the file that arrives afterwards |
 | `/api/leads/export` | GET | `lead.export` | Streams CSV; writes audit entry |
 | `/api/health` | GET | none | `SELECT 1` check for uptime monitor (no details) |
 

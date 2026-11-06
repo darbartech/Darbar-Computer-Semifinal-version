@@ -76,6 +76,31 @@ export const TEMPLATE_TAGS = ['certificate:templates'] as const
 export const STUDENT_TAGS = ['students'] as const
 export const PORTFOLIO_TAGS = ['portfolio'] as const
 
+/* ───────────── Fees (docs 05) ───────────── */
+
+/**
+ * The dues list, the invoice list, the payments list, the day book, the student
+ * portal's own fees page and the admin KPI cards all read money, so every fees
+ * write drops the whole set. `dashboard` rides along because the accountant
+ * landing shows the same outstanding figures.
+ */
+export const FEE_TAGS = ['fees', 'invoices', 'payments', 'daybook', 'student:fees', 'dashboard'] as const
+
+/** Per-invoice tag so a future single-invoice cache can be dropped by id. */
+export function invoiceWriteTags(id?: string | null): string[] {
+  const tags = new Set<string>(FEE_TAGS)
+  if (id) tags.add(`invoice:${id}`)
+  return [...tags]
+}
+
+/** A receipt write changes its invoice's balance as well as the receipt list. */
+export function paymentWriteTags(params: { invoiceId?: string | null; paymentId?: string | null }): string[] {
+  const tags = new Set<string>(FEE_TAGS)
+  if (params.invoiceId) tags.add(`invoice:${params.invoiceId}`)
+  if (params.paymentId) tags.add(`receipt:${params.paymentId}`)
+  return [...tags]
+}
+
 /**
  * Tags to drop after any student profile / project write. Portfolios are cached
  * under the shared `portfolio` tag; the per-slug tag is added so a future

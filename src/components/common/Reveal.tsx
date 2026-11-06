@@ -37,6 +37,26 @@ interface RevealProps {
   as?: React.ElementType;
 }
 
+/**
+ * `prefers-reduced-motion`, read once and kept live if the setting changes while
+ * the page is open. False on the server and on the first client paint, which is
+ * the same answer both sides give, so there is nothing to hydrate wrong; the
+ * effect corrects it a moment later for anyone who asked for no motion.
+ */
+export function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = React.useState(false);
+
+  React.useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return reduced;
+}
+
 export function Reveal({
   children,
   delay = 0,
@@ -44,6 +64,7 @@ export function Reveal({
   className,
   as = "div",
 }: RevealProps) {
+  const reduced = usePrefersReducedMotion();
   const { ref, inView } = useInView<HTMLDivElement>();
   const [mounted, setMounted] = React.useState(false);
   // Deferred one frame so the hide-on-scroll behaviour only starts after the
@@ -52,8 +73,20 @@ export function Reveal({
     const frame = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(frame);
   }, []);
-  const hidden = mounted && !inView;
+
   const Component = as;
+
+  // Reduced motion means the content is simply there: never hidden, never
+  // translated, and with no transition to delay behind it.
+  if (reduced) {
+    return (
+      <Component ref={ref as React.Ref<HTMLDivElement>} className={cn(className)}>
+        {children}
+      </Component>
+    );
+  }
+
+  const hidden = mounted && !inView;
   return (
     <Component
       ref={ref as React.Ref<HTMLDivElement>}

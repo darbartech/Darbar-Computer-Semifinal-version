@@ -28,3 +28,21 @@ export function LeadStatusBadge({ status }: { status: keyof typeof LEAD_STATUS_L
 export function MessageStatusBadge({ status }: { status: keyof typeof MESSAGE_STATUS_LABELS }) {
   return <Badge variant={MESSAGE_STATUS_VARIANT[status]}>{MESSAGE_STATUS_LABELS[status]}</Badge>;
 }
+
+/**
+ * Enrollment outcomes (docs 02 B6). REJECTED (staff said no, with a note) and
+ * DROPPED (the student left) look alike in the enum but mean different things
+ * to the student, so they get different colours instead of sharing "outline".
+ */
+const ENROLLMENT_STATUS_VARIANT: Record<string, BadgeProps["variant"]> = {
+  PENDING: "warning",
+  ACTIVE: "success",
+  COMPLETED: "secondary",
+  DROPPED: "outline",
+  REJECTED: "destructive",
+  WAITLISTED: "accent",
+};
+
+export function EnrollmentStatusBadge({ status }: { status: string }) {
+  return <Badge variant={ENROLLMENT_STATUS_VARIANT[status] ?? "outline"}>{status}</Badge>;
+}

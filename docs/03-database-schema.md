@@ -542,6 +542,7 @@ model RateLimitHit {            // simple DB-backed rate limit for public forms
 | Key | Shape (validated with Zod) | Replaces |
 |-----|----------------------------|----------|
 | `general` | `{ name, shortName, tagline, description, siteUrl, logoMediaId, twitterHandle }` | `SITE_CONFIG` |
+| `hero` | `{ eyebrow, title, subtitle, primaryCtaLabel, primaryCtaHref, secondaryCtaLabel, secondaryCtaHref, imageMediaId, imageAlt, popupMediaId, popupAlt }` | hard-coded hero copy on the home page |
 | `contact` | `{ phone, whatsapp, email, address, mapQuery, notifyEmail }` | `institute.contact` + hard-coded `mailto:` |
 | `hours` | `[{ day, time }]` | `institute.hours` |
 | `socials` | `[{ name, url, icon }]` | `institute.socials` |
@@ -550,6 +551,8 @@ model RateLimitHit {            // simple DB-backed rate limit for public forms
 | `whyChooseUs` | `[{ title, description, icon }]` | `institute.whyChooseUs` |
 | `facilities` | `string[]` | `institute.facilities` |
 | `everyCourseIncludes` | `string[]` | `EVERY_COURSE_INCLUDES` |
+| `fees` | `{ currency, discountApprovalThresholdPct, lateFeePerWeek, certificateRequiresClearance, allowedDueAmount, maxBackdateDays, bankDetails, receiptFooter }` — money is integer NPR | the hard-coded approval threshold and receipt footer (see `05` §2) |
+| `retention` | `{ leadMonths, messageMonths }` — whole months, 1–360, defaults 24 and 12 | nothing; added with the `retention` cron job, which is its only reader (see `08` §5) |
 
 ## 5. Indexing & search
 

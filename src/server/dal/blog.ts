@@ -25,6 +25,23 @@ export const listPublishedBlogPosts = cached(
   }
 );
 
+/**
+ * Every published slug, for `generateStaticParams()` on `/blog/[slug]` and for the
+ * sitemap. The list the page uses is capped at one page of posts; a prerender list
+ * is not a page, so it reads the whole set. `updatedAt` travels with it because the
+ * sitemap's `lastmod` has to be the day the post actually changed.
+ */
+export const listPublishedBlogSlugs = cached(
+  BLOG_TAGS,
+  async (): Promise<{ slug: string; updatedAt: Date }[]> => {
+    return db.blogPost.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, updatedAt: true },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    });
+  }
+);
+
 export const getPublishedBlogPostBySlug = cached(
   ["blog"],
   async (slug: string) => {

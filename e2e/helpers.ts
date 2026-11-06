@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { E2E_TOTP_SECRET, generateTotp } from "./totp";
 
 /**
  * Shared e2e helpers (docs/08 §2).
@@ -28,12 +29,36 @@ export const ACCOUNTS = {
 
 export type TestAccount = (typeof ACCOUNTS)[keyof typeof ACCOUNTS];
 
-/** Signs in through the real login form, never by forging a cookie. */
+/**
+ * Signs in through the real login form, never by forging a cookie.
+ *
+ * The roles that move money or issue certificates answer a correct password with
+ * a second-factor challenge instead of a session (fix guide §4), so this covers
+ * both shapes: `prisma/seed-test.ts` enrolls the gated fixtures with
+ * `E2E_TOTP_SECRET`, and `e2e/totp.ts` is the authenticator app standing behind
+ * that secret. A suite that skipped the code step would sit on
+ * `/techdarbar/account` — the page `requireUser()` sends an unenrolled account to
+ * — and every assertion about the admin area would fail there.
+ */
 export async function login(page: Page, account: TestAccount) {
   await page.goto("/techdarbar/login");
   await page.getByLabel("Email").fill(account.email);
   await page.getByLabel("Password").fill(account.password);
   await page.getByRole("button", { name: "Sign in" }).click();
+
+  const codeBox = page.locator("#two-factor-code");
+  const challenged = await codeBox
+    .waitFor({ state: "visible", timeout: 10_000 })
+    .then(
+      () => true,
+      () => false
+    );
+
+  if (challenged) {
+    await codeBox.fill(generateTotp(E2E_TOTP_SECRET));
+    await page.getByRole("button", { name: "Verify and sign in" }).click();
+  }
+
   await page.waitForURL(/\/techdarbar(?!\/login)/, { timeout: 20_000 });
 }
 

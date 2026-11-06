@@ -131,3 +131,67 @@ export function dayKeyLabel(dayKey: string): string {
     month: "short",
   }).format(new Date(Date.UTC(year, month - 1, day, 12)));
 }
+
+/* ───────────────────────── money ───────────────────────── */
+
+/**
+ * Money is a whole NPR `Int` everywhere (AGENTS.md), so this only formats.
+ * `en-IN` groups as 1,00,000 — the lakh/crore style Nepali receipts and the
+ * existing `formatFee()` in `src/server/dal/mappers.ts` already use.
+ */
+export function formatNPR(amount: number | null | undefined): string {
+  if (typeof amount !== "number" || !Number.isFinite(amount)) return "—";
+  return `NPR ${amount.toLocaleString("en-IN")}`;
+}
+
+const WORD_ONES = [
+  "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+  "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+  "Seventeen", "Eighteen", "Nineteen",
+];
+
+const WORD_TENS = [
+  "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
+];
+
+/** South Asian scale: a receipt says "One Lakh", never "One Hundred Thousand". */
+const WORD_SCALES: readonly [number, string][] = [
+  [100_000_000, "Crore"],
+  [100_000, "Lakh"],
+  [1_000, "Thousand"],
+];
+
+function integerToWords(value: number): string {
+  if (value < 20) return WORD_ONES[value]!;
+  if (value < 100) {
+    const tens = WORD_TENS[Math.floor(value / 10)]!;
+    const rest = value % 10;
+    return rest ? `${tens}-${WORD_ONES[rest]}` : tens;
+  }
+  if (value < 1000) {
+    const hundreds = `${WORD_ONES[Math.floor(value / 100)]} Hundred`;
+    const rest = value % 100;
+    return rest ? `${hundreds} ${integerToWords(rest)}` : hundreds;
+  }
+  for (const [scale, label] of WORD_SCALES) {
+    if (value >= scale) {
+      const count = Math.floor(value / scale);
+      const rest = value % scale;
+      return rest
+        ? `${integerToWords(count)} ${label} ${integerToWords(rest)}`
+        : `${integerToWords(count)} ${label}`;
+    }
+  }
+  return String(value);
+}
+
+/**
+ * Amount written out in words, the way a payment receipt must show it so the
+ * figure cannot be altered after signing. Beyond 100 crore the words would be
+ * absurd, so the figure is returned as-is instead of a wrong sentence.
+ */
+export function amountInWords(amount: number | null | undefined): string {
+  if (typeof amount !== "number" || !Number.isSafeInteger(amount)) return "—";
+  if (amount < 0 || amount > 10_000_000_000) return `NPR ${amount.toLocaleString("en-IN")}`;
+  return `Rupees ${integerToWords(amount)} Only`;
+}

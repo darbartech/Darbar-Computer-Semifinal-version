@@ -35,9 +35,9 @@ const DEFAULT_HERO: HeroContent = {
   popupMediaId: null,
   popupAlt: "DarbarTech students working together",
   imageUrl:
-    "https://cdn.prod.website-files.com/640021754b75fb0c4b535941/64539e138771820ebcb7619d_hero-image.png",
+    "/images/seed/template-64539e138771820ebcb7619d_hero-image.png",
   popupImageUrl:
-    "https://cdn.prod.website-files.com/640021754b75fb0c4b535941/6451ec7f19901e54999d5d0c_hero-popup-image-2.png",
+    "/images/seed/template-6451ec7f19901e54999d5d0c_hero-popup-image-2.png",
 };
 
 /** `**phrase**` markup → a highlighted `<span>`; everything else is plain text. */

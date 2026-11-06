@@ -65,6 +65,7 @@ export default async function AdminLeadsPage({
         assignees={assignees}
         courses={courses}
         canDelete={can(user.role, "lead.delete")}
+        canExport={can(user.role, "lead.export")}
       />
     </div>
   );

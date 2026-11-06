@@ -3,18 +3,11 @@ import Link from "next/link";
 import { BookOpen, GraduationCap, CalendarClock, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/common/Badge";
+import { EnrollmentStatusBadge } from "@/components/admin/StatusBadges";
 import { requireStudentProfile } from "@/server/student-session";
 import { listStudentEnrollments } from "@/server/dal/students";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-
-const STATUS_VARIANT: Record<string, "default" | "success" | "secondary" | "outline"> = {
-  PENDING: "outline",
-  ACTIVE: "secondary",
-  COMPLETED: "success",
-  DROPPED: "outline",
-};
 
 export default async function StudentCoursesPage() {
   const { profile } = await requireStudentProfile();
@@ -70,11 +63,15 @@ export default async function StudentCoursesPage() {
                   <h3 className="font-semibold text-neutral-900 leading-snug">
                     {enrollment.course.title}
                   </h3>
-                  <Badge variant={STATUS_VARIANT[enrollment.status] ?? "outline"}>
-                    {enrollment.status}
-                  </Badge>
+                  <EnrollmentStatusBadge status={enrollment.status} />
                 </div>
                 <p className="text-sm text-neutral-600">{enrollment.course.tagline}</p>
+                {enrollment.decisionNote && (
+                  <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                    {enrollment.status === "REJECTED" ? "Why this request was declined: " : "Note: "}
+                    {enrollment.decisionNote}
+                  </p>
+                )}
                 <div className="mt-auto space-y-1.5 text-xs text-neutral-500 pt-2">
                   <p className="inline-flex items-center gap-1.5">
                     <CalendarClock className="size-3.5" />

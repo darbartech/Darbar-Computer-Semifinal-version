@@ -386,6 +386,91 @@ export function verifyUploadedAsset(
   };
 }
 
+/**
+ * Asks the provider what the asset it holds actually is, and re-runs the size
+ * and type checks against that answer.
+ *
+ * `verifyUploadedAsset` can only judge the numbers the browser relayed. A caller
+ * holding a valid `api_key` and a correctly signed `timestamp` can post to the
+ * unsigned `upload_preset` route, or edit the JSON between Cloudinary and the
+ * action, and report a small `bytes` for a file that is not small. Cloudinary's
+ * own record is the only version of those numbers that was not written by the
+ * client, so a Cloudinary `Media` row is created from it.
+ *
+ * Fails closed: an unreachable provider, a non-2xx answer or a body without a
+ * byte count is a rejection, not a pass. The caller destroys the asset, so a
+ * file that cannot be confirmed does not stay in the bucket.
+ *
+ * The local provider is skipped — those bytes were written by this process after
+ * being sniffed, so there is no third party to ask.
+ */
+export async function confirmAssetOnProvider(
+  verified: VerifiedUpload,
+  config: StorageConfig
+): Promise<VerifiedUpload> {
+  if (config.provider === "local") return verified;
+
+  const { cloudName, apiKey, apiSecret } = config;
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new UploadValidationError("The uploaded file could not be verified");
+  }
+
+  const unconfirmed = () =>
+    new UploadValidationError("The uploaded file could not be verified");
+
+  const assetPath = verified.publicId
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/");
+  const assetUrl =
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}` +
+    `/resources/image/upload/${assetPath}`;
+
+  let response: Response;
+  try {
+    response = await fetch(assetUrl, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString("base64")}`,
+      },
+      cache: "no-store",
+    });
+  } catch {
+    throw unconfirmed();
+  }
+  if (!response.ok) throw unconfirmed();
+
+  let asset: unknown;
+  try {
+    asset = await response.json();
+  } catch {
+    throw unconfirmed();
+  }
+  if (typeof asset !== "object" || asset === null) throw unconfirmed();
+
+  const reported = asset as Record<string, unknown>;
+  if (typeof reported.bytes !== "number") throw unconfirmed();
+
+  assertWithinSizeLimit(reported.bytes);
+
+  const mimeType =
+    typeof reported.format === "string"
+      ? MEDIA_CLOUDINARY_FORMAT_TO_MIME[reported.format.toLowerCase()]
+      : undefined;
+  if (!mimeType) {
+    throw new UploadValidationError(
+      `Unsupported file type. Allowed: ${MEDIA_ALLOWED_MIME_TYPES.join(", ")}`
+    );
+  }
+
+  return {
+    ...verified,
+    bytes: reported.bytes,
+    mimeType,
+    width: Number.isFinite(reported.width) ? (reported.width as number) : verified.width,
+    height: Number.isFinite(reported.height) ? (reported.height as number) : verified.height,
+  };
+}
+
 /** Removes the asset from storage. Best-effort: logs and never throws. */
 export async function destroyAsset(publicId: string): Promise<void> {
   const config = getStorageConfig();

@@ -10,23 +10,31 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar, Clock, ArrowRight, User, ArrowLeft, Tag, ImageIcon } from "lucide-react";
 import {
   listPublishedBlogPosts,
+  listPublishedBlogSlugs,
   getPublishedBlogPostBySlug,
 } from "@/server/dal/blog";
 import { getSiteSettings } from "@/server/dal/settings";
+import { safeStaticParams } from "@/lib/static-params";
+import { fmtDate } from "@/lib/dates";
 import {
   buildMetadata,
   blogPostJsonLd,
   breadcrumbListJsonLd,
-  serializeJsonLd,
 } from "@/lib/seo";
+import { JsonLd } from "@/components/common/JsonLd";
 import { cn } from "@/lib/utils";
 
 type BlogPostVM = Awaited<ReturnType<typeof listPublishedBlogPosts>>[number]
 type TagVM = BlogPostVM['tags'][number]
 type BlogPostDetailVM = Awaited<ReturnType<typeof getPublishedBlogPostBySlug>>;
 
-export async function generateStaticParams() {
-  return listPublishedBlogPosts();
+/**
+ * Prerendered for every published post, so a crawler and a CDN hit get a static
+ * document (re-audit #1). A post published after the build is generated on
+ * request and cached; `invalidate("blog")` expires both the data and this page.
+ */
+export function generateStaticParams() {
+  return safeStaticParams("/blog/[slug]", listPublishedBlogSlugs);
 }
 
 export async function generateMetadata({
@@ -170,16 +178,8 @@ export default async function BlogPostPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: serializeJsonLd(blogPostJsonLd(postJsonLd, siteSettings)),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
-      />
+      <JsonLd data={blogPostJsonLd(postJsonLd, siteSettings)} />
+      <JsonLd data={breadcrumbJsonLd} />
       <div className="bg-neutral-50 border-b border-neutral-200">
         <Container size="xl" className="pt-4 pb-8 sm:pb-12">
           <Breadcrumbs
@@ -210,7 +210,7 @@ export default async function BlogPostPage({
               </span>
               <span className="inline-flex items-center gap-2">
                 <Calendar className="size-4 text-primary" aria-hidden="true" />
-                {new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-US", {
+                {fmtDate(post.publishedAt || post.createdAt, {
                   year: "numeric",
                   month: "long",
                   day: "numeric",

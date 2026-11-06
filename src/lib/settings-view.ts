@@ -12,9 +12,11 @@ import {
   type ContactSettings,
   type EveryCourseIncludesSettings,
   type FacilitiesSettings,
+  type FeesSettings,
   type GeneralSettings,
   type HeroSettings,
   type HoursSettings,
+  type RetentionSettings,
   type SettingsKey,
   type SocialsSettings,
   type StatsSettings,
@@ -67,6 +69,8 @@ export type SiteSettingsView = {
   whyChooseUs: WhyChooseUsSettings;
   facilities: FacilitiesSettings;
   everyCourseIncludes: EveryCourseIncludesSettings;
+  fees: FeesSettings;
+  retention: RetentionSettings;
 };
 
 /**
@@ -212,5 +216,7 @@ export function resolveSiteSettings(
     whyChooseUs: pick("whyChooseUs"),
     facilities: pick("facilities"),
     everyCourseIncludes: pick("everyCourseIncludes"),
+    fees: pick("fees"),
+    retention: pick("retention"),
   };
 }

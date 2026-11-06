@@ -8,7 +8,7 @@ import {
   honeypotField,
   nameSchema,
   optionalDateString,
-  optionalEmailSchema,
+  optionalPublicEmailSchema,
   pageParamSchema,
   phoneSchema,
   turnstileTokenSchema,
@@ -32,7 +32,7 @@ const consentField = z
 const inquiryFields = {
   fullName: nameSchema("Full name"),
   phone: phoneSchema,
-  email: optionalEmailSchema,
+  email: optionalPublicEmailSchema,
   courseSlug: z
     .string()
     .trim()
@@ -108,6 +108,58 @@ export const leadFilterSchema = z.object({
 export type LeadFilters = z.infer<typeof leadFilterSchema>;
 
 export const LEAD_PAGE_SIZE = 25;
+
+/**
+ * Export bounds (fix guide §11).
+ *
+ * "Download these leads" without a window is two problems wearing one hat: the
+ * query gets slower for as long as the institute keeps signing people up, and a
+ * single file then holds every phone number the college has ever collected. So
+ * an export names a date range, the range is capped, and the row count is capped
+ * with it — a caller who wants more narrows the window rather than widening the
+ * leak.
+ */
+export const LEAD_EXPORT_MAX_RANGE_DAYS = 92;
+export const LEAD_EXPORT_MAX_ROWS = 5000;
+
+export type LeadExportRange =
+  | { ok: true; from: Date; to: Date; windowDefaulted: boolean }
+  | { ok: false; error: string };
+
+function exportDate(value: string | undefined): Date | undefined {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+/**
+ * Resolves the window one export covers. An unset end is "now"; an unset start is
+ * as far back as an export is allowed to reach, which is what makes the
+ * no-filter case bounded instead of "everything".
+ */
+export function resolveLeadExportRange(
+  filters: Pick<LeadFilters, "from" | "to">,
+  now: Date = new Date()
+): LeadExportRange {
+  const maxSpanMs = LEAD_EXPORT_MAX_RANGE_DAYS * 24 * 60 * 60 * 1000;
+  const requestedTo = exportDate(filters.to);
+  const requestedFrom = exportDate(filters.from);
+
+  const to = requestedTo ?? now;
+  const from = requestedFrom ?? new Date(to.getTime() - maxSpanMs);
+
+  if (from.getTime() > to.getTime()) {
+    return { ok: false, error: 'The "from" date must be on or before the "to" date' };
+  }
+  if (to.getTime() - from.getTime() > maxSpanMs) {
+    return {
+      ok: false,
+      error: `An export covers at most ${LEAD_EXPORT_MAX_RANGE_DAYS} days. Narrow the date range and try again.`,
+    };
+  }
+
+  return { ok: true, from, to, windowDefaulted: !requestedFrom || !requestedTo };
+}
 
 /** Status stepper order used by the detail page (docs/05 §4.1). */
 export const LEAD_STATUS_FLOW = [

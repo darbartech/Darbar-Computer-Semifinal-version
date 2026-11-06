@@ -6,13 +6,17 @@ import { defineConfig, devices } from "@playwright/test";
  * `E2E_BASE_URL` lets CI point at a preview build instead of starting a server.
  * Locally the dev server is reused so a full `next build` is not needed for
  * every run — but note the dev server hits PostgreSQL, so the database must be
- * reachable (see `prisma/seed-test.ts` for the fixtures).
+ * reachable (see `prisma/seed-test.ts` for the fixtures, which also enrolls the
+ * gated roles with a test-only authenticator).
  */
-const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
+const baseURL = process.env.E2E_BASE_URL || "http://localhost:3001";
 const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: "./e2e",
+  // Traces, screenshots and the attachments that go with them, in one place —
+  // `/test-results/` is gitignored, so nothing from a failing run escapes.
+  outputDir: "./test-results",
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,

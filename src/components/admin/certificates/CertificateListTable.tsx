@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Badge } from "@/components/common/Badge";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { deleteCertificateAction } from "@/server/actions/certificates";
 import type {
   AdminCertificateListRow,
@@ -15,6 +16,7 @@ import type {
 } from "@/server/types/certificates";
 import { CERTIFICATE_STATUSES } from "@/server/types/certificates";
 import { CERTIFICATE_PAGE_SIZE } from "@/lib/validators/certificates";
+import { fmtDate } from "@/lib/dates";
 import { STATUS_VARIANT, statusLabel } from "./status";
 import { cn } from "@/lib/utils";
 
@@ -37,10 +39,7 @@ type Props = {
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-NP", {
-    dateStyle: "medium",
-    timeZone: "Asia/Kathmandu",
-  });
+  return fmtDate(iso, { dateStyle: "medium" });
 }
 
 export function CertificateListTable({
@@ -56,6 +55,7 @@ export function CertificateListTable({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { ask, dialog } = useConfirm();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
 
   const applyFilters = React.useCallback(
@@ -83,23 +83,32 @@ export function CertificateListTable({
 
   const onDelete = async (row: AdminCertificateListRow) => {
     if (!canDelete) return;
-    if (!window.confirm(`Delete draft certificate ${row.certificateNumber ?? "?"}? This cannot be undone.`)) return;
-    setPendingId(row.id);
-    try {
-      const result = await deleteCertificateAction({ id: row.id });
-      if (!result.ok) {
-        toast({ title: "Could not delete", description: result.error, variant: "error" });
-        return;
-      }
-      toast({
-        title: "Draft deleted",
-        description: "Certificate removed from the list.",
-        variant: "success",
-      });
-      router.refresh();
-    } finally {
-      setPendingId(null);
-    }
+    await ask({
+      title: "Delete draft certificate?",
+      description: (
+        <>
+          Draft <span className="font-medium text-neutral-900">{row.certificateNumber ?? "(not numbered yet)"}</span>{" "}
+          is deleted and its number is never used again. Only a draft can reach here — an issued
+          certificate is revoked instead, so the verification page keeps answering for it.
+        </>
+      ),
+      run: async () => {
+        setPendingId(row.id);
+        try {
+          const result = await deleteCertificateAction({ id: row.id });
+          if (!result.ok) return result.error;
+          toast({
+            title: "Draft deleted",
+            description: "Certificate removed from the list.",
+            variant: "success",
+          });
+          router.refresh();
+          return null;
+        } finally {
+          setPendingId(null);
+        }
+      },
+    });
   };
 
   const hasFilters = !!(filters.q || filters.status || filters.courseId);
@@ -341,6 +350,8 @@ export function CertificateListTable({
           </div>
         )}
       </div>
+
+      {dialog}
     </div>
   );
 }

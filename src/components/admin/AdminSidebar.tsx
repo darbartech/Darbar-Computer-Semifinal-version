@@ -7,6 +7,7 @@ import {
   UsersRound,
   MessageSquare,
   BookOpen,
+  CalendarDays,
   Layers,
   Newspaper,
   Calendar,
@@ -25,6 +26,8 @@ import {
   GraduationCap,
   ClipboardList,
   Megaphone,
+  Wallet,
+  BookOpenText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -54,6 +57,7 @@ type SidebarSection = {
 
 type SidebarCounts = {
   awaitingReview?: number;
+  openDues?: number;
 };
 
 function buildNav(counts: SidebarCounts): SidebarSection[] {
@@ -85,9 +89,27 @@ function buildNav(counts: SidebarCounts): SidebarSection[] {
       ],
     },
     {
+      label: "Finance",
+      items: [
+        {
+          label: "Fees & dues",
+          href: "/techdarbar/fees",
+          icon: Wallet,
+          permission: "fee.read",
+          badge: {
+            permission: "fee.read",
+            label: "unpaid",
+            count: counts.openDues,
+          },
+        },
+        { label: "Day book", href: "/techdarbar/fees/day-book", icon: BookOpenText, permission: "fee.read" },
+      ],
+    },
+    {
       label: "Catalog",
       items: [
         { label: "Courses", href: "/techdarbar/courses", icon: BookOpen, permission: "course.read" },
+        { label: "Batches", href: "/techdarbar/batches", icon: CalendarDays, permission: "batch.read" },
         {
           label: "Assignments",
           href: "/techdarbar/assignments",
@@ -143,6 +165,13 @@ interface SidebarNavProps {
 
 function SidebarNav({ role, pathname, counts = {}, onNavigate }: SidebarNavProps) {
   const sections = buildNav(counts);
+  // /techdarbar/fees/day-book is also "under" /techdarbar/fees, so the deepest
+  // matching link owns the highlight rather than both of them lighting up.
+  const deepestMatch = sections
+    .flatMap((section) => section.items.map((item) => item.href))
+    .filter((href) => href !== "/techdarbar")
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav className="flex flex-col gap-5 py-4">
@@ -163,7 +192,7 @@ function SidebarNav({ role, pathname, counts = {}, onNavigate }: SidebarNavProps
               const isActive =
                 item.href === "/techdarbar"
                   ? pathname === "/techdarbar"
-                  : pathname.startsWith(item.href);
+                  : deepestMatch === item.href;
               const Icon = item.icon;
               const showBadge =
                 item.badge &&
@@ -194,7 +223,7 @@ function SidebarNav({ role, pathname, counts = {}, onNavigate }: SidebarNavProps
                       title={
                         item.badge.count === undefined
                           ? undefined
-                          : `${item.badge.count} assignment link${item.badge.count === 1 ? "" : "s"} waiting for review`
+                          : `${item.badge.count} ${item.label.toLowerCase()}`
                       }
                     >
                       {item.badge.count ?? item.badge.label}
@@ -215,11 +244,12 @@ interface AdminSidebarProps {
   siteName: string;
   logoUrl?: string | null;
   awaitingReview?: number;
+  openDues?: number;
 }
 
-export function AdminSidebar({ role, siteName, logoUrl, awaitingReview }: AdminSidebarProps) {
+export function AdminSidebar({ role, siteName, logoUrl, awaitingReview, openDues }: AdminSidebarProps) {
   const pathname = usePathname() ?? "";
-  const counts: SidebarCounts = { awaitingReview };
+  const counts: SidebarCounts = { awaitingReview, openDues };
 
   return (
     <>

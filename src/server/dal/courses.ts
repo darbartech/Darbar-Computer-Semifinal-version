@@ -9,6 +9,7 @@ import type {
 } from "../../generated/prisma/client";
 import { db } from "../db";
 import { cached } from "../cache";
+import { ADMIN_PICKER_LIMIT } from "../constants";
 import { toCourseView, type CourseRow } from "./mappers";
 import {
   COURSE_PAGE_SIZE,
@@ -334,13 +335,16 @@ export async function adminGetCourse(id: string): Promise<AdminCourseDetail | nu
   };
 }
 
-/** Every published slug, for `generateStaticParams()` on `/courses/[slug]`. */
+/**
+ * Every published slug, for `generateStaticParams()` on `/courses/[slug]` and for
+ * the sitemap, which needs `updatedAt` to say when the course really changed.
+ */
 export const listPublishedCourseSlugs = cached(
   ["courses"],
-  async (): Promise<{ slug: string }[]> => {
+  async (): Promise<{ slug: string; updatedAt: Date }[]> => {
     return db.course.findMany({
       where: { status: "PUBLISHED" },
-      select: { slug: true },
+      select: { slug: true, updatedAt: true },
       orderBy: [...publicOrderBy],
     });
   }
@@ -353,6 +357,7 @@ export async function listPublishedCourseOptions(): Promise<
   return db.course.findMany({
     where: { status: "PUBLISHED" },
     orderBy: { title: "asc" },
+    take: ADMIN_PICKER_LIMIT,
     select: { id: true, title: true },
   });
 }
@@ -375,6 +380,7 @@ export type AdminCourseSimple = {
 export async function adminListCoursesSimple(): Promise<AdminCourseSimple[]> {
   return db.course.findMany({
     orderBy: { title: "asc" },
+    take: ADMIN_PICKER_LIMIT,
     select: {
       id: true,
       title: true,
@@ -393,6 +399,7 @@ export async function listAdminCourseSlugs(): Promise<
 > {
   return db.course.findMany({
     orderBy: { title: "asc" },
+    take: ADMIN_PICKER_LIMIT,
     select: { id: true, slug: true, title: true },
   });
 }

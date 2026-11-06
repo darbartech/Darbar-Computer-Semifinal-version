@@ -1,0 +1,20 @@
+# Prettier is a formatter, not a linter: it never has to look at generated or
+# vendored output, and reformatting those would be pure noise.
+node_modules/
+.next/
+out/
+build/
+coverage/
+test-results/
+playwright-report/
+src/generated/
+prisma/migrations/
+public/uploads/
+storage/
+certificate-docs/
+DarbarTech_Programmable_Certificate_System_Documentation/
+.kilo/
+.trae/
+package-lock.json
+*.md
+*.mdx
